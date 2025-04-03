@@ -75,12 +75,13 @@ struct RenderObject {
 
     RenderObject(const std::vector<GLfloat>& vertices, const std::vector<GLuint>& indices) {
         glGenVertexArrays(1, &vao);
-        glGenBuffers(1, &vbo);
-        glGenBuffers(1, &ebo);
-
         glBindVertexArray(vao);
+
+        glGenBuffers(1, &vbo);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(GLfloat), vertices.data(), GL_STATIC_DRAW);
+
+        glGenBuffers(1, &ebo);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
 
@@ -117,7 +118,11 @@ int main() {
     }
 
     glfwMakeContextCurrent(window);
-    glewInit();
+    if (glewInit() != GLEW_OK) {
+        std::cerr << "Failed to initialize GLEW" << std::endl;
+        glfwTerminate();
+        return -1;
+    }
 
     // Initialize ImGui
     IMGUI_CHECKVERSION();
@@ -128,11 +133,11 @@ int main() {
     // Shader program
     GLuint shaderProgram = createShaderProgram();
 
-    // Rocket geometry
+    // Rocket geometry (increased size)
     std::vector<GLfloat> rocketVertices = {
-        0.0f, 0.0f, 0.0f,  // Bottom
-        0.0f, 10.0f, 0.0f, // Top
-        2.0f, 0.0f, 0.0f   // Right
+        0.0f, 0.0f, 0.0f,    // Bottom
+        0.0f, 100.0f, 0.0f,   // Top (increased from 10 to 100)
+        20.0f, 0.0f, 0.0f     // Right (increased from 2 to 20)
     };
     std::vector<GLuint> rocketIndices = {0, 1, 2};
     RenderObject rocket(rocketVertices, rocketIndices);
@@ -148,8 +153,8 @@ int main() {
     RenderObject ground(groundVertices, groundIndices);
 
     // Simulation state
-    glm::vec3 rocketPos(0.0f, 6371.0f, 0.0f);
-    float cameraDistance = 2000.0f;
+    glm::vec3 rocketPos(0.0f, 0.0f, 0.0f); // Start at ground level
+    float cameraDistance = 200.0f;         // Closer camera (was 2000)
     float timeScale = 1.0f;
 
     glEnable(GL_DEPTH_TEST);
@@ -168,10 +173,10 @@ int main() {
             timeScale = std::max(timeScale - 0.1f, 0.1f);
         }
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-            cameraDistance = std::max(cameraDistance - 100.0f, 500.0f);
+            cameraDistance = std::max(cameraDistance - 10.0f, 500.0f); // Smaller step, closer min
         }
         if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-            cameraDistance = std::min(cameraDistance + 100.0f, 5000.0f);
+            cameraDistance = std::min(cameraDistance + 10.0f, 3000.0f); // Smaller step, closer max
         }
 
         // Clear screen
@@ -186,9 +191,8 @@ int main() {
 
         glUseProgram(shaderProgram);
 
-        glm::vec3 scaledPos = rocketPos / 1000.0f;
-        glm::vec3 cameraPos(0.0f, 6371.0f + cameraDistance, cameraDistance);
-        glm::mat4 view = glm::lookAt(cameraPos, glm::vec3(0.0f, 6371.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        glm::vec3 cameraPos(0.0f, cameraDistance, cameraDistance);
+        glm::mat4 view = glm::lookAt(cameraPos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)width / sceneHeight, 0.1f, cameraDistance * 2.0f);
 
         GLint viewLoc = glGetUniformLocation(shaderProgram, "view");
@@ -200,14 +204,14 @@ int main() {
         glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
         // Render ground
-        glm::mat4 groundModel = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 6371.0f, 0.0f));
+        glm::mat4 groundModel = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(groundModel));
         glUniform4f(colorLoc, 0.0f, 0.8f, 0.0f, 1.0f);
         glBindVertexArray(ground.vao);
         glDrawElements(GL_TRIANGLES, ground.indexCount, GL_UNSIGNED_INT, nullptr);
 
         // Render rocket
-        glm::mat4 rocketModel = glm::translate(glm::mat4(1.0f), scaledPos);
+        glm::mat4 rocketModel = glm::translate(glm::mat4(1.0f), rocketPos);
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(rocketModel));
         glUniform4f(colorLoc, 0.8f, 0.8f, 0.8f, 1.0f);
         glBindVertexArray(rocket.vao);
