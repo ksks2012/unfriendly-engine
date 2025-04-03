@@ -2,10 +2,9 @@
 
 #include "app.h"
 
-App::App(const std::string& title, int width, int height) : inputHandler(nullptr), ui(nullptr) {
-    if (!glfwInit()) {
+App::App(const std::string& title, int width, int height) : window(nullptr) {
+    if (!glfwInit()) 
         throw std::runtime_error("Failed to initialize GLFW");
-    }
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -50,8 +49,7 @@ void App::run() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         simulation.render(shader);
-
-        ui->render(simulation.getTimeScale(), width, height);
+        ui->render(simulation.getTimeScale(), simulation.getRocket(), width, height);
         glfwSwapBuffers(window);
     }
 }

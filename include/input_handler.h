@@ -4,6 +4,7 @@
 #include "simulation.h"
 
 #include <GLFW/glfw3.h>
+#include <unordered_map>
 
 class InputHandler {
 public:
@@ -13,6 +14,7 @@ public:
 
 private:
     GLFWwindow* window;
+    std::unordered_map<int, double> lastPressTimes;
 };
 
 #endif

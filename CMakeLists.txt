@@ -14,6 +14,7 @@ set(SOURCES
     src/simulation.cpp
     src/shader.cpp
     src/render_object.cpp
+    src/rocket.cpp
     src/input_handler.cpp
     src/ui.cpp
     lib/imgui/imgui.cpp

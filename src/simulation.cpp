@@ -2,17 +2,13 @@
 
 #include <iostream>
 
-Simulation::Simulation() : rocketPos(0.0f, 0.0f, 0.0f), cameraDistance(200.0f), timeScale(1.0f) {
+Simulation::Simulation() : cameraDistance(200.0f), timeScale(1.0f) {
 }
 
+Simulation::~Simulation() = default;
+
 void Simulation::init() {
-    std::vector<GLfloat> rocketVertices = {
-        0.0f, 0.0f, 0.0f,
-        0.0f, 100.0f, 0.0f,
-        20.0f, 0.0f, 0.0f
-    };
-    std::vector<GLuint> rocketIndices = {0, 1, 2};
-    rocket = std::make_unique<RenderObject>(rocketVertices, rocketIndices);
+    rocket.init();
 
     std::vector<GLfloat> groundVertices = {
         -500.0f, 0.0f, -500.0f,
@@ -38,7 +34,6 @@ void Simulation::render(const Shader& shader) const {
     glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)width / sceneHeight, 0.1f, cameraDistance * 2.0f);
 
     shader.use();
-
     shader.setMat4("view", view);
     shader.setMat4("projection", projection);
 
@@ -48,13 +43,11 @@ void Simulation::render(const Shader& shader) const {
     ground->render();
 
     // Render rocket
-    shader.setMat4("model", glm::translate(glm::mat4(1.0f), rocketPos));
-    shader.setVec4("color", glm::vec4(0.8f, 0.8f, 0.8f, 1.0f));
-    rocket->render();
+    rocket.render(shader);
 
     GLenum err = glGetError();
     if (err != GL_NO_ERROR) {
-        std::cerr << "OpenGL error: " << err << std::endl;
+        std::cerr << "OpenGL error in Simulation::render: " << err << std::endl;
     }
 }
 
@@ -72,4 +65,8 @@ void Simulation::adjustCameraDistance(float delta) {
 
 float Simulation::getTimeScale() const { 
     return timeScale; 
+}
+
+Rocket& Simulation::getRocket() { 
+    return rocket; 
 }

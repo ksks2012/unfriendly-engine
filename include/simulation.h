@@ -2,6 +2,7 @@
 #define SIMULATION_HPP
 
 #include "render_object.h"
+#include "rocket.h"
 #include "shader.h"
 
 #include <memory>
@@ -13,6 +14,7 @@
 class Simulation {
 public:
     Simulation();
+    ~Simulation();
 
     void init();
     void update();
@@ -22,10 +24,11 @@ public:
     void adjustTimeScale(float);
     void adjustCameraDistance(float);
     float getTimeScale() const;
+    Rocket& getRocket();
 
 private:
-    std::unique_ptr<RenderObject> rocket, ground;
-    glm::vec3 rocketPos;
+    std::unique_ptr<RenderObject> ground;
+    Rocket rocket;
     float cameraDistance;
     float timeScale;
 };

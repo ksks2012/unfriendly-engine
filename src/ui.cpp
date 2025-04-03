@@ -1,6 +1,8 @@
 #include "ui.h"
 
-UI::UI(GLFWwindow* window) {
+#include <glm/gtx/string_cast.hpp>
+
+UI::UI(GLFWwindow* win) : window(win) {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGui_ImplGlfw_InitForOpenGL(window, true);
@@ -9,7 +11,7 @@ UI::UI(GLFWwindow* window) {
 
 UI::~UI() = default;
 
-void UI::render(float timeScale, int width, int height) {
+void UI::render(float timeScale, const Rocket& rocket, int width, int height) {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
@@ -19,6 +21,10 @@ void UI::render(float timeScale, int width, int height) {
     ImGui::SetNextWindowSize(ImVec2(width - 20, height * 0.2f - 20));
     ImGui::Begin("Simulation Info", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
     ImGui::Text("Time Scale: %.1f", timeScale);
+    ImGui::Text("Rocket Position: %s", glm::to_string(rocket.getPosition()).c_str());
+    ImGui::Text("Rocket Velocity: %s", glm::to_string(rocket.getVelocity()).c_str());
+    ImGui::Text("Time: %.1f s", rocket.getTime());
+    ImGui::Text("Launched: %s", rocket.isLaunched() ? "Yes" : "No");
     ImGui::End();
 
     ImGui::Render();
