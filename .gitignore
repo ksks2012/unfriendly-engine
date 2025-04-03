@@ -5,5 +5,11 @@
 **/dataset/**
 **/build/**
 **/test_code/**
+**/bin/**
 
 **/**.o
+**/**.so
+**/**.a
+**/**.out
+**/**.exe
+**/**.ini
