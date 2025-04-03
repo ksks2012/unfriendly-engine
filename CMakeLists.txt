@@ -7,7 +7,8 @@ find_package(OpenGL REQUIRED)
 find_package(glfw3 REQUIRED)
 find_package(GLEW REQUIRED)
 
-add_executable(RocketSimulation main.cpp
+add_executable(RocketSimulation 
+    main.cpp
     imgui/imgui.cpp
     imgui/imgui_draw.cpp
     imgui/imgui_widgets.cpp
