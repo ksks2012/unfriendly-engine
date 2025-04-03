@@ -10,6 +10,12 @@ find_package(GLEW REQUIRED)
 # Source files
 set(SOURCES
     src/main.cpp
+    src/app.cpp
+    src/simulation.cpp
+    src/shader.cpp
+    src/render_object.cpp
+    src/input_handler.cpp
+    src/ui.cpp
     lib/imgui/imgui.cpp
     lib/imgui/imgui_draw.cpp
     lib/imgui/imgui_widgets.cpp
