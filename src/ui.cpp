@@ -21,8 +21,12 @@ void UI::render(float timeScale, const Rocket& rocket, int width, int height) {
     ImGui::SetNextWindowSize(ImVec2(width - 20, height * 0.2f - 20));
     ImGui::Begin("Simulation Info", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
     ImGui::Text("Time Scale: %.1f", timeScale);
-    ImGui::Text("Rocket Position: %s", glm::to_string(rocket.getPosition()).c_str());
-    ImGui::Text("Rocket Velocity: %s", glm::to_string(rocket.getVelocity()).c_str());
+    ImGui::Text("Mass: %.1f kg", rocket.getMass());
+    ImGui::Text("Fuel Mass: %.1f kg", rocket.getFuelMass());
+    ImGui::Text("Thrust: %.1f N", rocket.getThrust());
+    ImGui::Text("Exhaust Velocity: %.1f m/s", rocket.getExhaustVelocity());
+    ImGui::Text("Position: %s", glm::to_string(rocket.getPosition()).c_str());
+    ImGui::Text("Velocity: %s", glm::to_string(rocket.getVelocity()).c_str());
     ImGui::Text("Time: %.1f s", rocket.getTime());
     ImGui::Text("Launched: %s", rocket.isLaunched() ? "Yes" : "No");
     ImGui::End();

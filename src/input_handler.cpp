@@ -25,10 +25,10 @@ void InputHandler::process(Simulation& sim) {
     if (isKeyPressedWithCooldown(GLFW_KEY_E, 0.05)) {
         sim.adjustTimeScale(-0.1f);
     }
-    if (isKeyPressedWithCooldown(GLFW_KEY_W, 0.05)) {
+    if (isKeyPressedWithCooldown(GLFW_KEY_W, 0.01)) {
         sim.adjustCameraDistance(-10.0f);
     }
-    if (isKeyPressedWithCooldown(GLFW_KEY_S, 0.05)) {
+    if (isKeyPressedWithCooldown(GLFW_KEY_S, 0.01)) {
         sim.adjustCameraDistance(10.0f);
     }
     if (isKeyPressedWithCooldown(GLFW_KEY_SPACE, 0.2)) {

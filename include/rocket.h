@@ -12,8 +12,9 @@ public:
     Rocket();
 
     void init();
+    void update(float);
     
-    void render(const Shader& shader) const;
+    void render(const Shader&) const;
     void toggleLaunch();
     void resetTime();
 
@@ -22,13 +23,21 @@ public:
     glm::vec3 getVelocity() const;
     float getTime() const;
     bool isLaunched() const;
+    float getMass() const;
+    float getFuelMass() const;
+    float getThrust() const;
+    float getExhaustVelocity() const;
 
 private:
     std::unique_ptr<RenderObject> renderObject;
-    glm::vec3 position;
-    glm::vec3 velocity;
-    float time;
-    bool launched;
+    float mass;             // Total mass of the rocket (kg)
+    float fuel_mass;        // Fuel mass (kg)
+    float thrust;           // Thrust (N)
+    float exhaust_velocity; // Exhaust velocity (m/s)
+    glm::vec3 position;     // Position (m)
+    glm::vec3 velocity;     // Velocity (m/s)
+    float time;             // Time (s)
+    bool launched;          // Whether the rocket is launched
 };
 
 #endif

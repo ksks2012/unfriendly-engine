@@ -1,15 +1,13 @@
-#ifndef SIMULATION_HPP
-#define SIMULATION_HPP
+#ifndef SIMULATION_H
+#define SIMULATION_H
 
 #include "render_object.h"
 #include "rocket.h"
 #include "shader.h"
-
-#include <memory>
-#include <vector>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <GLFW/glfw3.h>
+#include <memory>
 
 class Simulation {
 public:
@@ -17,7 +15,7 @@ public:
     ~Simulation();
 
     void init();
-    void update();
+    void update(float deltaTime);
     void render(const Shader&) const;
 
     void setTimeScale(float);

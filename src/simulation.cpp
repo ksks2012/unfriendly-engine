@@ -20,8 +20,8 @@ void Simulation::init() {
     ground = std::make_unique<RenderObject>(groundVertices, groundIndices);
 }
 
-void Simulation::update() {
-    // TODO: Future physics updates go here
+void Simulation::update(float deltaTime) {
+    rocket.update(deltaTime * timeScale);
 }
 
 void Simulation::render(const Shader& shader) const {

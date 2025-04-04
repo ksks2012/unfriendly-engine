@@ -36,11 +36,16 @@ App::~App() {
 }
 
 void App::run() {
+    double lastTime = glfwGetTime();
     while (!glfwWindowShouldClose(window)) {
+        double currentTime = glfwGetTime();
+        float deltaTime = static_cast<float>(currentTime - lastTime);
+        lastTime = currentTime;
+
         glfwPollEvents();
         inputHandler->process(simulation);
 
-        simulation.update();
+        simulation.update(deltaTime);
 
         int width, height;
         glfwGetFramebufferSize(window, &width, &height);
