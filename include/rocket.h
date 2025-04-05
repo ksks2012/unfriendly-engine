@@ -7,6 +7,11 @@
 #include <glm/glm.hpp>
 #include <memory>
 
+struct State {
+    glm::vec3 position;
+    glm::vec3 velocity;
+};
+
 class Rocket {
 public:
     Rocket();
@@ -27,6 +32,9 @@ public:
     float getFuelMass() const;
     float getThrust() const;
     float getExhaustVelocity() const;
+
+private:
+    glm::vec3 computeAcceleration(const State&, float) const;
 
 private:
     std::unique_ptr<RenderObject> renderObject;
