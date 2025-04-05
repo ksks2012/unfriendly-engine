@@ -25,12 +25,13 @@ void UI::render(float timeScale, const Rocket& rocket, int width, int height) {
     ImGui::Text("Fuel Mass: %.1f kg", rocket.getFuelMass());
     ImGui::Text("Thrust: %.1f N", rocket.getThrust());
     ImGui::Text("Exhaust Velocity: %.1f m/s", rocket.getExhaustVelocity());
-    ImGui::Text("Position: %s", glm::to_string(rocket.getPosition()).c_str());
+    ImGui::Text("Position (Geocentric): %s", glm::to_string(rocket.getPosition()).c_str());
     ImGui::Text("Velocity: %s", glm::to_string(rocket.getVelocity()).c_str());
+    ImGui::Text("Altitude: %.1f m", glm::length(rocket.getPosition()) - 6371000.0f);
     ImGui::Text("Time: %.1f s", rocket.getTime());
     ImGui::Text("Launched: %s", rocket.isLaunched() ? "Yes" : "No");
     ImGui::End();
-
+    
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
