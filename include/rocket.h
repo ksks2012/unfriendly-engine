@@ -7,12 +7,28 @@
 #include <glm/glm.hpp>
 #include <memory>
 
-struct State {
-    glm::vec3 position;
-    glm::vec3 velocity;
-};
 
 class Rocket {
+private:
+    struct State {
+        glm::vec3 position;
+        glm::vec3 velocity;
+    };
+
+    std::unique_ptr<RenderObject> renderObject;
+    float mass;             // Total mass of the rocket (kg)
+    float fuel_mass;        // Fuel mass (kg)
+    float thrust;           // Thrust (N)
+    float exhaust_velocity; // Exhaust velocity (m/s)
+    glm::vec3 position;     // Position (m)
+    glm::vec3 velocity;     // Velocity (m/s)
+    float time;             // Time (s)
+    bool launched;          // Whether the rocket is launched
+
+    const float G = 6.674e-11f;     // Gravitational constant
+    const float M = 5.972e24f;      // Earth's mass
+    const float R_e = 6371000.0f;   // Earth's radius
+
 public:
     Rocket();
 
@@ -35,17 +51,6 @@ public:
 
 private:
     glm::vec3 computeAcceleration(const State&, float) const;
-
-private:
-    std::unique_ptr<RenderObject> renderObject;
-    float mass;             // Total mass of the rocket (kg)
-    float fuel_mass;        // Fuel mass (kg)
-    float thrust;           // Thrust (N)
-    float exhaust_velocity; // Exhaust velocity (m/s)
-    glm::vec3 position;     // Position (m)
-    glm::vec3 velocity;     // Velocity (m/s)
-    float time;             // Time (s)
-    bool launched;          // Whether the rocket is launched
 };
 
 #endif

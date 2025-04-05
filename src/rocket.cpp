@@ -1,17 +1,12 @@
 #include "rocket.h"
 #include <vector>
+#include <cmath>
 
 Rocket::Rocket() 
-    : mass(1000.0f),
-      fuel_mass(500.0f),
-      thrust(15000.0f),
-      exhaust_velocity(3000.0f),
-      position(0.0f, 0.0f, 0.0f),
-      velocity(0.0f, 0.0f, 0.0f),
-      time(0.0f),
-      launched(false) {
+    : mass(1000.0f), fuel_mass(500.0f), thrust(15000.0f), exhaust_velocity(3000.0f),
+      position(0.0f, 6371000.0f, 0.0f), // Initially on the surface (R_e = 6371 km)
+      velocity(0.0f), time(0.0f), launched(false) {
 }
-
 void Rocket::init() {
     std::vector<GLfloat> vertices = {
         0.0f, 0.0f, 0.0f,
@@ -23,39 +18,33 @@ void Rocket::init() {
 }
 
 glm::vec3 Rocket::computeAcceleration(const State& state, float currentMass) const {
-    const float gravity = 9.8f;
-    
-    // Thrust acceleration (Y-axis only)
+    // Gravitational force
+    float r = glm::length(state.position);
+    glm::vec3 gravity_acc = - (G * M / (r * r * r)) * state.position;
+
+    // Thrust (assumed along the rocket's current direction, simplified as vertically upward)
     glm::vec3 thrust_acc(0.0f);
     if (fuel_mass > 0.0f && currentMass > 0.0f) {
-        thrust_acc.y = thrust / currentMass;
+        glm::vec3 thrust_dir = glm::normalize(state.position); // Pointing radially outward
+        thrust_acc = (thrust / currentMass) * thrust_dir;
     }
 
-    glm::vec3 gravity_acc(0.0f, -gravity, 0.0f);
-
-    // Air drag
+    // Air resistance (significant below 100 km altitude)
     const float rho_0 = 1.225f, H = 8000.0f, Cd = 0.3f, A = 1.0f;
-    float rho = rho_0 * std::exp(-state.position.y / H);
-    float v_magnitude = glm::length(state.velocity);
+    float altitude = r - R_e;
     glm::vec3 drag_acc(0.0f);
-    if (v_magnitude > 0.0f) {
-        glm::vec3 v_unit = state.velocity / v_magnitude;
-        float drag_force = 0.5f * rho * Cd * A * v_magnitude * v_magnitude;
-        drag_acc = -drag_force * v_unit / currentMass;
+    // Significant atmosphere below 100 km
+    if (altitude < 100000.0f) { 
+        float rho = rho_0 * std::exp(-altitude / H);
+        float v_magnitude = glm::length(state.velocity);
+        if (v_magnitude > 0.0f) {
+            glm::vec3 v_unit = state.velocity / v_magnitude;
+            float drag_force = 0.5f * rho * Cd * A * v_magnitude * v_magnitude;
+            drag_acc = -drag_force * v_unit / currentMass;
+        }
     }
 
-    // Wind force (assume horizontal wind speed of 5 m/s)
-    const glm::vec3 wind_velocity(0.0f, 0.0f, 0.0f);
-    glm::vec3 relative_velocity = state.velocity - wind_velocity;
-    float rv_magnitude = glm::length(relative_velocity);
-    glm::vec3 wind_drag_acc(0.0f);
-    if (rv_magnitude > 0.0f) {
-        glm::vec3 rv_unit = relative_velocity / rv_magnitude;
-        float wind_drag_force = 0.5f * rho * Cd * A * rv_magnitude * rv_magnitude;
-        wind_drag_acc = -wind_drag_force * rv_unit / currentMass;
-    }
-
-    return thrust_acc + gravity_acc + drag_acc + wind_drag_acc;
+    return gravity_acc + thrust_acc + drag_acc;
 }
 
 void Rocket::update(float deltaTime) {
@@ -99,25 +88,28 @@ void Rocket::update(float deltaTime) {
         mass = mass - delta_fuel;
     }
 
-    // Ground collision detection
-    if (position.y <= 0.0f && velocity.y < 0.0f) {
-        position.y = 0.0f;
+    // Collision detection (prevent passing through Earth's surface)
+    float r = glm::length(position);
+    if (r < R_e) {
+        position = glm::normalize(position) * R_e;
         velocity = glm::vec3(0.0f);
         launched = false;
     }
 }
 
 void Rocket::render(const Shader& shader) const {
-    shader.setMat4("model", glm::translate(glm::mat4(1.0f), position));
+    // Convert geocentric coordinates to local coordinates relative to the surface for rendering
+    float altitude = glm::length(position) - 6371000.0f;
+    glm::vec3 renderPos(position.x, altitude, position.z);
+    shader.setMat4("model", glm::translate(glm::mat4(1.0f), renderPos));
     shader.setVec4("color", glm::vec4(0.8f, 0.8f, 0.8f, 1.0f));
-    if (renderObject) {
-        renderObject->render();
-    }
+    if (renderObject) renderObject->render();
 }
 
 void Rocket::toggleLaunch() {
     launched = !launched;
     // NOTE: Wind force can be added here if needed
+    // NOTE: Initial horizontal velocity to enter orbit (approximately the first cosmic velocity)
     if (!launched) {
         resetTime();
         velocity = glm::vec3(0.0f); // Reset velocity
