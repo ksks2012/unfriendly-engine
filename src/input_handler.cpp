@@ -26,10 +26,10 @@ void InputHandler::process(Simulation& sim) {
         sim.adjustTimeScale(-0.1f);
     }
     if (isKeyPressedWithCooldown(GLFW_KEY_W, 0.01)) {
-        sim.adjustCameraDistance(-10.0f);
+        sim.adjustCameraDistance(-100.0f);
     }
     if (isKeyPressedWithCooldown(GLFW_KEY_S, 0.01)) {
-        sim.adjustCameraDistance(10.0f);
+        sim.adjustCameraDistance(100.0f);
     }
     if (isKeyPressedWithCooldown(GLFW_KEY_SPACE, 0.2)) {
         sim.getRocket().toggleLaunch();

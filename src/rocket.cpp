@@ -8,10 +8,13 @@ Rocket::Rocket()
       velocity(0.0f), time(0.0f), launched(false) {
 }
 void Rocket::init() {
+    const float scale = 0.001f; // Consistent with Earth, 1 m = 0.001 units
+    glm::vec3 renderPos = position * scale;
+
     std::vector<GLfloat> vertices = {
         0.0f, 0.0f, 0.0f,
-        0.0f, 100.0f, 0.0f,
-        20.0f, 0.0f, 0.0f
+        0.0f, 1000.0f, 0.0f,
+        200.0f, 0.0f, 0.0f
     };
     std::vector<GLuint> indices = {0, 1, 2};
     renderObject = std::make_unique<RenderObject>(vertices, indices);
@@ -100,7 +103,7 @@ void Rocket::update(float deltaTime) {
 void Rocket::render(const Shader& shader) const {
     // Convert geocentric coordinates to local coordinates relative to the surface for rendering
     float altitude = glm::length(position) - 6371000.0f;
-    glm::vec3 renderPos(position.x, altitude, position.z);
+    glm::vec3 renderPos(position.x, altitude + 6371, position.z);
     shader.setMat4("model", glm::translate(glm::mat4(1.0f), renderPos));
     shader.setVec4("color", glm::vec4(0.8f, 0.8f, 0.8f, 1.0f));
     if (renderObject) renderObject->render();
