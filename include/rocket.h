@@ -28,6 +28,7 @@ private:
     const float G = 6.674e-11f;     // Gravitational constant
     const float M = 5.972e24f;      // Earth's mass
     const float R_e = 6371000.0f;   // Earth's radius
+    const float scale = 0.001f; // Consistent with Earth, 1 m = 0.001 units
 
 public:
     Rocket();
