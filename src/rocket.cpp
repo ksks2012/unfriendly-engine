@@ -2,6 +2,8 @@
 #include <vector>
 #include <cmath>
 
+#include <iostream>
+
 Rocket::Rocket() 
     : mass(1000.0f), fuel_mass(500.0f), thrust(15000.0f), exhaust_velocity(3000.0f),
       position(0.0f, 6371000.0f, 0.0f), // Initially on the surface (R_e = 6371 km)
