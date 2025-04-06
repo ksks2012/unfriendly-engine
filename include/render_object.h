@@ -11,6 +11,7 @@ public:
     ~RenderObject();
 
     void render() const;
+    GLuint getVao() const;
 
 private:
     GLuint vao, vbo, ebo;

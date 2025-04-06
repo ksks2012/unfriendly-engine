@@ -16,6 +16,9 @@ private:
     };
 
     std::unique_ptr<RenderObject> renderObject;
+    std::unique_ptr<RenderObject> trajectoryObject; // Trajectory rendering object
+    std::vector<glm::vec3> trajectoryPoints;       // Trajectory points
+
     float mass;             // Total mass of the rocket (kg)
     float fuel_mass;        // Fuel mass (kg)
     float thrust;           // Thrust (N)
@@ -29,6 +32,8 @@ private:
     const float M = 5.972e24f;      // Earth's mass
     const float R_e = 6371000.0f;   // Earth's radius
     const float scale = 0.001f; // Consistent with Earth, 1 m = 0.001 units
+
+    float trajectorySampleTime; // Trajectory sampling timer
 
 public:
     Rocket();
@@ -50,8 +55,12 @@ public:
     float getThrust() const;
     float getExhaustVelocity() const;
 
+    const std::vector<glm::vec3>& getTrajectoryPoints() const;
+
 private:
     glm::vec3 computeAcceleration(const State&, float) const;
+    void updateTrajectory();
+    glm::vec3 offsetPosition() const;
 };
 
 #endif
