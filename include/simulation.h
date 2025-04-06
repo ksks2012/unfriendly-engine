@@ -25,7 +25,7 @@ public:
     Rocket& getRocket();
 
 private:
-    std::unique_ptr<RenderObject> ground;
+    std::unique_ptr<RenderObject> earth;
     Rocket rocket;
     float cameraDistance;
     float timeScale;

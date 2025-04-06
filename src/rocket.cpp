@@ -8,43 +8,19 @@ Rocket::Rocket()
       velocity(0.0f), time(0.0f), launched(false) {
 }
 void Rocket::init() {
+    glm::vec3 renderPos = position * scale;
+
     std::vector<GLfloat> vertices = {
         0.0f, 0.0f, 0.0f,
-        0.0f, 100.0f, 0.0f,
-        20.0f, 0.0f, 0.0f
+        0.0f, 1000.0f, 0.0f,
+        200.0f, 0.0f, 0.0f
     };
     std::vector<GLuint> indices = {0, 1, 2};
     renderObject = std::make_unique<RenderObject>(vertices, indices);
-}
 
-glm::vec3 Rocket::computeAcceleration(const State& state, float currentMass) const {
-    // Gravitational force
-    float r = glm::length(state.position);
-    glm::vec3 gravity_acc = - (G * M / (r * r * r)) * state.position;
-
-    // Thrust (assumed along the rocket's current direction, simplified as vertically upward)
-    glm::vec3 thrust_acc(0.0f);
-    if (fuel_mass > 0.0f && currentMass > 0.0f) {
-        glm::vec3 thrust_dir = glm::normalize(state.position); // Pointing radially outward
-        thrust_acc = (thrust / currentMass) * thrust_dir;
-    }
-
-    // Air resistance (significant below 100 km altitude)
-    const float rho_0 = 1.225f, H = 8000.0f, Cd = 0.3f, A = 1.0f;
-    float altitude = r - R_e;
-    glm::vec3 drag_acc(0.0f);
-    // Significant atmosphere below 100 km
-    if (altitude < 100000.0f) { 
-        float rho = rho_0 * std::exp(-altitude / H);
-        float v_magnitude = glm::length(state.velocity);
-        if (v_magnitude > 0.0f) {
-            glm::vec3 v_unit = state.velocity / v_magnitude;
-            float drag_force = 0.5f * rho * Cd * A * v_magnitude * v_magnitude;
-            drag_acc = -drag_force * v_unit / currentMass;
-        }
-    }
-
-    return gravity_acc + thrust_acc + drag_acc;
+    // Initialize trajectory (empty data)
+    trajectoryPoints.reserve(1000); // Reserve space
+    trajectoryObject = std::make_unique<RenderObject>(std::vector<GLfloat>(), std::vector<GLuint>());
 }
 
 void Rocket::update(float deltaTime) {
@@ -53,6 +29,13 @@ void Rocket::update(float deltaTime) {
     time += deltaTime;
     float fuel_consumption_rate = thrust / exhaust_velocity;
     float delta_fuel = fuel_consumption_rate * deltaTime;
+
+    trajectorySampleTime += deltaTime;
+    // Record trajectory every 0.1 seconds
+    if (trajectorySampleTime >= 0.1f) {
+        updateTrajectory();
+        trajectorySampleTime = 0.0f;
+    }
 
     // Initial state
     State current = {position, velocity};
@@ -99,18 +82,35 @@ void Rocket::update(float deltaTime) {
 
 void Rocket::render(const Shader& shader) const {
     // Convert geocentric coordinates to local coordinates relative to the surface for rendering
-    float altitude = glm::length(position) - 6371000.0f;
-    glm::vec3 renderPos(position.x, altitude, position.z);
-    shader.setMat4("model", glm::translate(glm::mat4(1.0f), renderPos));
+    shader.setMat4("model", glm::translate(glm::mat4(1.0f), offsetPosition()));
     shader.setVec4("color", glm::vec4(0.8f, 0.8f, 0.8f, 1.0f));
-    if (renderObject) renderObject->render();
+    if (renderObject) 
+        renderObject->render();
+
+    // Render trajectory
+    shader.setMat4("model", glm::mat4(1.0f));
+    shader.setVec4("color", glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+    if (trajectoryObject && !trajectoryPoints.empty()) {
+        // Set before rendering
+        glLineWidth(5.0f); 
+        glBindVertexArray(trajectoryObject->getVao());
+        glDrawArrays(GL_LINE_STRIP, 0, trajectoryPoints.size());
+        // Restore default
+        glLineWidth(1.0f); 
+        glBindVertexArray(0);
+    } else {
+        if (!trajectoryObject) std::cerr << "trajectoryObject is null!" << std::endl;
+    }
 }
 
 void Rocket::toggleLaunch() {
     launched = !launched;
     // NOTE: Wind force can be added here if needed
     // NOTE: Initial horizontal velocity to enter orbit (approximately the first cosmic velocity)
-    if (!launched) {
+    if (launched) {
+        trajectoryPoints.clear();
+        trajectorySampleTime = 0.0f; // Reset the timer
+    } else {
         resetTime();
         velocity = glm::vec3(0.0f); // Reset velocity
     }
@@ -150,4 +150,62 @@ float Rocket::getThrust() const {
 
 float Rocket::getExhaustVelocity() const { 
     return exhaust_velocity; 
+}
+
+const std::vector<glm::vec3>& Rocket::getTrajectoryPoints() const { 
+    return trajectoryPoints; 
+}
+
+// private
+
+glm::vec3 Rocket::computeAcceleration(const State& state, float currentMass) const {
+    // Gravitational force
+    float r = glm::length(state.position);
+    glm::vec3 gravity_acc = - (G * M / (r * r * r)) * state.position;
+
+    // Thrust (assumed along the rocket's current direction, simplified as vertically upward)
+    glm::vec3 thrust_acc(0.0f);
+    if (fuel_mass > 0.0f && currentMass > 0.0f) {
+        glm::vec3 thrust_dir = glm::normalize(state.position); // Pointing radially outward
+        thrust_acc = (thrust / currentMass) * thrust_dir;
+    }
+
+    // Air resistance (significant below 100 km altitude)
+    const float rho_0 = 1.225f, H = 8000.0f, Cd = 0.3f, A = 1.0f;
+    float altitude = r - R_e;
+    glm::vec3 drag_acc(0.0f);
+    // Significant atmosphere below 100 km
+    if (altitude < 100000.0f) { 
+        float rho = rho_0 * std::exp(-altitude / H);
+        float v_magnitude = glm::length(state.velocity);
+        if (v_magnitude > 0.0f) {
+            glm::vec3 v_unit = state.velocity / v_magnitude;
+            float drag_force = 0.5f * rho * Cd * A * v_magnitude * v_magnitude;
+            drag_acc = -drag_force * v_unit / currentMass;
+        }
+    }
+
+    return gravity_acc + thrust_acc + drag_acc;
+}
+
+void Rocket::updateTrajectory() {
+    if (trajectoryPoints.size() >= 1000) {
+        trajectoryPoints.erase(trajectoryPoints.begin());
+    }
+    trajectoryPoints.push_back(offsetPosition());
+
+    // Update trajectory buffer
+    std::vector<GLfloat> vertices;
+    for (const auto& point : trajectoryPoints) {
+        vertices.push_back(point.x);
+        vertices.push_back(point.y); // Offset for rendering
+        vertices.push_back(point.z);
+    }
+    trajectoryObject = std::make_unique<RenderObject>(vertices, std::vector<GLuint>());
+}
+
+glm::vec3 Rocket::offsetPosition() const {
+    // Offset position for rendering
+    float altitude = glm::length(position) - R_e;
+    return glm::vec3(position.x, altitude + (R_e * scale), position.z);
 }
