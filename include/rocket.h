@@ -5,6 +5,7 @@
 #include "render_object.h"
 
 #include <glm/glm.hpp>
+#include <array>
 #include <memory>
 
 
@@ -15,9 +16,16 @@ private:
         glm::vec3 velocity;
     };
 
+    const float G = 6.674e-11f;     // Gravitational constant
+    const float M = 5.972e24f;      // Earth's mass
+    const float R_e = 6371000.0f;   // Earth's radius
+    const float scale = 0.001f; // Consistent with Earth, 1 m = 0.001 units
+
+    static constexpr size_t TRAJECTORY_SIZE = 1000;
+
     std::unique_ptr<RenderObject> renderObject;
     std::unique_ptr<RenderObject> trajectoryObject; // Trajectory rendering object
-    std::vector<glm::vec3> trajectoryPoints;       // Trajectory points
+    std::array<glm::vec3, TRAJECTORY_SIZE> trajectoryPoints; // Trajectory points
 
     float mass;             // Total mass of the rocket (kg)
     float fuel_mass;        // Fuel mass (kg)
@@ -28,11 +36,8 @@ private:
     float time;             // Time (s)
     bool launched;          // Whether the rocket is launched
 
-    const float G = 6.674e-11f;     // Gravitational constant
-    const float M = 5.972e24f;      // Earth's mass
-    const float R_e = 6371000.0f;   // Earth's radius
-    const float scale = 0.001f; // Consistent with Earth, 1 m = 0.001 units
-
+    size_t trajectoryHead{0}; // Head of the trajectory
+    size_t trajectoryCount{0}; // Number of trajectory points
     float trajectorySampleTime; // Trajectory sampling timer
 
 public:
@@ -54,8 +59,6 @@ public:
     float getFuelMass() const;
     float getThrust() const;
     float getExhaustVelocity() const;
-
-    const std::vector<glm::vec3>& getTrajectoryPoints() const;
 
 private:
     glm::vec3 computeAcceleration(const State&, float) const;

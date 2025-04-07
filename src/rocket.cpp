@@ -20,9 +20,10 @@ void Rocket::init() {
     std::vector<GLuint> indices = {0, 1, 2};
     renderObject = std::make_unique<RenderObject>(vertices, indices);
 
-    // Initialize trajectory (empty data)
-    trajectoryPoints.reserve(1000); // Reserve space
+    // Initialize trajectory (pre-allocate ring buffer)
+    trajectoryPoints.fill(glm::vec3(0.0f)); // Initially filled with 0
     trajectoryObject = std::make_unique<RenderObject>(std::vector<GLfloat>(), std::vector<GLuint>());
+    std::cout << "Rocket initialized with ring buffer trajectory" << std::endl;
 }
 
 void Rocket::update(float deltaTime) {
@@ -92,16 +93,18 @@ void Rocket::render(const Shader& shader) const {
     // Render trajectory
     shader.setMat4("model", glm::mat4(1.0f));
     shader.setVec4("color", glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
-    if (trajectoryObject && !trajectoryPoints.empty()) {
-        // Set before rendering
-        glLineWidth(5.0f); 
+    if (trajectoryObject && trajectoryCount > 0) {
+        glLineWidth(5.0f);
         glBindVertexArray(trajectoryObject->getVao());
-        glDrawArrays(GL_LINE_STRIP, 0, trajectoryPoints.size());
-        // Restore default
-        glLineWidth(1.0f); 
+        // Draw a full circle starting from the head
+        if (trajectoryCount == TRAJECTORY_SIZE) {
+            glDrawArrays(GL_LINE_STRIP, trajectoryHead, TRAJECTORY_SIZE - trajectoryHead);
+            glDrawArrays(GL_LINE_STRIP, 0, trajectoryHead);
+        } else {
+            glDrawArrays(GL_LINE_STRIP, 0, trajectoryCount);
+        }
+        glLineWidth(1.0f);
         glBindVertexArray(0);
-    } else {
-        if (!trajectoryObject) std::cerr << "trajectoryObject is null!" << std::endl;
     }
 }
 
@@ -110,7 +113,8 @@ void Rocket::toggleLaunch() {
     // NOTE: Wind force can be added here if needed
     // NOTE: Initial horizontal velocity to enter orbit (approximately the first cosmic velocity)
     if (launched) {
-        trajectoryPoints.clear();
+        trajectoryHead = 0;
+        trajectoryCount = 0;
         trajectorySampleTime = 0.0f; // Reset the timer
     } else {
         resetTime();
@@ -154,10 +158,6 @@ float Rocket::getExhaustVelocity() const {
     return exhaust_velocity; 
 }
 
-const std::vector<glm::vec3>& Rocket::getTrajectoryPoints() const { 
-    return trajectoryPoints; 
-}
-
 // private
 
 glm::vec3 Rocket::computeAcceleration(const State& state, float currentMass) const {
@@ -191,17 +191,19 @@ glm::vec3 Rocket::computeAcceleration(const State& state, float currentMass) con
 }
 
 void Rocket::updateTrajectory() {
-    if (trajectoryPoints.size() >= 1000) {
-        trajectoryPoints.erase(trajectoryPoints.begin());
+    trajectoryPoints[trajectoryHead] = offsetPosition();
+    trajectoryHead = (trajectoryHead + 1) % TRAJECTORY_SIZE; // Circular buffer
+    if (trajectoryCount < TRAJECTORY_SIZE) {
+        trajectoryCount++;
     }
-    trajectoryPoints.push_back(offsetPosition());
 
     // Update trajectory buffer
     std::vector<GLfloat> vertices;
-    for (const auto& point : trajectoryPoints) {
-        vertices.push_back(point.x);
-        vertices.push_back(point.y); // Offset for rendering
-        vertices.push_back(point.z);
+    for (size_t i = 0; i < trajectoryCount; ++i) {
+        size_t idx = (trajectoryHead + i - trajectoryCount + TRAJECTORY_SIZE) % TRAJECTORY_SIZE;
+        vertices.push_back(trajectoryPoints[idx].x);
+        vertices.push_back(trajectoryPoints[idx].y);
+        vertices.push_back(trajectoryPoints[idx].z);
     }
     trajectoryObject = std::make_unique<RenderObject>(vertices, std::vector<GLuint>());
 }
