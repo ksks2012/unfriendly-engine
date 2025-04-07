@@ -11,6 +11,7 @@ A simple rocket simulator built with C++, OpenGL, GLFW, GLM, and Dear ImGui.
 - Rocket rendering.
 - Earth rendering
 - Rocket Trajectory Visualization: Displays the rocket's flight path in real-time.
+- Predict Trajectory for Rocket
 
 ### Simulation Info
 The simulation provides real-time data displayed in an ImGui window:
