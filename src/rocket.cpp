@@ -21,9 +21,11 @@ void Rocket::init() {
     renderObject = std::make_unique<RenderObject>(vertices, indices);
 
     // Initialize trajectory (pre-allocate ring buffer)
-    trajectoryPoints.fill(glm::vec3(0.0f)); // Initially filled with 0
-    trajectoryObject = std::make_unique<RenderObject>(std::vector<GLfloat>(), std::vector<GLuint>());
-    std::cout << "Rocket initialized with ring buffer trajectory" << std::endl;
+    std::vector<GLfloat> trajectoryVertices(TRAJECTORY_SIZE * 3, 0.0f);
+    trajectoryObject = std::make_unique<RenderObject>(trajectoryVertices, std::vector<GLuint>());
+    trajectoryPoints.fill(glm::vec3(0.0f));
+    std::cout << "Rocket initialized, trajectory VBO size: " << trajectoryVertices.size() * sizeof(GLfloat) 
+              << " bytes, VAO: " << trajectoryObject->getVao() << ", VBO: " << trajectoryObject->getVbo() << std::endl;
 }
 
 void Rocket::update(float deltaTime) {
@@ -84,27 +86,17 @@ void Rocket::update(float deltaTime) {
 }
 
 void Rocket::render(const Shader& shader) const {
-    // Convert geocentric coordinates to local coordinates relative to the surface for rendering
+    // Render the rocket
     shader.setMat4("model", glm::translate(glm::mat4(1.0f), offsetPosition()));
     shader.setVec4("color", glm::vec4(0.8f, 0.8f, 0.8f, 1.0f));
     if (renderObject) 
         renderObject->render();
 
-    // Render trajectory
-    shader.setMat4("model", glm::mat4(1.0f));
-    shader.setVec4("color", glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+    // Render trajectory (delegated to RenderObject)
+    shader.setMat4("model", glm::mat4(1.0f)); // set model matrix to identity
+    shader.setVec4("color", glm::vec4(1.0f, 0.0f, 0.0f, 1.0f)); // set color to red
     if (trajectoryObject && trajectoryCount > 0) {
-        glLineWidth(5.0f);
-        glBindVertexArray(trajectoryObject->getVao());
-        // Draw a full circle starting from the head
-        if (trajectoryCount == TRAJECTORY_SIZE) {
-            glDrawArrays(GL_LINE_STRIP, trajectoryHead, TRAJECTORY_SIZE - trajectoryHead);
-            glDrawArrays(GL_LINE_STRIP, 0, trajectoryHead);
-        } else {
-            glDrawArrays(GL_LINE_STRIP, 0, trajectoryCount);
-        }
-        glLineWidth(1.0f);
-        glBindVertexArray(0);
+        trajectoryObject->renderTrajectory(trajectoryHead, trajectoryCount, TRAJECTORY_SIZE);
     }
 }
 
@@ -192,20 +184,25 @@ glm::vec3 Rocket::computeAcceleration(const State& state, float currentMass) con
 
 void Rocket::updateTrajectory() {
     trajectoryPoints[trajectoryHead] = offsetPosition();
-    trajectoryHead = (trajectoryHead + 1) % TRAJECTORY_SIZE; // Circular buffer
+    size_t offset = trajectoryHead * 3 * sizeof(GLfloat);
+    size_t bufferSize = TRAJECTORY_SIZE * 3 * sizeof(GLfloat);
+
+    if (offset >= bufferSize) {
+        std::cerr << "Error: Offset exceeds buffer size!" << std::endl;
+        return;
+    }
+
+    // Update VBO
+    GLfloat vertex[3] = {trajectoryPoints[trajectoryHead].x, 
+                         trajectoryPoints[trajectoryHead].y, 
+                         trajectoryPoints[trajectoryHead].z};
+    trajectoryObject->updateBuffer(offset, 3 * sizeof(GLfloat), vertex);
+
+    trajectoryHead = (trajectoryHead + 1) % TRAJECTORY_SIZE;
     if (trajectoryCount < TRAJECTORY_SIZE) {
         trajectoryCount++;
     }
 
-    // Update trajectory buffer
-    std::vector<GLfloat> vertices;
-    for (size_t i = 0; i < trajectoryCount; ++i) {
-        size_t idx = (trajectoryHead + i - trajectoryCount + TRAJECTORY_SIZE) % TRAJECTORY_SIZE;
-        vertices.push_back(trajectoryPoints[idx].x);
-        vertices.push_back(trajectoryPoints[idx].y);
-        vertices.push_back(trajectoryPoints[idx].z);
-    }
-    trajectoryObject = std::make_unique<RenderObject>(vertices, std::vector<GLuint>());
 }
 
 glm::vec3 Rocket::offsetPosition() const {

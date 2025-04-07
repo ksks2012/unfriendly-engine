@@ -1,5 +1,7 @@
 #include "render_object.h"
 
+#include <iostream>
+
 RenderObject::RenderObject(const std::vector<GLfloat>& vertices, const std::vector<GLuint>& indices) {
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
@@ -21,6 +23,11 @@ RenderObject::RenderObject(const std::vector<GLfloat>& vertices, const std::vect
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)0);
     glEnableVertexAttribArray(0);
     glBindVertexArray(0);
+
+    GLenum err = glGetError();
+    if (err != GL_NO_ERROR) {
+        std::cerr << "OpenGL error in RenderObject::RenderObject: " << err << std::endl;
+    }
 }
 
 RenderObject::~RenderObject() {
@@ -37,4 +44,39 @@ void RenderObject::render() const {
 
 GLuint RenderObject::getVao() const {
     return vao;
+}
+
+GLuint RenderObject::getVbo() const {
+    return vbo;
+}
+
+void RenderObject::renderTrajectory(size_t head, size_t count, size_t maxSize) const {
+    glLineWidth(5.0f);
+    glBindVertexArray(vao);
+    if (count == maxSize) {
+        glDrawArrays(GL_LINE_STRIP, head, maxSize - head);
+        glDrawArrays(GL_LINE_STRIP, 0, head);
+    } else {
+        glDrawArrays(GL_LINE_STRIP, 0, count);
+    }
+    glLineWidth(1.0f);
+    glBindVertexArray(0);
+
+    GLenum err = glGetError();
+    if (err != GL_NO_ERROR) {
+        std::cerr << "OpenGL error in RenderObject::renderTrajectory: " << err 
+                  << ", head: " << head << ", count: " << count << std::endl;
+    }
+}
+
+void RenderObject::updateBuffer(GLintptr offset, GLsizei size, const void* data) {
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferSubData(GL_ARRAY_BUFFER, offset, size, data);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    GLenum err = glGetError();
+    if (err != GL_NO_ERROR) {
+        std::cerr << "OpenGL error in RenderObject::updateBuffer: " << err 
+                  << ", offset: " << offset << ", size: " << size << std::endl;
+    }
 }
