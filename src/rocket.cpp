@@ -26,6 +26,9 @@ void Rocket::init() {
     trajectoryPoints.fill(glm::vec3(0.0f));
     std::cout << "Rocket initialized, trajectory VBO size: " << trajectoryVertices.size() * sizeof(GLfloat) 
               << " bytes, VAO: " << trajectoryObject->getVao() << ", VBO: " << trajectoryObject->getVbo() << std::endl;
+
+    predictionObject = std::make_unique<RenderObject>(std::vector<GLfloat>(), std::vector<GLuint>());
+    predictionPoints.reserve(PREDICTION_SIZE);
 }
 
 void Rocket::update(float deltaTime) {
@@ -39,6 +42,7 @@ void Rocket::update(float deltaTime) {
     // Record trajectory every 0.1 seconds
     if (trajectorySampleTime >= 0.1f) {
         updateTrajectory();
+        predictTrajectory(10.0f, 0.1f);
         trajectorySampleTime = 0.0f;
     }
 
@@ -97,6 +101,13 @@ void Rocket::render(const Shader& shader) const {
     shader.setVec4("color", glm::vec4(1.0f, 0.0f, 0.0f, 1.0f)); // set color to red
     if (trajectoryObject && trajectoryCount > 0) {
         trajectoryObject->renderTrajectory(trajectoryHead, trajectoryCount, TRAJECTORY_SIZE);
+    }
+
+    // Render prediction trajectory (delegated to RenderObject)
+    shader.setMat4("model", glm::mat4(1.0f));
+    shader.setVec4("color", glm::vec4(0.0f, 1.0f, 0.0f, 1.0f)); // set color to green
+    if (predictionObject && !predictionPoints.empty()) {
+        predictionObject->renderTrajectory(0, PREDICTION_SIZE - 1, PREDICTION_SIZE);
     }
 }
 
@@ -209,4 +220,60 @@ glm::vec3 Rocket::offsetPosition() const {
     // Offset position for rendering
     float altitude = glm::length(position) - R_e;
     return glm::vec3(position.x, altitude + (R_e * scale), position.z);
+}
+
+glm::vec3 Rocket::offsetPosition(glm::vec3 inputPosition) const {
+    // Offset position for rendering
+    float altitude = glm::length(inputPosition) - R_e;
+    return glm::vec3(position.x, altitude + (R_e * scale), position.z);
+}
+
+void Rocket::predictTrajectory(float duration, float step) {
+    predictionPoints.clear();
+    State state = {position, velocity};
+    float predMass = mass;
+    float predFuel = fuel_mass;
+    float predTime = 0.0f;
+
+    while (predTime < duration && predFuel >= 0.0f) {
+        predictionPoints.push_back(offsetPosition(state.position));
+
+        float fuel_consumption_rate = thrust / exhaust_velocity;
+        float delta_fuel = fuel_consumption_rate * step;
+        predFuel = std::max(0.0f, predFuel - delta_fuel);
+        predMass = predMass - delta_fuel;
+
+        State k1, k2, k3, k4;
+        k1.velocity = computeAcceleration(state, predMass);
+        k1.position = state.velocity;
+
+        State mid1 = {state.position + k1.position * (step / 2.0f), 
+                      state.velocity + k1.velocity * (step / 2.0f)};
+        k2.velocity = computeAcceleration(mid1, predMass);
+        k2.position = mid1.velocity;
+
+        State mid2 = {state.position + k2.position * (step / 2.0f), 
+                      state.velocity + k2.velocity * (step / 2.0f)};
+        k3.velocity = computeAcceleration(mid2, predMass);
+        k3.position = mid2.velocity;
+
+        State end = {state.position + k3.position * step, 
+                     state.velocity + k3.velocity * step};
+        k4.velocity = computeAcceleration(end, predMass);
+        k4.position = end.velocity;
+
+        state.position += (k1.position + 2.0f * k2.position + 2.0f * k3.position + k4.position) * (step / 6.0f);
+        state.velocity += (k1.velocity + 2.0f * k2.velocity + 2.0f * k3.velocity + k4.velocity) * (step / 6.0f);
+
+        predTime += step;
+    }
+
+    // Update prediction buffer
+    std::vector<GLfloat> vertices;
+    for (const auto& point : predictionPoints) {
+        vertices.push_back(point.x);
+        vertices.push_back(point.y);
+        vertices.push_back(point.z);
+    }
+    predictionObject = std::make_unique<RenderObject>(vertices, std::vector<GLuint>());
 }

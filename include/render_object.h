@@ -13,10 +13,10 @@ public:
     GLuint getVao() const;
     GLuint getVbo() const;
 
-    void renderTrajectory(size_t head, size_t count, size_t maxSize) const;
+    void renderTrajectory(size_t, size_t, size_t) const;
 
     // Update the data at the specified offset in the VBO
-    void updateBuffer(GLintptr offset, GLsizei size, const void* data);
+    void updateBuffer(GLintptr, GLsizei, const void*);
 
 private:
     GLuint vao, vbo, ebo;
