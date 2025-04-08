@@ -6,6 +6,7 @@
 #include "render_object.h"
 
 #include <glm/glm.hpp>
+#include <gtest/gtest_prod.h>
 #include <array>
 #include <memory>
 
@@ -49,6 +50,10 @@ private:
     static constexpr size_t PREDICTION_SIZE = 100;
     std::unique_ptr<RenderObject> predictionObject; // Prediction rendering object
     std::vector<glm::vec3> predictionPoints; // Prediction points
+
+    // For testing
+    FRIEND_TEST(RocketTest, OffsetPosition_Default);
+    FRIEND_TEST(RocketTest, OffsetPosition_CustomPosition);
 
 public:
     Rocket(const Config&);

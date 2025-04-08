@@ -48,6 +48,7 @@ target_link_libraries(RocketSimulation
 enable_testing()
 set(TEST_SOURCES
     tests/test_config.cpp
+    tests/test_rocket.cpp
     src/config.cpp
     src/rocket.cpp
     src/input_handler.cpp
