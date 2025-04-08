@@ -1,5 +1,6 @@
 #include "input_handler.h"
 
+#include <glm/gtc/matrix_transform.hpp>
 
 InputHandler::InputHandler(GLFWwindow* win) : window(win) {}
 
@@ -33,5 +34,30 @@ void InputHandler::process(Simulation& sim) {
     }
     if (isKeyPressedWithCooldown(GLFW_KEY_SPACE, 0.2)) {
         sim.getRocket().toggleLaunch();
+    }
+
+    float rotationSpeed = 90.0f; // Rotation angle per second (degrees)
+    double directionCooldown = 0.01; // Direction adjustment cooldown time
+    if (isKeyPressedWithCooldown(GLFW_KEY_A, directionCooldown)) {
+        Rocket& rocket = sim.getRocket();
+        glm::vec3 currentDir = rocket.getThrustDirection(); // Assuming this getter is added, otherwise access directly
+        glm::mat4 rotation = glm::rotate(
+            glm::mat4(1.0f),
+            glm::radians(static_cast<float>(rotationSpeed * directionCooldown)),
+            glm::vec3(0.0f, 0.0f, 1.0f)
+        );        
+        glm::vec3 newDir = glm::vec3(rotation * glm::vec4(currentDir, 0.0f));
+        rocket.setThrustDirection(newDir);
+    }
+    if (isKeyPressedWithCooldown(GLFW_KEY_D, directionCooldown)) {
+        Rocket& rocket = sim.getRocket();
+        glm::vec3 currentDir = rocket.getThrustDirection();
+        glm::mat4 rotation = glm::rotate(
+            glm::mat4(1.0f),
+            glm::radians(static_cast<float>(-rotationSpeed * directionCooldown)),
+            glm::vec3(0.0f, 0.0f, 1.0f)
+        );
+        glm::vec3 newDir = glm::vec3(rotation * glm::vec4(currentDir, 0.0f));
+        rocket.setThrustDirection(newDir);
     }
 }

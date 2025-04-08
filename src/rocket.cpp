@@ -5,7 +5,7 @@
 #include <iostream>
 
 Rocket::Rocket() 
-    : mass(1000.0f), fuel_mass(500.0f), thrust(15000.0f), exhaust_velocity(3000.0f),
+    : mass(501000.0f), fuel_mass(500000.0f), thrust(20000000.0f), exhaust_velocity(3000.0f),
       position(0.0f, 6371000.0f, 0.0f), // Initially on the surface (R_e = 6371 km)
       velocity(0.0f), time(0.0f), launched(false) {
 }
@@ -88,7 +88,6 @@ void Rocket::toggleLaunch() {
         trajectorySampleTime = 0.0f; // Reset the timer
     } else {
         resetTime();
-        velocity = glm::vec3(0.0f); // Reset velocity
     }
 }
 
@@ -126,6 +125,17 @@ float Rocket::getThrust() const {
 
 float Rocket::getExhaustVelocity() const { 
     return exhaust_velocity; 
+}
+
+glm::vec3 Rocket::getThrustDirection() const {
+    return thrustDirection;
+}
+
+void Rocket::setThrustDirection(const glm::vec3& direction) {
+    thrustDirection = glm::normalize(direction);
+    if (glm::length(velocity) > 0.0f) {
+        velocity = glm::normalize(thrustDirection) * glm::length(velocity);
+    }
 }
 
 // private
@@ -185,13 +195,13 @@ void Rocket::updateTrajectory() {
 glm::vec3 Rocket::offsetPosition() const {
     // Offset position for rendering
     float altitude = glm::length(position) - R_e;
-    return glm::vec3(position.x, altitude + (R_e * scale), position.z);
+    return glm::vec3(position.x * scale, altitude * scale + (R_e * scale), position.z * scale);
 }
 
 glm::vec3 Rocket::offsetPosition(glm::vec3 inputPosition) const {
     // Offset position for rendering
     float altitude = glm::length(inputPosition) - R_e;
-    return glm::vec3(inputPosition.x, altitude + (R_e * scale), inputPosition.z);
+    return glm::vec3(inputPosition.x * scale, altitude * scale + (R_e * scale), inputPosition.z * scale);
 }
 
 void Rocket::predictTrajectory(float duration, float step) {

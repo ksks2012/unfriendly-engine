@@ -64,6 +64,8 @@ public:
     float getFuelMass() const;
     float getThrust() const;
     float getExhaustVelocity() const;
+    glm::vec3 getThrustDirection() const;
+    void setThrustDirection(const glm::vec3&);
 
     void predictTrajectory(float, float);
 
