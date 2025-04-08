@@ -8,13 +8,15 @@
 
 class InputHandler {
 public:
-    InputHandler(GLFWwindow*);
+InputHandler(GLFWwindow*, const Config&);
 
     void process(Simulation&);
 
 private:
     GLFWwindow* window;
     std::unordered_map<int, double> lastPressTimes;
+    float rotationSpeed;
+    float directionCooldown;
 };
 
 #endif

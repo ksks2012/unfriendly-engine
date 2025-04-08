@@ -12,12 +12,13 @@
 
 class App {
 public:
-    App(const std::string& title, int width, int height);
+    App(const std::string& title, int width, int height, Config&);
     ~App();
     void run();
 
 private:
     GLFWwindow* window;
+    Config config;
     Shader shader;
     Simulation simulation;
     std::unique_ptr<InputHandler> inputHandler;

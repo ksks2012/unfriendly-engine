@@ -1,6 +1,7 @@
 #ifndef ROCKET_H
 #define ROCKET_H
 
+#include "config.h"
 #include "shader.h"
 #include "render_object.h"
 
@@ -16,13 +17,17 @@ private:
         glm::vec3 velocity;
     };
 
-    const float G = 6.674e-11f;     // Gravitational constant
-    const float M = 5.972e24f;      // Earth's mass
-    const float R_e = 6371000.0f;   // Earth's radius
-    const float scale = 0.001f;     // Consistent with Earth, 1 m = 0.001 units
+    const float G;     // Gravitational constant
+    const float M;      // Earth's mass
+    const float R_e;   // Earth's radius
+    const float scale;     // Consistent with Earth, 1 m = 0.001 units
+    const float rho_0;         // Air density at sea level (kg/m^3)
+    const float H;             // Scale height (m)
+    const float Cd;            // Drag coefficient
+    const float A;             // Cross-sectional area (m^2)
+    float predictionDuration, predictionStep; // Prediction parameters
 
-
-    std::unique_ptr<RenderObject> renderObject;
+    std::unique_ptr<RenderObject> renderObject; // Rocket rendering object
 
     float mass;                // Total mass of the rocket (kg)
     float fuel_mass;           // Fuel mass (kg)
@@ -46,7 +51,7 @@ private:
     std::vector<glm::vec3> predictionPoints; // Prediction points
 
 public:
-    Rocket();
+    Rocket(const Config&);
 
     void init();
     void update(float);

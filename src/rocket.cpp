@@ -4,10 +4,17 @@
 
 #include <iostream>
 
-Rocket::Rocket() 
-    : mass(501000.0f), fuel_mass(500000.0f), thrust(20000000.0f), exhaust_velocity(3000.0f),
-      position(0.0f, 6371000.0f, 0.0f), // Initially on the surface (R_e = 6371 km)
-      velocity(0.0f), time(0.0f), launched(false) {
+Rocket::Rocket(const Config& config) 
+    : mass(config.rocket_mass), fuel_mass(config.rocket_fuel_mass), 
+      thrust(config.rocket_thrust), exhaust_velocity(config.rocket_exhaust_velocity),
+      position(config.rocket_initial_position), velocity(config.rocket_initial_velocity),
+      R_e(config.physics_earth_radius), G(config.physics_gravity_constant), 
+      M(config.physics_earth_mass), rho_0(config.physics_air_density), 
+      H(config.physics_scale_height), Cd(config.physics_drag_coefficient), 
+      A(config.physics_cross_section_area), scale(config.simulation_rendering_scale),
+      predictionDuration(config.simulation_prediction_duration), 
+      predictionStep(config.simulation_prediction_step),
+      trajectorySampleTime(0.0f) {
 }
 
 void Rocket::init() {
@@ -37,7 +44,7 @@ void Rocket::update(float deltaTime) {
     // Record trajectory every 0.1 seconds
     if (trajectorySampleTime >= 0.1f) {
         updateTrajectory();
-        predictTrajectory(10.0f, 0.1f);
+        predictTrajectory(predictionDuration, predictionStep);
         trajectorySampleTime = 0.0f;
     }
 
@@ -152,7 +159,6 @@ glm::vec3 Rocket::computeAcceleration(const State& state, float currentMass) con
     }
 
     // Air resistance (significant below 100 km altitude)
-    const float rho_0 = 1.225f, H = 8000.0f, Cd = 0.3f, A = 1.0f;
     float altitude = r - R_e;
     glm::vec3 drag_acc(0.0f);
     // Significant atmosphere below 100 km

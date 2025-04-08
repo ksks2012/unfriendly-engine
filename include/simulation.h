@@ -12,6 +12,7 @@
 class Simulation {
 public:
     Simulation();
+    Simulation(Config&);
     ~Simulation();
 
     void init();
@@ -26,9 +27,12 @@ public:
 
 private:
     std::unique_ptr<RenderObject> earth;
+    Config config;
     Rocket rocket;
     float cameraDistance;
     float timeScale;
+
+    float R_e;
 };
 
 #endif

@@ -41,6 +41,10 @@ The simulation provides real-time data displayed in an ImGui window:
     https://github.com/ocornut/imgui
     ```
 
+- nlohmann/json: processing json file
+    ```
+    https://github.com/nlohmann/json
+    ```
 
 ## Build Instructions
 1. Install dependencies: `libglfw3-dev`, `libglew-dev`, `libglm-dev`.   

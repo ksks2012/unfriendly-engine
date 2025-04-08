@@ -2,7 +2,11 @@
 
 #include <iostream>
 
-Simulation::Simulation() : cameraDistance(20000.0f), timeScale(1.0f) {
+Simulation::Simulation() : config(Config()), rocket(config), cameraDistance(20000.0f), timeScale(1.0f) {
+}
+
+Simulation::Simulation(Config& config) : rocket(config), cameraDistance(20000.0f), timeScale(1.0f) {
+    R_e = config.physics_earth_radius;
 }
 
 Simulation::~Simulation() = default;
@@ -11,7 +15,7 @@ void Simulation::init() {
     rocket.init();
 
     // Generate Earth's sphere
-    const float R_e = 6371000.0f; // Scaled unit in km
+    
     const int stacks = 20;        // Latitude segments
     const int slices = 20;        // Longitude segments
     std::vector<GLfloat> earthVertices;

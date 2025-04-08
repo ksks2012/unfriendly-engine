@@ -6,6 +6,7 @@
 **/build/**
 **/test_code/**
 **/bin/**
+**/lib/nlohmann/**
 
 **/**.o
 **/**.so

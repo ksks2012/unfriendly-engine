@@ -17,6 +17,7 @@ set(SOURCES
     src/rocket.cpp
     src/input_handler.cpp
     src/ui.cpp
+    src/config.cpp
     lib/imgui/imgui.cpp
     lib/imgui/imgui_draw.cpp
     lib/imgui/imgui_widgets.cpp
@@ -33,6 +34,7 @@ target_include_directories(RocketSimulation PRIVATE
     ${GLFW_INCLUDE_DIRS}
     ${GLEW_INCLUDE_DIRS}
     lib/imgui
+    lib/
 )
 
 target_link_libraries(RocketSimulation

@@ -1,0 +1,27 @@
+{
+    "rocket": {
+        "mass": 501000.0,
+        "fuel_mass": 500000.0,
+        "thrust": 20000000.0,
+        "exhaust_velocity": 3000.0,
+        "initial_position": [0.0, 6371000.0, 0.0],
+        "initial_velocity": [0.0, 0.0, 0.0],
+        "rotation_speed": 90.0,
+        "direction_cooldown": 0.01
+    },
+    "physics": {
+        "earth_radius": 6371000.0,
+        "gravity_constant": 6.674e-11,
+        "earth_mass": 5.972e24,
+        "air_density": 1.225,
+        "scale_height": 8000.0,
+        "drag_coefficient": 0.3,
+        "cross_section_area": 1.0
+    },
+    "simulation": {
+        "trajectory_sample_time": 0.1,
+        "prediction_duration": 30.0,
+        "prediction_step": 0.1,
+        "rendering_scale": 0.001
+    }
+}

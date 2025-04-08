@@ -1,11 +1,9 @@
 #include "input_handler.h"
 
-#include <glm/gtc/matrix_transform.hpp>
-
-InputHandler::InputHandler(GLFWwindow* win) : window(win) {}
+InputHandler::InputHandler(GLFWwindow* win, const Config& config) 
+    : window(win), rotationSpeed(config.rocket_rotation_speed), directionCooldown(config.rocket_direction_cooldown) {}
 
 void InputHandler::process(Simulation& sim) {
-    // Set up a cooldown for key presses
     double currentTime = glfwGetTime();
     auto isKeyPressedWithCooldown = [&](int key, double cooldown) {
         if (glfwGetKey(window, key) == GLFW_PRESS) {
@@ -35,9 +33,7 @@ void InputHandler::process(Simulation& sim) {
     if (isKeyPressedWithCooldown(GLFW_KEY_SPACE, 0.2)) {
         sim.getRocket().toggleLaunch();
     }
-
-    float rotationSpeed = 90.0f; // Rotation angle per second (degrees)
-    double directionCooldown = 0.01; // Direction adjustment cooldown time
+    
     if (isKeyPressedWithCooldown(GLFW_KEY_A, directionCooldown)) {
         Rocket& rocket = sim.getRocket();
         glm::vec3 currentDir = rocket.getThrustDirection(); // Assuming this getter is added, otherwise access directly

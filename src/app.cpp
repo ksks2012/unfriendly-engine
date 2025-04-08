@@ -2,7 +2,7 @@
 
 #include "app.h"
 
-App::App(const std::string& title, int width, int height) : window(nullptr) {
+App::App(const std::string& title, int width, int height, Config& config) : window(nullptr), config(config), simulation(Simulation(config)) {
     if (!glfwInit()) 
         throw std::runtime_error("Failed to initialize GLFW");
 
@@ -25,7 +25,7 @@ App::App(const std::string& title, int width, int height) : window(nullptr) {
 
     shader.init();
     simulation.init();
-    inputHandler = std::make_unique<InputHandler>(window);
+    inputHandler = std::make_unique<InputHandler>(window, config);
     ui = std::make_unique<UI>(window);
     glEnable(GL_DEPTH_TEST);
 }
