@@ -33,7 +33,7 @@ The simulation provides real-time data displayed in an ImGui window:
 
 - dev-lib on ubuntu/debian
     ```
-    sudo apt-get install libglfw3-dev libglew-dev libglm-dev
+    sudo apt-get install libglfw3-dev libglew-dev libglm-dev libgtest-dev
     ```
 
 - imgui lib

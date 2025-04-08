@@ -6,8 +6,9 @@ set(CMAKE_CXX_STANDARD 17)
 find_package(OpenGL REQUIRED)
 find_package(glfw3 REQUIRED)
 find_package(GLEW REQUIRED)
+find_package(GTest REQUIRED)
 
-# Source files
+# Main program source files
 set(SOURCES
     src/main.cpp
     src/app.cpp
@@ -42,3 +43,36 @@ target_link_libraries(RocketSimulation
     glfw
     GLEW::GLEW
 )
+
+# Test program
+enable_testing()
+set(TEST_SOURCES
+    tests/test_config.cpp
+    src/config.cpp
+    src/rocket.cpp
+    src/input_handler.cpp
+    src/simulation.cpp
+    src/render_object.cpp
+    src/shader.cpp
+)
+
+add_executable(runTests ${TEST_SOURCES})
+
+target_include_directories(runTests PRIVATE
+    include
+    ${OPENGL_INCLUDE_DIRS}
+    ${GLFW_INCLUDE_DIRS}
+    ${GLEW_INCLUDE_DIRS}
+    lib/imgui
+    lib/
+)
+
+target_link_libraries(runTests
+    GTest::GTest
+    GTest::Main
+    ${OPENGL_LIBRARIES}
+    glfw
+    GLEW::GLEW
+)
+
+add_test(NAME UnitTests COMMAND runTests)
