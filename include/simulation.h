@@ -1,6 +1,7 @@
 #ifndef SIMULATION_H
 #define SIMULATION_H
 
+#include "flight_plan.h"
 #include "render_object.h"
 #include "rocket.h"
 #include "shader.h"

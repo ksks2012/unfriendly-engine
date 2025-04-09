@@ -2,6 +2,7 @@
 #define ROCKET_H
 
 #include "config.h"
+#include "flight_plan.h"
 #include "shader.h"
 #include "render_object.h"
 
@@ -51,11 +52,14 @@ private:
     std::unique_ptr<IRenderObject> predictionObject; // Prediction rendering object
     std::vector<glm::vec3> predictionPoints; // Prediction points
 
+    FlightPlan flightPlan;
+
     // For testing
     FRIEND_TEST(RocketTest, InitInjectsMockRenderObject);
     FRIEND_TEST(RocketTest, Initialization);
     FRIEND_TEST(RocketTest, OffsetPosition_Default);
     FRIEND_TEST(RocketTest, OffsetPosition_CustomPosition);
+    FRIEND_TEST(RocketTest, FlightPlanExecution);
 
     void setRenderObjects(std::unique_ptr<IRenderObject> render,
         std::unique_ptr<IRenderObject> trajectory,
@@ -66,7 +70,7 @@ private:
     }
 
 public:
-    Rocket(const Config&);
+    Rocket(const Config&, const FlightPlan&);
 
     void init();
     void update(float);

@@ -27,6 +27,7 @@ void Config::setDefaults() {
     rocket_initial_velocity = {0.0f, 0.0f, 0.0f};
     rocket_rotation_speed = 360.0f;
     rocket_direction_cooldown = 0.05f;
+    flight_plan_path = "etc/flight_plan.json";
 
     // Physics parameters
     physics_earth_radius = 6371000.0f;
@@ -68,6 +69,7 @@ void Config::parseConfig(const json& config) {
         }
         rocket_rotation_speed = rocket.value("rotation_speed", rocket_rotation_speed);
         rocket_direction_cooldown = rocket.value("direction_cooldown", rocket_direction_cooldown);
+        flight_plan_path = rocket.value("flight_plan_path", flight_plan_path);
     }
 
     // Physics parameters

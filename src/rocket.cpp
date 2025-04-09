@@ -4,7 +4,7 @@
 
 #include <iostream>
 
-Rocket::Rocket(const Config& config) 
+Rocket::Rocket(const Config& config, const FlightPlan& plan) 
     : mass(config.rocket_mass), fuel_mass(config.rocket_fuel_mass), 
       thrust(config.rocket_thrust), exhaust_velocity(config.rocket_exhaust_velocity),
       position(config.rocket_initial_position), velocity(config.rocket_initial_velocity),
@@ -14,7 +14,7 @@ Rocket::Rocket(const Config& config)
       A(config.physics_cross_section_area), scale(config.simulation_rendering_scale),
       predictionDuration(config.simulation_prediction_duration), 
       predictionStep(config.simulation_prediction_step),
-      trajectorySampleTime(0.0f) {
+      trajectorySampleTime(0.0f), flightPlan(plan) {
 }
 
 void Rocket::init() {
@@ -51,6 +51,7 @@ void Rocket::update(float deltaTime) {
         trajectorySampleTime = 0.0f;
     }
 
+
     // Initial state
     State current = {position, velocity};
 
@@ -59,10 +60,19 @@ void Rocket::update(float deltaTime) {
     velocity = newState.velocity;
 
     float r = glm::length(position);
-    if (r < R_e) {
+    float altitude = r - R_e;
+    if (altitude < 0.0f) {
         position = glm::normalize(position) * R_e;
         velocity = glm::vec3(0.0f);
         launched = false;
+    }
+
+    // Update thrust direction based on flight plan
+    float speed = glm::length(velocity);
+    auto action = flightPlan.getAction(altitude, speed);
+    if (action) {
+        thrust = action->thrust;
+        thrustDirection = action->direction;
     }
 }
 

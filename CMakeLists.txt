@@ -19,6 +19,7 @@ set(SOURCES
     src/input_handler.cpp
     src/ui.cpp
     src/config.cpp
+    src/flight_plan.cpp
     lib/imgui/imgui.cpp
     lib/imgui/imgui_draw.cpp
     lib/imgui/imgui_widgets.cpp

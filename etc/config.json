@@ -7,7 +7,8 @@
         "initial_position": [0.0, 6371000.0, 0.0],
         "initial_velocity": [0.0, 0.0, 0.0],
         "rotation_speed": 90.0,
-        "direction_cooldown": 0.01
+        "direction_cooldown": 0.01,
+        "flight_plan_path": "./etc/flight_plan.json"
     },
     "physics": {
         "earth_radius": 6371000.0,

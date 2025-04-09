@@ -26,6 +26,7 @@ public:
     glm::vec3 rocket_initial_velocity = {0.0f, 0.0f, 0.0f};
     float rocket_rotation_speed = 90.0f;
     float rocket_direction_cooldown = 0.01f;
+    std::string flight_plan_path = "etc/flight_plan.json";
 
     // Physics parameters
     float physics_earth_radius = 6371000.0f;

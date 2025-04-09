@@ -2,10 +2,10 @@
 
 #include <iostream>
 
-Simulation::Simulation() : config(Config()), rocket(config), cameraDistance(20000.0f), timeScale(1.0f) {
+Simulation::Simulation() : config(Config()), rocket(config, FlightPlan(config.flight_plan_path)), cameraDistance(20000.0f), timeScale(1.0f) {
 }
 
-Simulation::Simulation(Config& config) : rocket(config), cameraDistance(20000.0f), timeScale(1.0f) {
+Simulation::Simulation(Config& config) : rocket(config, FlightPlan(config.flight_plan_path)), cameraDistance(20000.0f), timeScale(1.0f) {
     R_e = config.physics_earth_radius;
 }
 

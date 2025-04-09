@@ -1,0 +1,34 @@
+{
+    "flight_plan": [
+        {
+            "condition": {
+                "altitude_min": 0.0,
+                "altitude_max": 10000.0
+            },
+            "action": {
+                "thrust": 25000000.0,
+                "direction": [0.0, 1.0, 0.0]
+            }
+        },
+        {
+            "condition": {
+                "altitude_min": 10000.0,
+                "altitude_max": 100000.0
+            },
+            "action": {
+                "thrust": 20000000.0,
+                "direction": [0.5, 0.866, 0.0]
+            }
+        },
+        {
+            "condition": {
+                "speed_min": 7000.0,
+                "speed_max": 8000.0
+            },
+            "action": {
+                "thrust": 1000000.0,
+                "direction": [1.0, 0.0, 0.0]
+            }
+        }
+    ]
+}
