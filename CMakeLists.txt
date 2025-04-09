@@ -56,6 +56,7 @@ set(TEST_SOURCES
     src/simulation.cpp
     src/render_object.cpp
     src/shader.cpp
+    src/flight_plan.cpp
 )
 
 add_executable(runTests ${TEST_SOURCES})

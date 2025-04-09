@@ -22,7 +22,7 @@ class RocketTest : public ::testing::Test {
     void SetUp() override
     {
         config = Config();
-        rocket = new Rocket(config);
+        rocket = new Rocket(config, FlightPlan(config.flight_plan_path));
     }
 
     void TearDown() override { delete rocket; }
@@ -83,4 +83,36 @@ TEST_F(RocketTest, OffsetPosition_CustomPosition)
     EXPECT_FLOAT_EQ(offset.x, 2.0f);    // Scaled x
     EXPECT_FLOAT_EQ(offset.y, 6373.0f); // Scaled altitude
     EXPECT_FLOAT_EQ(offset.z, 4.0f);    // Scaled z
+}
+
+TEST_F(RocketTest, FlightPlanExecution) {
+    nlohmann::json json = R"(
+        {
+            "flight_plan": [
+                {"condition": {"altitude_min": 0.0, "altitude_max": 10000.0},
+                 "action": {"thrust": 25000000.0, "direction": [0.0, 1.0, 0.0]}}
+            ]
+        }
+    )"_json;
+    FlightPlan plan(json);
+    rocket = new Rocket(config, plan);
+
+    auto mockRender = std::make_unique<MockRenderObject>();
+    auto mockTrajectory = std::make_unique<MockRenderObject>();
+    auto mockPrediction = std::make_unique<MockRenderObject>();
+
+    auto *mockTrajectoryRaw = mockTrajectory.get();
+    EXPECT_CALL(*mockTrajectoryRaw, updateBuffer(testing::_, testing::_, testing::_)).Times(testing::AtLeast(0));
+
+    rocket->setRenderObjects(std::move(mockRender), std::move(mockTrajectory),
+                             std::move(mockPrediction));
+
+    rocket->init();
+    rocket->launched = true;
+
+    rocket->trajectorySampleTime = -999.0f; // ignore trajectory
+    rocket->update(0.1f);
+
+    EXPECT_FLOAT_EQ(rocket->getThrustDirection().y, 1.0f);
+    EXPECT_FLOAT_EQ(rocket->thrust, 25000000.0f);
 }
