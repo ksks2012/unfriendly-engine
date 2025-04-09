@@ -64,16 +64,22 @@ target_include_directories(runTests PRIVATE
     ${OPENGL_INCLUDE_DIRS}
     ${GLFW_INCLUDE_DIRS}
     ${GLEW_INCLUDE_DIRS}
-    lib/imgui
     lib/
+    /usr/local/lib/gtest/include
+    /usr/local/lib/gmock/include
+    /usr/local/lib/gtest
+    /usr/local/lib/gmock
 )
 
 target_link_libraries(runTests
-    GTest::GTest
-    GTest::Main
+    /usr/local/lib/libgtest.a
+    /usr/local/lib/libgtest_main.a
+    /usr/local/lib/libgmock.a
+    /usr/local/lib/libgmock_main.a
     ${OPENGL_LIBRARIES}
     glfw
     GLEW::GLEW
+    pthread
 )
 
 add_test(NAME UnitTests COMMAND runTests)
