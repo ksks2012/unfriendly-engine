@@ -26,13 +26,16 @@ void Rocket::init() {
         200.0f, 0.0f, 0.0f
     };
     std::vector<GLuint> indices = {0, 1, 2};
-    renderObject = std::make_unique<RenderObject>(vertices, indices);
+    if(!renderObject)
+        renderObject = std::make_unique<RenderObject>(vertices, indices);
 
     std::vector<GLfloat> trajectoryVertices(TRAJECTORY_SIZE * 3, 0.0f);
-    trajectoryObject = std::make_unique<RenderObject>(trajectoryVertices, std::vector<GLuint>());
+    if(!trajectoryObject)
+        trajectoryObject = std::make_unique<RenderObject>(trajectoryVertices, std::vector<GLuint>());
     trajectoryPoints.fill(glm::vec3(0.0f));
 
-    predictionObject = std::make_unique<RenderObject>(std::vector<GLfloat>(), std::vector<GLuint>());
+    if(!predictionObject)
+        predictionObject = std::make_unique<RenderObject>(std::vector<GLfloat>(), std::vector<GLuint>());
     predictionPoints.reserve(PREDICTION_SIZE);
 }
 

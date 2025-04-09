@@ -6,6 +6,7 @@
 #include "render_object.h"
 
 #include <glm/glm.hpp>
+#include <gtest/gtest_prod.h>
 #include <array>
 #include <memory>
 
@@ -27,7 +28,7 @@ private:
     const float A;             // Cross-sectional area (m^2)
     float predictionDuration, predictionStep; // Prediction parameters
 
-    std::unique_ptr<RenderObject> renderObject; // Rocket rendering object
+    std::unique_ptr<IRenderObject> renderObject; // Rocket rendering object
 
     float mass;                // Total mass of the rocket (kg)
     float fuel_mass;           // Fuel mass (kg)
@@ -40,15 +41,29 @@ private:
     bool launched;             // Whether the rocket is launched
     
     static constexpr size_t TRAJECTORY_SIZE = 1000;
-    std::unique_ptr<RenderObject> trajectoryObject; // Trajectory rendering object
+    std::unique_ptr<IRenderObject> trajectoryObject; // Trajectory rendering object
     std::array<glm::vec3, TRAJECTORY_SIZE> trajectoryPoints; // Trajectory points
     size_t trajectoryHead{0}; // Head of the trajectory
     size_t trajectoryCount{0}; // Number of trajectory points
     float trajectorySampleTime; // Trajectory sampling timer
 
     static constexpr size_t PREDICTION_SIZE = 100;
-    std::unique_ptr<RenderObject> predictionObject; // Prediction rendering object
+    std::unique_ptr<IRenderObject> predictionObject; // Prediction rendering object
     std::vector<glm::vec3> predictionPoints; // Prediction points
+
+    // For testing
+    FRIEND_TEST(RocketTest, InitInjectsMockRenderObject);
+    FRIEND_TEST(RocketTest, Initialization);
+    FRIEND_TEST(RocketTest, OffsetPosition_Default);
+    FRIEND_TEST(RocketTest, OffsetPosition_CustomPosition);
+
+    void setRenderObjects(std::unique_ptr<IRenderObject> render,
+        std::unique_ptr<IRenderObject> trajectory,
+        std::unique_ptr<IRenderObject> prediction) {
+        renderObject = std::move(render);
+        trajectoryObject = std::move(trajectory);
+        predictionObject = std::move(prediction);
+    }
 
 public:
     Rocket(const Config&);
