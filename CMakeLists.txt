@@ -20,6 +20,7 @@ set(SOURCES
     src/ui.cpp
     src/config.cpp
     src/flight_plan.cpp
+    src/camera.cpp
     lib/imgui/imgui.cpp
     lib/imgui/imgui_draw.cpp
     lib/imgui/imgui_widgets.cpp
