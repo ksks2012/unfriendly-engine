@@ -25,7 +25,7 @@ App::App(const std::string& title, int width, int height, Config& config) : wind
 
     shader.init();
     simulation.init();
-    inputHandler = std::make_unique<InputHandler>(window, config);
+    inputHandler = std::make_unique<InputHandler>(window, simulation, config);
     ui = std::make_unique<UI>(window);
     glEnable(GL_DEPTH_TEST);
 }

@@ -1,11 +1,13 @@
 #include "simulation.h"
-
 #include <iostream>
+#include <vector>
 
-Simulation::Simulation() : config(Config()), rocket(config, FlightPlan(config.flight_plan_path)), cameraDistance(20000.0f), timeScale(1.0f) {
+Simulation::Simulation() : config(Config()), rocket(config, FlightPlan(config.flight_plan_path)), 
+    cameraDistance(20000.0f), cameraPitch(45.0f), cameraYaw(45.0f), timeScale(1.0f) {
 }
 
-Simulation::Simulation(Config& config) : rocket(config, FlightPlan(config.flight_plan_path)), cameraDistance(20000.0f), timeScale(1.0f) {
+Simulation::Simulation(Config& config) : config(config), rocket(config, FlightPlan(config.flight_plan_path)), 
+    cameraDistance(20000.0f), cameraPitch(45.0f), cameraYaw(45.0f), timeScale(1.0f) {
     R_e = config.physics_earth_radius;
 }
 
@@ -55,6 +57,10 @@ void Simulation::update(float deltaTime) {
     rocket.update(deltaTime * timeScale);
 }
 
+void Simulation::updateCameraPosition() const {
+    // TODO: Follow the rocket
+}
+
 void Simulation::render(const Shader& shader) const {
     int width, height;
     glfwGetWindowSize(glfwGetCurrentContext(), &width, &height);
@@ -62,9 +68,17 @@ void Simulation::render(const Shader& shader) const {
 
     // Scale factor (physical unit meters to rendering unit kilometers)
     const float scale = 0.001f; // 1 meter = 0.001 rendering units (i.e., 1 km = 1 unit)
+    // The camera targets the center of the Earth
+    glm::vec3 target = glm::vec3(0.0f, 0.0f, 0.0f); // Earth's center
+    float radPitch = glm::radians(cameraPitch);
+    float radYaw = glm::radians(cameraYaw);
+    glm::vec3 cameraPos;
+    cameraPos.x = target.x + cameraDistance * cos(radPitch) * sin(radYaw);
+    cameraPos.y = target.y + cameraDistance * sin(radPitch);
+    cameraPos.z = target.z + cameraDistance * cos(radPitch) * cos(radYaw);
 
-    glm::vec3 cameraPos(0.0f, cameraDistance, cameraDistance);
-    glm::mat4 view = glm::lookAt(cameraPos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    // Generate view and projection matrices
+    glm::mat4 view = glm::lookAt(cameraPos, target, glm::vec3(0.0f, 1.0f, 0.0f));
     glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)width / sceneHeight, 0.1f, cameraDistance * 2.0f);
 
     shader.use();
@@ -99,7 +113,13 @@ void Simulation::adjustTimeScale(float delta) {
 }
 
 void Simulation::adjustCameraDistance(float delta) { 
-    cameraDistance = std::max(std::min(cameraDistance + delta, 30000.0f), 12500.0f); 
+    cameraDistance = std::max(std::min(cameraDistance + delta, 500000.0f), 12500.0f); 
+}
+
+void Simulation::adjustCameraRotation(float deltaPitch, float deltaYaw) {
+    cameraPitch += deltaPitch;
+    cameraYaw += deltaYaw;
+    cameraPitch = glm::clamp(cameraPitch, -89.0f, 89.0f); // Limit the pitch angle to avoid flipping
 }
 
 float Simulation::getTimeScale() const { 

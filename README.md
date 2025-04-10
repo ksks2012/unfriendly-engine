@@ -4,8 +4,12 @@ A simple rocket simulator built with C++, OpenGL, GLFW, GLM, and Dear ImGui.
 ## Features
 
 ### Control
-- Adjustable time scale (Q/E keys).
-- Camera zoom (W/S keys).
+- Keyboard control
+  - Q/E keys: Adjustable time scale
+  - W/S keys: Camera zoom
+- Mouse Control:
+  - Left mouse button drag: Rotate
+  - Mouse wheel: Camera zoom
 
 ### Rendering
 - Rocket rendering.

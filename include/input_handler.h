@@ -1,6 +1,7 @@
 #ifndef INPUT_HANDLER_H
 #define INPUT_HANDLER_H
 
+#include "config.h"
 #include "simulation.h"
 
 #include <GLFW/glfw3.h>
@@ -8,15 +9,22 @@
 
 class InputHandler {
 public:
-InputHandler(GLFWwindow*, const Config&);
+    InputHandler(GLFWwindow* win, Simulation& sim, const Config& config);
+    void process(Simulation& sim);
 
-    void process(Simulation&);
+    void mouseCallback(double xpos, double ypos);
+    void scrollCallback(double yoffset);
 
 private:
     GLFWwindow* window;
+    Simulation& simulation;
+    double rotationSpeed;
+    double directionCooldown;
     std::unordered_map<int, double> lastPressTimes;
-    float rotationSpeed;
-    float directionCooldown;
+
+    float lastX, lastY;
+    bool firstMouse;
+    float mouseSensitivity;
 };
 
 #endif

@@ -13,27 +13,34 @@
 class Simulation {
 public:
     Simulation();
-    Simulation(Config&);
+    explicit Simulation(Config& config);
     ~Simulation();
 
     void init();
     void update(float deltaTime);
-    void render(const Shader&) const;
+    void render(const Shader& shader) const;
 
-    void setTimeScale(float);
-    void adjustTimeScale(float);
-    void adjustCameraDistance(float);
+    void setTimeScale(float ts);
+    void adjustTimeScale(float delta);
+    void adjustCameraDistance(float delta);
+    void adjustCameraRotation(float deltaPitch, float deltaYaw); // Adjust camera rotation
+
     float getTimeScale() const;
     Rocket& getRocket();
 
 private:
-    std::unique_ptr<RenderObject> earth;
     Config config;
     Rocket rocket;
+    std::unique_ptr<RenderObject> earth;
+    float R_e; // Earth's radius
+
+    // Camera parameters
     float cameraDistance;
+    float cameraPitch;  // Pitch angle (degrees)
+    float cameraYaw;    // Yaw angle (degrees)
     float timeScale;
 
-    float R_e;
+    void updateCameraPosition() const; // Update camera position
 };
 
 #endif
