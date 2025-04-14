@@ -30,6 +30,7 @@ void Config::setDefaults() {
     flight_plan_path = "etc/flight_plan.json";
 
     // Physics parameters
+    // Earth parameters
     physics_earth_radius = 6371000.0f;
     physics_gravity_constant = 6.674e-11f;
     physics_earth_mass = 5.972e24f;
@@ -37,6 +38,14 @@ void Config::setDefaults() {
     physics_scale_height = 8000.0f;
     physics_drag_coefficient = 0.13;
     physics_cross_section_area = 1.0f;
+    // Moon parameters
+    physics_moon_radius = 1737100.0f;
+    physics_moon_mass = 7.34767309e22f;
+    physics_moon_distance = 384400000.0f;
+    physics_moon_gravity_constant = 1.982e-14f;
+    physics_moon_gravity = 1.62f;
+    physics_moon_rotation_speed = 2.0f * M_PI / 27.3f; // radians per second
+    physics_moon_rotation_period = 27.3f * 24.0f * 3600.0f; // seconds
 
     // Simulation parameters
     simulation_trajectory_sample_time = 0.1f;
@@ -75,6 +84,7 @@ void Config::parseConfig(const json& config) {
     // Physics parameters
     if (config.contains("physics")) {
         const auto& physics = config["physics"];
+        // Earth parameters
         physics_earth_radius = physics.value("earth_radius", physics_earth_radius);
         physics_gravity_constant = physics.value("gravity_constant", physics_gravity_constant);
         physics_earth_mass = physics.value("earth_mass", physics_earth_mass);
@@ -82,6 +92,14 @@ void Config::parseConfig(const json& config) {
         physics_scale_height = physics.value("scale_height", physics_scale_height);
         physics_drag_coefficient = physics.value("drag_coefficient", physics_drag_coefficient);
         physics_cross_section_area = physics.value("cross_section_area", physics_cross_section_area);
+        // Moon parameters
+        physics_moon_radius = physics.value("moon_radius", physics_moon_radius);
+        physics_moon_mass = physics.value("moon_mass", physics_moon_mass);
+        physics_moon_distance = physics.value("moon_distance", physics_moon_distance);
+        physics_moon_gravity_constant = physics.value("moon_gravity_constant", physics_moon_gravity_constant);
+        physics_moon_gravity = physics.value("moon_gravity", physics_moon_gravity);
+        physics_moon_rotation_speed = physics.value("moon_rotation_speed", physics_moon_rotation_speed);
+        physics_moon_rotation_period = physics.value("moon_rotation_period", physics_moon_rotation_period);
     }
 
     // Simulation parameters
