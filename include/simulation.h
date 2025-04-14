@@ -28,11 +28,15 @@ public:
     float getTimeScale() const;
     Rocket& getRocket();
 
+    glm::vec3 getMoonPos() const { return moonPos; }
+
 private:
     Config config;
     Rocket rocket;
     std::unique_ptr<RenderObject> earth;
+    std::unique_ptr<RenderObject> moon;
     float R_e; // Earth's radius
+    float R_moon;
 
     // Camera parameters
     float cameraDistance;
@@ -41,6 +45,13 @@ private:
     float timeScale;
 
     void updateCameraPosition() const; // Update camera position
+
+    glm::vec3 moonPos;
+    float moonAngularSpeed;
+    float moonMass;
+    std::unique_ptr<RenderObject> mapEarth;
+    std::unique_ptr<RenderObject> mapMoon;
+    std::unique_ptr<RenderObject> mapRocket;
 };
 
 #endif

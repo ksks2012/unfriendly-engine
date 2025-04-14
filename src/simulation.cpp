@@ -7,8 +7,11 @@ Simulation::Simulation() : config(Config()), rocket(config, FlightPlan(config.fl
 }
 
 Simulation::Simulation(Config& config) : config(config), rocket(config, FlightPlan(config.flight_plan_path)), 
-    cameraDistance(20000.0f), cameraPitch(45.0f), cameraYaw(45.0f), timeScale(1.0f) {
+    cameraDistance(500000.0f), cameraPitch(45.0f), cameraYaw(45.0f), timeScale(1.0f),
+    moonPos(0.0f, 384400000.0f, 0.0f), moonAngularSpeed(2.665e-6f), moonMass(7.342e22f) {
     R_e = config.physics_earth_radius;
+    // TODO: to config
+    R_moon = 1737400.0f;
 }
 
 Simulation::~Simulation() = default;
@@ -22,7 +25,6 @@ void Simulation::init() {
     const int slices = 20;        // Longitude segments
     std::vector<GLfloat> earthVertices;
     std::vector<GLuint> earthIndices;
-
     for (int i = 0; i <= stacks; ++i) {
         float theta = i * M_PI / stacks;
         for (int j = 0; j <= slices; ++j) {
@@ -35,7 +37,6 @@ void Simulation::init() {
             earthVertices.push_back(z);
         }
     }
-
     for (int i = 0; i < stacks; ++i) {
         for (int j = 0; j < slices; ++j) {
             int first = i * (slices + 1) + j;
@@ -48,9 +49,21 @@ void Simulation::init() {
             earthIndices.push_back(first + 1);
         }
     }
-
     earth = std::make_unique<RenderObject>(earthVertices, earthIndices);
+
+    // moon
+    float R_moon = 1737400.0f;
+    std::vector<GLfloat> moonVertices;
+    for (size_t i = 0; i < earthVertices.size(); i += 3) {
+        moonVertices.push_back(earthVertices[i] * (R_moon / R_e));
+        moonVertices.push_back(earthVertices[i + 1] * (R_moon / R_e));
+        moonVertices.push_back(earthVertices[i + 2] * (R_moon / R_e));
+    }
+    moon = std::make_unique<RenderObject>(moonVertices, earthIndices);
+
     std::cout << "Earth initialized: " << (earth ? "valid" : "null") << std::endl;
+    std::cout << "Moon initialized: " << (moon ? "valid" : "null") << std::endl;
+    std::cout << "Map objects initialized" << std::endl;
 }
 
 void Simulation::update(float deltaTime) {
@@ -68,8 +81,8 @@ void Simulation::render(const Shader& shader) const {
 
     // Scale factor (physical unit meters to rendering unit kilometers)
     const float scale = 0.001f; // 1 meter = 0.001 rendering units (i.e., 1 km = 1 unit)
-    // The camera targets the center of the Earth
-    glm::vec3 target = glm::vec3(0.0f, 0.0f, 0.0f); // Earth's center
+    // glm::vec3 target = glm::vec3(0.0f, 0.0f, 0.0f); // Earth's center
+    glm::vec3 target = glm::vec3(0.0, 384400000.0f * scale / 2, 0.0f); // middle of the Earth and Moon
     float radPitch = glm::radians(cameraPitch);
     float radYaw = glm::radians(cameraYaw);
     glm::vec3 cameraPos;
@@ -97,6 +110,16 @@ void Simulation::render(const Shader& shader) const {
 
     // Render the rocket (scaled)
     rocket.render(shader);
+
+    glm::mat4 moonModel = glm::translate(glm::mat4(1.0f), moonPos * scale);
+    moonModel = glm::scale(moonModel, glm::vec3(scale, scale, scale));
+    shader.setMat4("model", moonModel);
+    shader.setVec4("color", glm::vec4(0.7f, 0.7f, 0.7f, 1.0f));
+    if (moon) {
+        moon->render();
+    } else {
+        std::cerr << "Moon is null!" << std::endl;
+    }
 
     GLenum err = glGetError();
     if (err != GL_NO_ERROR) {
