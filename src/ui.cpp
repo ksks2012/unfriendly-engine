@@ -1,8 +1,10 @@
 #include "ui.h"
-
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
 #include <glm/gtx/string_cast.hpp>
 
-UI::UI(GLFWwindow* win) : window(win) {
+UI::UI(GLFWwindow* win, Simulation& sim) : window(win), map(sim) {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGui_ImplGlfw_InitForOpenGL(window, true);
@@ -16,6 +18,7 @@ void UI::render(float timeScale, const Rocket& rocket, int width, int height) {
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
+    // Message box
     float sceneHeight = height * 0.8f;
     ImGui::SetNextWindowPos(ImVec2(10, sceneHeight + 10));
     ImGui::SetNextWindowSize(ImVec2(width - 20, height * 0.2f - 20));
@@ -32,7 +35,10 @@ void UI::render(float timeScale, const Rocket& rocket, int width, int height) {
     ImGui::Text("Time: %.1f s", rocket.getTime());
     ImGui::Text("Launched: %s", rocket.isLaunched() ? "Yes" : "No");
     ImGui::End();
-    
+
+    // Thumbnail (top-left corner)
+    map.render(width, height);
+
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
