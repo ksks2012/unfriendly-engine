@@ -68,6 +68,11 @@ void Simulation::init() {
 
 void Simulation::update(float deltaTime) {
     rocket.update(deltaTime * timeScale);
+
+    // Update the moon's position
+    float angle = moonAngularSpeed * deltaTime * timeScale;
+    glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 0.0f, 1.0f));
+    moonPos = glm::vec3(rotation * glm::vec4(moonPos, 1.0f));
 }
 
 void Simulation::updateCameraPosition() const {
