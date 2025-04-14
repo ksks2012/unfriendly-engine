@@ -2,7 +2,8 @@
 
 #include "app.h"
 
-App::App(const std::string& title, int width, int height, Config& config) : window(nullptr), config(config), simulation(Simulation(config)) {
+App::App(const std::string& title, int width, int height, Config& config) 
+    : window(nullptr), config(config), simulation(Simulation(config)) {
     if (!glfwInit()) 
         throw std::runtime_error("Failed to initialize GLFW");
 
@@ -26,11 +27,12 @@ App::App(const std::string& title, int width, int height, Config& config) : wind
     shader.init();
     simulation.init();
     inputHandler = std::make_unique<InputHandler>(window, simulation, config);
-    ui = std::make_unique<UI>(window);
+    ui = std::make_unique<UI>(window, simulation);
     glEnable(GL_DEPTH_TEST);
 }
 
 App::~App() {
+    ui->shutdown();
     glfwDestroyWindow(window);
     glfwTerminate();
 }
