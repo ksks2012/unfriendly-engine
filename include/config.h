@@ -29,6 +29,7 @@ public:
     std::string flight_plan_path = "etc/flight_plan.json";
 
     // Physics parameters
+    // TODO: setting structure of stars
     // Earth parameters
     float physics_earth_radius = 6371000.0f;
     float physics_gravity_constant = 6.674e-11f;
