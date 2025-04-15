@@ -17,7 +17,14 @@
         "air_density": 1.225,
         "scale_height": 8000.0,
         "drag_coefficient": 0.3,
-        "cross_section_area": 1.0
+        "cross_section_area": 1.0,
+        "moon_radius": 1737100.0,
+        "moon_mass": 7.34767309e22,
+        "moon_distance": 384400000.0,
+        "moon_gravity_constant": 1.982e-14,
+        "moon_gravity": 1.62,
+        "moon_rotation_speed": 0.229971504218,
+        "moon_rotation_period": 2358720.0
     },
     "simulation": {
         "trajectory_sample_time": 0.1,

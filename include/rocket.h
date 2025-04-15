@@ -10,26 +10,20 @@
 #include <gtest/gtest_prod.h>
 #include <array>
 #include <memory>
-
+#include <vector>
 
 class Rocket {
 private:
+    // Variables
     struct State {
         glm::vec3 position;
         glm::vec3 velocity;
     };
 
-    const float G;     // Gravitational constant
-    const float M;      // Earth's mass
-    const float R_e;   // Earth's radius
-    const float scale;     // Consistent with Earth, 1 m = 0.001 units
-    const float rho_0;         // Air density at sea level (kg/m^3)
-    const float H;             // Scale height (m)
-    const float Cd;            // Drag coefficient
-    const float A;             // Cross-sectional area (m^2)
-    float predictionDuration, predictionStep; // Prediction parameters
-
+    const Config& config;    
     std::unique_ptr<IRenderObject> renderObject; // Rocket rendering object
+
+    float predictionDuration, predictionStep; // Prediction parameters
 
     float mass;                // Total mass of the rocket (kg)
     float fuel_mass;           // Fuel mass (kg)
@@ -63,23 +57,26 @@ private:
 
     void setRenderObjects(std::unique_ptr<IRenderObject> render,
         std::unique_ptr<IRenderObject> trajectory,
-        std::unique_ptr<IRenderObject> prediction) {
-        renderObject = std::move(render);
-        trajectoryObject = std::move(trajectory);
-        predictionObject = std::move(prediction);
-    }
+        std::unique_ptr<IRenderObject> prediction);
+
+    // Private functions
+    glm::vec3 computeAcceleration(const State&, float) const;
+    void updateTrajectory();
+    glm::vec3 offsetPosition() const;
+    glm::vec3 offsetPosition(glm::vec3) const;
+    State updateState(const State& state, float deltaTime, float& currentMass, float& currentFuel) const;
 
 public:
     Rocket(const Config&, const FlightPlan&);
 
+    // Public functions
     void init();
     void update(float);
-    
     void render(const Shader&) const;
     void toggleLaunch();
     void resetTime();
 
-    // Getter
+    // Getters
     glm::vec3 getPosition() const;
     glm::vec3 getVelocity() const;
     float getTime() const;
@@ -89,16 +86,12 @@ public:
     float getThrust() const;
     float getExhaustVelocity() const;
     glm::vec3 getThrustDirection() const;
+
+    // Setter
     void setThrustDirection(const glm::vec3&);
 
+    // Prediction
     void predictTrajectory(float, float);
-
-private:
-    glm::vec3 computeAcceleration(const State&, float) const;
-    void updateTrajectory();
-    glm::vec3 offsetPosition() const;
-    glm::vec3 offsetPosition(glm::vec3) const;
-    State updateState(const State& state, float deltaTime, float& currentMass, float& currentFuel) const;
 };
 
 #endif

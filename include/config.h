@@ -29,6 +29,8 @@ public:
     std::string flight_plan_path = "etc/flight_plan.json";
 
     // Physics parameters
+    // TODO: setting structure of stars
+    // Earth parameters
     float physics_earth_radius = 6371000.0f;
     float physics_gravity_constant = 6.674e-11f;
     float physics_earth_mass = 5.972e24f;
@@ -36,7 +38,15 @@ public:
     float physics_scale_height = 8000.0f;
     float physics_drag_coefficient = 0.1f;
     float physics_cross_section_area = 0.5f;
-
+    // Moon parameters
+    float physics_moon_radius = 1737100.0f;
+    float physics_moon_mass = 7.34767309e22f;
+    float physics_moon_distance = 384400000.0f;
+    float physics_moon_gravity_constant = 1.982e-14f;
+    float physics_moon_gravity = 1.62f;
+    float physics_moon_rotation_speed = 2.0f * M_PI / 27.3f; // radians per second
+    float physics_moon_rotation_period = 27.3f * 24.0f * 3600.0f; // seconds
+    
     // Simulation parameters
     float simulation_trajectory_sample_time = 0.1f;
     float simulation_prediction_duration = 30.0f;

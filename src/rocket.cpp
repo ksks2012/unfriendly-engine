@@ -5,16 +5,11 @@
 #include <iostream>
 
 Rocket::Rocket(const Config& config, const FlightPlan& plan) 
-    : mass(config.rocket_mass), fuel_mass(config.rocket_fuel_mass), 
+    : config(config), flightPlan(plan),
+      mass(config.rocket_mass), fuel_mass(config.rocket_fuel_mass),
       thrust(config.rocket_thrust), exhaust_velocity(config.rocket_exhaust_velocity),
       position(config.rocket_initial_position), velocity(config.rocket_initial_velocity),
-      R_e(config.physics_earth_radius), G(config.physics_gravity_constant), 
-      M(config.physics_earth_mass), rho_0(config.physics_air_density), 
-      H(config.physics_scale_height), Cd(config.physics_drag_coefficient), 
-      A(config.physics_cross_section_area), scale(config.simulation_rendering_scale),
-      predictionDuration(config.simulation_prediction_duration), 
-      predictionStep(config.simulation_prediction_step),
-      trajectorySampleTime(0.0f), flightPlan(plan) {
+      time(0.0f), launched(false), trajectorySampleTime(0.0f) {
 }
 
 void Rocket::init() {
@@ -60,9 +55,9 @@ void Rocket::update(float deltaTime) {
     velocity = newState.velocity;
 
     float r = glm::length(position);
-    float altitude = r - R_e;
+    float altitude = r - config.physics_earth_radius;
     if (altitude < 0.0f) {
-        position = glm::normalize(position) * R_e;
+        position = glm::normalize(position) * config.physics_earth_radius;
         velocity = glm::vec3(0.0f);
         launched = false;
     }
@@ -158,12 +153,20 @@ void Rocket::setThrustDirection(const glm::vec3& direction) {
     }
 }
 
+void Rocket::setRenderObjects(std::unique_ptr<IRenderObject> render,
+    std::unique_ptr<IRenderObject> trajectory,
+    std::unique_ptr<IRenderObject> prediction) {
+    renderObject = std::move(render);
+    trajectoryObject = std::move(trajectory);
+    predictionObject = std::move(prediction);
+}
+
 // private
 
 glm::vec3 Rocket::computeAcceleration(const State& state, float currentMass) const {
     // Gravitational force
     float r = glm::length(state.position);
-    glm::vec3 gravity_acc = - (G * M / (r * r * r)) * state.position;
+    glm::vec3 gravity_acc = - (config.physics_gravity_constant * config.physics_earth_mass / (r * r * r)) * state.position;
 
     // Thrust (assumed along the rocket's current direction, simplified as vertically upward)
     glm::vec3 thrust_acc(0.0f);
@@ -172,15 +175,15 @@ glm::vec3 Rocket::computeAcceleration(const State& state, float currentMass) con
     }
 
     // Air resistance (significant below 100 km altitude)
-    float altitude = r - R_e;
+    float altitude = r - config.physics_earth_radius;
     glm::vec3 drag_acc(0.0f);
     // Significant atmosphere below 100 km
     if (altitude < 100000.0f) {
-        float rho = rho_0 * std::exp(-altitude / H);
+        float rho = config.physics_air_density * std::exp(-altitude / config.physics_scale_height);
         float v_magnitude = glm::length(state.velocity);
         if (v_magnitude > 0.0f) {
             glm::vec3 v_unit = state.velocity / v_magnitude;
-            float drag_force = 0.5f * rho * Cd * A * v_magnitude * v_magnitude;
+            float drag_force = 0.5f * rho * config.physics_drag_coefficient * config.physics_cross_section_area * v_magnitude * v_magnitude;
             drag_acc = -drag_force * v_unit / currentMass;
         }
     }
@@ -213,14 +216,14 @@ void Rocket::updateTrajectory() {
 
 glm::vec3 Rocket::offsetPosition() const {
     // Offset position for rendering
-    float altitude = glm::length(position) - R_e;
-    return glm::vec3(position.x * scale, altitude * scale + (R_e * scale), position.z * scale);
+    float altitude = glm::length(position) - config.physics_earth_radius;
+    return glm::vec3(position.x * config.simulation_rendering_scale, altitude * config.simulation_rendering_scale + (config.physics_earth_radius * config.simulation_rendering_scale), position.z * config.simulation_rendering_scale);
 }
 
 glm::vec3 Rocket::offsetPosition(glm::vec3 inputPosition) const {
     // Offset position for rendering
-    float altitude = glm::length(inputPosition) - R_e;
-    return glm::vec3(inputPosition.x * scale, altitude * scale + (R_e * scale), inputPosition.z * scale);
+    float altitude = glm::length(inputPosition) - config.physics_earth_radius;
+    return glm::vec3(inputPosition.x * config.simulation_rendering_scale, altitude * config.simulation_rendering_scale + (config.physics_earth_radius * config.simulation_rendering_scale), inputPosition.z * config.simulation_rendering_scale);
 }
 
 void Rocket::predictTrajectory(float duration, float step) {
