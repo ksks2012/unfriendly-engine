@@ -17,6 +17,14 @@ Simulation::Simulation(Config& config) : config(config), rocket(config, FlightPl
 Simulation::~Simulation() = default;
 
 void Simulation::init() {
+    // Earth
+    bodies["earth"] = std::make_unique<Body>(glm::vec3(0.0f), glm::vec3(0.0f), config.physics_earth_mass);
+    // Moon
+    bodies["moon"] = std::make_unique<Body>(moonPos, glm::vec3(-1022.0f, 0.0f, 0.0f), moonMass);
+    if (!bodies["earth"] || !bodies["moon"]) {
+        std::cerr << "Error: Failed to initialize earth or moon!" << std::endl;
+    }
+
     rocket.init();
 
     // Generate Earth's sphere
@@ -49,25 +57,44 @@ void Simulation::init() {
             earthIndices.push_back(first + 1);
         }
     }
-    earth = std::make_unique<RenderObject>(earthVertices, earthIndices);
+    if (earthVertices.empty() || earthIndices.empty()) {
+        std::cerr << "Error: Empty vertices or indices for earth!" << std::endl;
+        return;
+    }
+    
+    try {
+        bodies["earth"]->renderObject = std::make_unique<RenderObject>(earthVertices, earthIndices);
+    } catch (const std::exception& e) {
+        std::cerr << "Error creating earth renderObject: " << e.what() << std::endl;
+        return;
+    }
 
     // moon
-    float R_moon = 1737400.0f;
     std::vector<GLfloat> moonVertices;
     for (size_t i = 0; i < earthVertices.size(); i += 3) {
         moonVertices.push_back(earthVertices[i] * (R_moon / R_e));
         moonVertices.push_back(earthVertices[i + 1] * (R_moon / R_e));
         moonVertices.push_back(earthVertices[i + 2] * (R_moon / R_e));
     }
-    moon = std::make_unique<RenderObject>(moonVertices, earthIndices);
+    if (moonVertices.empty()) {
+        std::cerr << "Error: Empty moonVertices!" << std::endl;
+        return;
+    }
+    
+    try {
+        bodies["moon"]->renderObject = std::make_unique<RenderObject>(moonVertices, earthIndices);
+    } catch (const std::exception& e) {
+        std::cerr << "Error creating moon renderObject: " << e.what() << std::endl;
+        return;
+    }
 
-    std::cout << "Earth initialized: " << (earth ? "valid" : "null") << std::endl;
-    std::cout << "Moon initialized: " << (moon ? "valid" : "null") << std::endl;
+    std::cout << "Earth initialized: " << (bodies.find("Earth") != bodies.end() ? "valid" : "null") << std::endl;
+    std::cout << "Moon initialized: " << (bodies.find("Moon")  != bodies.end() ? "valid" : "null") << std::endl;
     std::cout << "Map objects initialized" << std::endl;
 }
 
 void Simulation::update(float deltaTime) {
-    rocket.update(deltaTime * timeScale);
+    rocket.update(deltaTime * timeScale, bodies);
 
     // Update the moon's position
     float angle = moonAngularSpeed * deltaTime * timeScale;
@@ -107,8 +134,8 @@ void Simulation::render(const Shader& shader) const {
     glm::mat4 earthModel = glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale));
     shader.setMat4("model", earthModel);
     shader.setVec4("color", glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
-    if (earth) {
-        earth->render();
+    if (bodies.find("earth") != bodies.end()) {
+        bodies.at("earth")->renderObject->render();
     } else {
         std::cerr << "Earth is null!" << std::endl;
     }
@@ -120,8 +147,8 @@ void Simulation::render(const Shader& shader) const {
     moonModel = glm::scale(moonModel, glm::vec3(scale, scale, scale));
     shader.setMat4("model", moonModel);
     shader.setVec4("color", glm::vec4(0.7f, 0.7f, 0.7f, 1.0f));
-    if (moon) {
-        moon->render();
+    if (bodies.find("moon") != bodies.end()) {
+        bodies.at("moon")->renderObject->render();
     } else {
         std::cerr << "Moon is null!" << std::endl;
     }
@@ -156,4 +183,12 @@ float Simulation::getTimeScale() const {
 
 Rocket& Simulation::getRocket() { 
     return rocket; 
+}
+
+glm::vec3 Simulation::getMoonPos() const {
+    return moonPos;
+}
+
+const BODY_MAP& Simulation::getBodies() const {
+    return bodies;
 }

@@ -22,6 +22,7 @@ set(SOURCES
     src/flight_plan.cpp
     src/camera.cpp
     src/map.cpp
+    src/body.cpp
     lib/imgui/imgui.cpp
     lib/imgui/imgui_draw.cpp
     lib/imgui/imgui_widgets.cpp
@@ -59,6 +60,7 @@ set(TEST_SOURCES
     src/render_object.cpp
     src/shader.cpp
     src/flight_plan.cpp
+    src/body.cpp
 )
 
 add_executable(runTests ${TEST_SOURCES})

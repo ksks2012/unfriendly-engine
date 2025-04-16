@@ -111,7 +111,7 @@ TEST_F(RocketTest, FlightPlanExecution) {
     rocket->launched = true;
 
     rocket->trajectorySampleTime = -999.0f; // ignore trajectory
-    rocket->update(0.1f);
+    rocket->update(0.1f, BODY_MAP());
 
     EXPECT_FLOAT_EQ(rocket->getThrustDirection().y, 1.0f);
     EXPECT_FLOAT_EQ(rocket->thrust, 25000000.0f);
