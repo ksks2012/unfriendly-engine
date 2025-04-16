@@ -34,26 +34,23 @@ void Rocket::init() {
     predictionPoints.reserve(PREDICTION_SIZE);
 }
 
-void Rocket::update(float deltaTime) {
+void Rocket::update(float deltaTime, const BODY_MAP& bodies) {
     if (!launched) return;
-
     time += deltaTime;
     trajectorySampleTime += deltaTime;
-    // Record trajectory every 0.1 seconds
     if (trajectorySampleTime >= 0.1f) {
         updateTrajectory();
-        predictTrajectory(predictionDuration, predictionStep);
+        predictTrajectory(config.simulation_prediction_duration, config.simulation_prediction_step);
         trajectorySampleTime = 0.0f;
     }
-
-
-    // Initial state
-    State current = {position, velocity};
-
-    State newState = updateState(current, deltaTime, mass, fuel_mass);
+    
+    Body current = *this;
+    float currentMass = mass;
+    Body newState = updateStateRK4(current, deltaTime, currentMass, fuel_mass, bodies);
     position = newState.position;
     velocity = newState.velocity;
-
+    mass = currentMass;
+    
     float r = glm::length(position);
     float altitude = r - config.physics_earth_radius;
     if (altitude < 0.0f) {
@@ -61,10 +58,8 @@ void Rocket::update(float deltaTime) {
         velocity = glm::vec3(0.0f);
         launched = false;
     }
-
-    // Update thrust direction based on flight plan
-    float speed = glm::length(velocity);
-    auto action = flightPlan.getAction(altitude, speed);
+    
+    auto action = flightPlan.getAction(altitude, glm::length(velocity));
     if (action) {
         thrust = action->thrust;
         thrustDirection = action->direction;
@@ -163,32 +158,33 @@ void Rocket::setRenderObjects(std::unique_ptr<IRenderObject> render,
 
 // private
 
-glm::vec3 Rocket::computeAcceleration(const State& state, float currentMass) const {
-    // Gravitational force
-    float r = glm::length(state.position);
-    glm::vec3 gravity_acc = - (config.physics_gravity_constant * config.physics_earth_mass / (r * r * r)) * state.position;
-
-    // Thrust (assumed along the rocket's current direction, simplified as vertically upward)
-    glm::vec3 thrust_acc(0.0f);
-    if (fuel_mass > 0.0f && currentMass > 0.0f) {
-        thrust_acc = (thrust / currentMass) * thrustDirection; // Use variable thrust direction
-    }
-
-    // Air resistance (significant below 100 km altitude)
-    float altitude = r - config.physics_earth_radius;
-    glm::vec3 drag_acc(0.0f);
-    // Significant atmosphere below 100 km
-    if (altitude < 100000.0f) {
-        float rho = config.physics_air_density * std::exp(-altitude / config.physics_scale_height);
-        float v_magnitude = glm::length(state.velocity);
-        if (v_magnitude > 0.0f) {
-            glm::vec3 v_unit = state.velocity / v_magnitude;
-            float drag_force = 0.5f * rho * config.physics_drag_coefficient * config.physics_cross_section_area * v_magnitude * v_magnitude;
-            drag_acc = -drag_force * v_unit / currentMass;
+glm::vec3 Rocket::computeAccelerationRK4(float currentMass, const BODY_MAP& bodies) const {
+    glm::vec3 acc(0.0f);
+    for (const auto& [name, body] : bodies) {
+        if (body.get() != this) {
+            glm::vec3 delta = position - body->position;
+            float r = glm::length(delta);
+            if (r > 1e-6f) {
+                acc -= (config.physics_gravity_constant * body->mass / (r * r * r)) * delta;
+            }
         }
     }
 
-    return gravity_acc + thrust_acc + drag_acc;
+    if (fuel_mass > 0.0f && currentMass > 0.0f) {
+        acc += (thrust / currentMass) * thrustDirection;
+    }
+    float r = glm::length(position);
+    float altitude = r - config.physics_earth_radius;
+    if (altitude < 100000.0f) {
+        float rho = config.physics_air_density * std::exp(-altitude / config.physics_scale_height);
+        float v_magnitude = glm::length(velocity);
+        if (v_magnitude > 0.0f) {
+            glm::vec3 v_unit = velocity / v_magnitude;
+            float drag_force = 0.5f * rho * config.physics_drag_coefficient * config.physics_cross_section_area * v_magnitude * v_magnitude;
+            acc -= drag_force * v_unit / currentMass;
+        }
+    }
+    return acc;
 }
 
 void Rocket::updateTrajectory() {
@@ -228,18 +224,17 @@ glm::vec3 Rocket::offsetPosition(glm::vec3 inputPosition) const {
 
 void Rocket::predictTrajectory(float duration, float step) {
     predictionPoints.clear();
-    State state = {position, velocity};
+    Body state = *this; // 使用 Body 取代 State
     float predMass = mass;
     float predFuel = fuel_mass;
     float predTime = 0.0f;
-
+    
     while (predTime < duration && predFuel >= 0.0f) {
         predictionPoints.push_back(offsetPosition(state.position));
-        state = updateState(state, step, predMass, predFuel);
+        state = updateStateRK4(state, step, predMass, predFuel, {});
         predTime += step;
     }
-
-    // Update prediction buffer
+    
     std::vector<GLfloat> vertices;
     for (const auto& point : predictionPoints) {
         vertices.push_back(point.x);
@@ -249,37 +244,40 @@ void Rocket::predictTrajectory(float duration, float step) {
     predictionObject = std::make_unique<RenderObject>(vertices, std::vector<GLuint>());
 }
 
-Rocket::State Rocket::updateState(const State& state, float deltaTime, float& currentMass, float& currentFuel) const {
+Body Rocket::updateStateRK4(const Body& state, float deltaTime, float& currentMass, float& currentFuel, const BODY_MAP& bodies) const {
     float fuel_consumption_rate = thrust / exhaust_velocity;
     float delta_fuel = fuel_consumption_rate * deltaTime;
-
-    State k1, k2, k3, k4;
-    k1.velocity = computeAcceleration(state, currentMass);
+    
+    Body k1, k2, k3, k4;
+    k1.velocity = computeAccelerationRK4(currentMass, bodies);
     k1.position = state.velocity;
-
-    State mid1 = {state.position + k1.position * (deltaTime / 2.0f), 
-                  state.velocity + k1.velocity * (deltaTime / 2.0f)};
-    k2.velocity = computeAcceleration(mid1, currentMass);
+    
+    Body mid1;
+    mid1.position = state.position + k1.position * (deltaTime / 2.0f);
+    mid1.velocity = state.velocity + k1.velocity * (deltaTime / 2.0f);
+    k2.velocity = computeAccelerationRK4(currentMass, bodies);
     k2.position = mid1.velocity;
-
-    State mid2 = {state.position + k2.position * (deltaTime / 2.0f), 
-                  state.velocity + k2.velocity * (deltaTime / 2.0f)};
-    k3.velocity = computeAcceleration(mid2, currentMass);
+    
+    Body mid2;
+    mid2.position = state.position + k2.position * (deltaTime / 2.0f);
+    mid2.velocity = state.velocity + k2.velocity * (deltaTime / 2.0f);
+    k3.velocity = computeAccelerationRK4(currentMass, bodies);
     k3.position = mid2.velocity;
-
-    State end = {state.position + k3.position * deltaTime, 
-                 state.velocity + k3.velocity * deltaTime};
-    k4.velocity = computeAcceleration(end, currentMass);
+    
+    Body end;
+    end.position = state.position + k3.position * deltaTime;
+    end.velocity = state.velocity + k3.velocity * deltaTime;
+    k4.velocity = computeAccelerationRK4(currentMass, bodies);
     k4.position = end.velocity;
-
-    State newState;
+    
+    Body newState;
     newState.position = state.position + (k1.position + 2.0f * k2.position + 2.0f * k3.position + k4.position) * (deltaTime / 6.0f);
     newState.velocity = state.velocity + (k1.velocity + 2.0f * k2.velocity + 2.0f * k3.velocity + k4.velocity) * (deltaTime / 6.0f);
-
+    
     if (currentFuel > 0.0f) {
         currentFuel = std::max(0.0f, currentFuel - delta_fuel);
         currentMass = currentMass - delta_fuel;
     }
-
+    
     return newState;
 }

@@ -1,6 +1,7 @@
 #ifndef ROCKET_H
 #define ROCKET_H
 
+#include "body.h"
 #include "config.h"
 #include "flight_plan.h"
 #include "shader.h"
@@ -11,15 +12,10 @@
 #include <array>
 #include <memory>
 #include <vector>
+#include <unordered_map>
 
-class Rocket {
+class Rocket : Body{
 private:
-    // Variables
-    struct State {
-        glm::vec3 position;
-        glm::vec3 velocity;
-    };
-
     const Config& config;    
     std::unique_ptr<IRenderObject> renderObject; // Rocket rendering object
 
@@ -60,18 +56,19 @@ private:
         std::unique_ptr<IRenderObject> prediction);
 
     // Private functions
-    glm::vec3 computeAcceleration(const State&, float) const;
+    // Runge-Kutta 4th order method
+    glm::vec3 computeAccelerationRK4(float currentMass, const BODY_MAP& bodies) const;
     void updateTrajectory();
     glm::vec3 offsetPosition() const;
     glm::vec3 offsetPosition(glm::vec3) const;
-    State updateState(const State& state, float deltaTime, float& currentMass, float& currentFuel) const;
+    Body updateStateRK4(const Body& state, float deltaTime, float& currentMass, float& currentFuel, const BODY_MAP& bodies) const;
 
 public:
     Rocket(const Config&, const FlightPlan&);
 
     // Public functions
     void init();
-    void update(float);
+    void update(float, const BODY_MAP&);
     void render(const Shader&) const;
     void toggleLaunch();
     void resetTime();

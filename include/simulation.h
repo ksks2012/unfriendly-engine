@@ -33,14 +33,14 @@ public:
     Rocket& getRocket();
 
     glm::vec3 getMoonPos() const;
-    const std::unordered_map<std::string, Body>& getBodies() const;
+    const BODY_MAP& getBodies() const;
 
 private:
     Config config;
     Rocket rocket;
     // std::unique_ptr<RenderObject> earth;
     // std::unique_ptr<RenderObject> moon;
-    std::unordered_map<std::string, Body> bodies;
+    BODY_MAP bodies;
     float R_e; // Earth's radius
     float R_moon;
 
