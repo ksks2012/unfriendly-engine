@@ -3,15 +3,13 @@
 #include <vector>
 
 Simulation::Simulation() : config(Config()), rocket(config, FlightPlan(config.flight_plan_path)), 
-    cameraDistance(20000.0f), cameraPitch(45.0f), cameraYaw(45.0f), timeScale(1.0f) {
+    cameraDistance(20000.0f), cameraPitch(45.0f), cameraYaw(45.0f), timeScale(1.0f),
+    moonPos(0.0f, 384400000.0f, 0.0f) {
 }
 
 Simulation::Simulation(Config& config) : config(config), rocket(config, FlightPlan(config.flight_plan_path)), 
     cameraDistance(500000.0f), cameraPitch(45.0f), cameraYaw(45.0f), timeScale(1.0f),
-    moonPos(0.0f, 384400000.0f, 0.0f), moonAngularSpeed(2.665e-6f), moonMass(7.342e22f) {
-    R_e = config.physics_earth_radius;
-    // TODO: to config
-    R_moon = 1737400.0f;
+    moonPos(0.0f, 384400000.0f, 0.0f) {
 }
 
 Simulation::~Simulation() = default;
@@ -20,7 +18,7 @@ void Simulation::init() {
     // Earth
     bodies["earth"] = std::make_unique<Body>(glm::vec3(0.0f), glm::vec3(0.0f), config.physics_earth_mass);
     // Moon
-    bodies["moon"] = std::make_unique<Body>(moonPos, glm::vec3(-1022.0f, 0.0f, 0.0f), moonMass);
+    bodies["moon"] = std::make_unique<Body>(moonPos, glm::vec3(-1022.0f, 0.0f, 0.0f), config.physics_moon_mass);
     if (!bodies["earth"] || !bodies["moon"]) {
         std::cerr << "Error: Failed to initialize earth or moon!" << std::endl;
     }
@@ -37,9 +35,9 @@ void Simulation::init() {
         float theta = i * M_PI / stacks;
         for (int j = 0; j <= slices; ++j) {
             float phi = j * 2.0f * M_PI / slices;
-            float x = R_e * std::sin(theta) * std::cos(phi);
-            float y = R_e * std::cos(theta);
-            float z = R_e * std::sin(theta) * std::sin(phi);
+            float x = config.physics_earth_radius * std::sin(theta) * std::cos(phi);
+            float y = config.physics_earth_radius * std::cos(theta);
+            float z = config.physics_earth_radius * std::sin(theta) * std::sin(phi);
             earthVertices.push_back(x);
             earthVertices.push_back(y);
             earthVertices.push_back(z);
@@ -72,9 +70,9 @@ void Simulation::init() {
     // moon
     std::vector<GLfloat> moonVertices;
     for (size_t i = 0; i < earthVertices.size(); i += 3) {
-        moonVertices.push_back(earthVertices[i] * (R_moon / R_e));
-        moonVertices.push_back(earthVertices[i + 1] * (R_moon / R_e));
-        moonVertices.push_back(earthVertices[i + 2] * (R_moon / R_e));
+        moonVertices.push_back(earthVertices[i] * (config.physics_moon_radius / config.physics_earth_radius));
+        moonVertices.push_back(earthVertices[i + 1] * (config.physics_moon_radius / config.physics_earth_radius));
+        moonVertices.push_back(earthVertices[i + 2] * (config.physics_moon_radius / config.physics_earth_radius));
     }
     if (moonVertices.empty()) {
         std::cerr << "Error: Empty moonVertices!" << std::endl;
@@ -97,7 +95,7 @@ void Simulation::update(float deltaTime) {
     rocket.update(deltaTime * timeScale, bodies);
 
     // Update the moon's position
-    float angle = moonAngularSpeed * deltaTime * timeScale;
+    float angle = config.physics_moon_angular_speed * deltaTime * timeScale;
     glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 0.0f, 1.0f));
     moonPos = glm::vec3(rotation * glm::vec4(moonPos, 1.0f));
 }

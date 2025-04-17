@@ -224,7 +224,7 @@ glm::vec3 Rocket::offsetPosition(glm::vec3 inputPosition) const {
 
 void Rocket::predictTrajectory(float duration, float step) {
     predictionPoints.clear();
-    Body state = *this; // 使用 Body 取代 State
+    Body state = *this;
     float predMass = mass;
     float predFuel = fuel_mass;
     float predTime = 0.0f;

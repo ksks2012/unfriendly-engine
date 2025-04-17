@@ -23,6 +23,7 @@
         "moon_distance": 384400000.0,
         "moon_gravity_constant": 1.982e-14,
         "moon_gravity": 1.62,
+        "moon_moon_angular_speed": 2.665e-6,
         "moon_rotation_speed": 0.229971504218,
         "moon_rotation_period": 2358720.0
     },
