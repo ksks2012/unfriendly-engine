@@ -92,12 +92,38 @@ void Simulation::init() {
 }
 
 void Simulation::update(float deltaTime) {
-    rocket.update(deltaTime * timeScale, bodies);
-
-    // Update the moon's position
-    float angle = config.physics_moon_angular_speed * deltaTime * timeScale;
-    glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 0.0f, 1.0f));
-    moonPos = glm::vec3(rotation * glm::vec4(moonPos, 1.0f));
+    float dt = deltaTime * timeScale;
+    
+    // Step 1: Update all celestial bodies (Velocity Verlet)
+    std::vector<std::pair<std::string, glm::vec3>> current_accs;
+    for (const auto& [name, body] : bodies) {
+        current_accs.emplace_back(name, computeBodyAcceleration(*body, bodies));
+    }
+    
+    // Update positions
+    for (const auto& [name, body] : bodies) {
+        body->position += body->velocity * dt + 0.5f * current_accs[std::distance(bodies.begin(), bodies.find(name))].second * dt * dt;
+    }
+    
+    // Calculate new accelerations and update velocities
+    for (auto& [name, body] : bodies) {
+        glm::vec3 new_acc = computeBodyAcceleration(*body, bodies);
+        body->velocity += 0.5f * (current_accs[std::distance(bodies.begin(), bodies.find(name))].second + new_acc) * dt;
+        
+        // Check for NaN
+        if (std::isnan(body->position.x) || std::isnan(body->velocity.x)) {
+            std::cerr << "NaN detected in " << name << ": Pos=" << glm::to_string(body->position) 
+                      << ", Vel=" << glm::to_string(body->velocity) << std::endl;
+        }
+    }
+    
+    // Step 2: Update the rocket (using RK4)
+    rocket.update(dt, bodies);
+    
+    float moon_radius = glm::length(bodies["moon"]->position);
+    // std::cout << "Moon: Pos=" << glm::to_string(bodies["moon"]->position) 
+    //           << ", Radius=" << moon_radius << ", Vel=" << glm::to_string(bodies["moon"]->velocity) 
+    //           << ", Rocket: Pos=" << glm::to_string(rocket.getPosition()) << std::endl;
 }
 
 void Simulation::updateCameraPosition() const {
@@ -141,11 +167,11 @@ void Simulation::render(const Shader& shader) const {
     // Render the rocket (scaled)
     rocket.render(shader);
 
-    glm::mat4 moonModel = glm::translate(glm::mat4(1.0f), moonPos * scale);
-    moonModel = glm::scale(moonModel, glm::vec3(scale, scale, scale));
-    shader.setMat4("model", moonModel);
-    shader.setVec4("color", glm::vec4(0.7f, 0.7f, 0.7f, 1.0f));
     if (bodies.find("moon") != bodies.end()) {
+        glm::mat4 moonModel = glm::translate(glm::mat4(1.0f), bodies.at("moon")->position * scale);
+        moonModel = glm::scale(moonModel, glm::vec3(scale, scale, scale));
+        shader.setMat4("model", moonModel);
+        shader.setVec4("color", glm::vec4(0.7f, 0.7f, 0.7f, 1.0f));
         bodies.at("moon")->renderObject->render();
     } else {
         std::cerr << "Moon is null!" << std::endl;
@@ -173,6 +199,20 @@ void Simulation::adjustCameraRotation(float deltaPitch, float deltaYaw) {
     cameraPitch += deltaPitch;
     cameraYaw += deltaYaw;
     cameraPitch = glm::clamp(cameraPitch, -89.0f, 89.0f); // Limit the pitch angle to avoid flipping
+}
+
+glm::vec3 Simulation::computeBodyAcceleration(const Body& body, const BODY_MAP& bodies) const {
+    glm::vec3 acc(0.0f);
+    for (const auto& [name, other] : bodies) {
+        if (other.get() != &body) {
+            glm::vec3 delta = body.position - other->position;
+            float r = glm::length(delta);
+            if (r > 1e-6f) {
+                acc -= (config.physics_gravity_constant * other->mass / (r * r * r)) * delta;
+            }
+        }
+    }
+    return acc;
 }
 
 float Simulation::getTimeScale() const { 

@@ -1,12 +1,15 @@
 #ifndef SIMULATION_H
 #define SIMULATION_H
 
+#define GLM_ENABLE_EXPERIMENTAL
+
 #include "body.h"
 #include "flight_plan.h"
 #include "render_object.h"
 #include "rocket.h"
 #include "shader.h"
 
+#include <glm/ext.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <GLFW/glfw3.h>
@@ -29,6 +32,9 @@ public:
     void adjustCameraDistance(float delta);
     void adjustCameraRotation(float deltaPitch, float deltaYaw); // Adjust camera rotation
 
+    glm::vec3 computeBodyAcceleration(const Body& body, const BODY_MAP& bodies) const; // Velocity Verlet
+
+
     float getTimeScale() const;
     Rocket& getRocket();
 
@@ -38,8 +44,6 @@ public:
 private:
     Config config;
     Rocket rocket;
-    // std::unique_ptr<RenderObject> earth;
-    // std::unique_ptr<RenderObject> moon;
     BODY_MAP bodies;
 
     // Camera parameters

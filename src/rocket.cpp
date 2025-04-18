@@ -169,10 +169,11 @@ glm::vec3 Rocket::computeAccelerationRK4(float currentMass, const BODY_MAP& bodi
             }
         }
     }
-
+    
     if (fuel_mass > 0.0f && currentMass > 0.0f) {
         acc += (thrust / currentMass) * thrustDirection;
     }
+    
     float r = glm::length(position);
     float altitude = r - config.physics_earth_radius;
     if (altitude < 100000.0f) {
@@ -184,6 +185,8 @@ glm::vec3 Rocket::computeAccelerationRK4(float currentMass, const BODY_MAP& bodi
             acc -= drag_force * v_unit / currentMass;
         }
     }
+    
+    std::cout << "Rocket: Acc=" << glm::to_string(acc) << ", Fuel=" << fuel_mass << std::endl;
     return acc;
 }
 

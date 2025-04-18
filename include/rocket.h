@@ -1,12 +1,15 @@
 #ifndef ROCKET_H
 #define ROCKET_H
 
+#define GLM_ENABLE_EXPERIMENTAL
+
 #include "body.h"
 #include "config.h"
 #include "flight_plan.h"
 #include "shader.h"
 #include "render_object.h"
 
+#include <glm/ext.hpp>
 #include <glm/glm.hpp>
 #include <gtest/gtest_prod.h>
 #include <array>
