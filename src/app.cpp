@@ -2,8 +2,8 @@
 
 #include "app.h"
 
-App::App(const std::string& title, int width, int height, Config& config) 
-    : window(nullptr), config(config), simulation(Simulation(config)) {
+App::App(const std::string& title, int width, int height, Config& config, std::shared_ptr<ILogger> logger) 
+    : window(nullptr), config(config), simulation(Simulation(config, logger)) {
     if (!glfwInit()) 
         throw std::runtime_error("Failed to initialize GLFW");
 

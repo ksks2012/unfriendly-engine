@@ -2,6 +2,7 @@
 #define APP_H
 
 #include "input_handler.h"
+#include "logger.h"
 #include "simulation.h"
 #include "shader.h"
 #include "map.h"
@@ -12,7 +13,7 @@
 
 class App {
 public:
-    App(const std::string& title, int width, int height, Config& config);
+    App(const std::string& title, int width, int height, Config& config, std::shared_ptr<ILogger> logger);
     ~App();
     void run();
 

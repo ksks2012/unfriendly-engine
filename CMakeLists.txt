@@ -23,12 +23,17 @@ set(SOURCES
     src/camera.cpp
     src/map.cpp
     src/body.cpp
+    src/spdlog_logger.cpp
+    include/logger.h
     lib/imgui/imgui.cpp
     lib/imgui/imgui_draw.cpp
     lib/imgui/imgui_widgets.cpp
     lib/imgui/imgui_tables.cpp
     lib/imgui/imgui_impl_glfw.cpp
     lib/imgui/imgui_impl_opengl3.cpp
+    lib/spdlog/spdlog.h
+    lib/spdlog/sinks/stdout_color_sinks.h
+    lib/spdlog/sinks/rotating_file_sink.h
 )
 
 add_executable(RocketSimulation ${SOURCES})
@@ -61,6 +66,7 @@ set(TEST_SOURCES
     src/shader.cpp
     src/flight_plan.cpp
     src/body.cpp
+    src/spdlog_logger.cpp
 )
 
 add_executable(runTests ${TEST_SOURCES})

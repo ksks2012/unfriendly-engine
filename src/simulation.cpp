@@ -1,26 +1,41 @@
 #include "simulation.h"
+#include <GLFW/glfw3.h>
 #include <iostream>
 #include <vector>
 
 Simulation::Simulation() : config(Config()), rocket(config, FlightPlan(config.flight_plan_path)), 
     cameraDistance(20000.0f), cameraPitch(45.0f), cameraYaw(45.0f), timeScale(1.0f),
-    moonPos(0.0f, 384400000.0f, 0.0f) {
+    moonPos(0.0f, 384400000.0f, 0.0f),
+    /*
+     * NOTE: The logger is initialized with a default SpdlogLogger instance
+     * which can be replaced with a custom logger if needed.
+     */
+    logger_(std::make_shared<SpdlogLogger>()) {
 }
 
-Simulation::Simulation(Config& config) : config(config), rocket(config, FlightPlan(config.flight_plan_path)), 
-    cameraDistance(500000.0f), cameraPitch(45.0f), cameraYaw(45.0f), timeScale(1.0f),
-    moonPos(0.0f, 384400000.0f, 0.0f) {
+Simulation::Simulation(Config& config, std::shared_ptr<ILogger> logger) 
+    : config(config), rocket(config, FlightPlan(config.flight_plan_path)), 
+      cameraDistance(500000.0f), cameraPitch(45.0f), cameraYaw(45.0f), timeScale(1.0f),
+      moonPos(0.0f, 384400000.0f, 0.0f),
+      logger_(logger) {
+    logger_->set_level((LogLevel)config.logger_level);
+    if (!logger_) {
+        LOG_ERROR(logger_, "Simulation", "Logger is null!");
+        throw std::runtime_error("Logger is null");
+    }
 }
 
 Simulation::~Simulation() = default;
 
 void Simulation::init() {
-    // Earth
+    LOG_DEBUG(logger_, "Simulation", "Initializing simulation...");
+    
     bodies["earth"] = std::make_unique<Body>(glm::vec3(0.0f), glm::vec3(0.0f), config.physics_earth_mass);
     // Moon
     bodies["moon"] = std::make_unique<Body>(moonPos, glm::vec3(-1022.0f, 0.0f, 0.0f), config.physics_moon_mass);
     if (!bodies["earth"] || !bodies["moon"]) {
-        std::cerr << "Error: Failed to initialize earth or moon!" << std::endl;
+        LOG_ERROR(logger_, "Simulation", "Failed to initialize earth or moon!");
+        return;
     }
 
     rocket.init();
@@ -56,14 +71,16 @@ void Simulation::init() {
         }
     }
     if (earthVertices.empty() || earthIndices.empty()) {
-        std::cerr << "Error: Empty vertices or indices for earth!" << std::endl;
+        LOG_ERROR(logger_, "Simulation", "Empty vertices or indices for earth!");
         return;
     }
     
     try {
         bodies["earth"]->renderObject = std::make_unique<RenderObject>(earthVertices, earthIndices);
+        LOG_INFO(logger_, "Simulation", "Earth renderObject created: vertices=" + 
+                 std::to_string(earthVertices.size()) + ", indices=" + std::to_string(earthIndices.size()));
     } catch (const std::exception& e) {
-        std::cerr << "Error creating earth renderObject: " << e.what() << std::endl;
+        LOG_ERROR(logger_, "Simulation", "Error creating earth renderObject: " + std::string(e.what()));
         return;
     }
 
@@ -75,23 +92,26 @@ void Simulation::init() {
         moonVertices.push_back(earthVertices[i + 2] * (config.physics_moon_radius / config.physics_earth_radius));
     }
     if (moonVertices.empty()) {
-        std::cerr << "Error: Empty moonVertices!" << std::endl;
+        LOG_ERROR(logger_, "Simulation", "Empty moonVertices!");
         return;
     }
     
     try {
         bodies["moon"]->renderObject = std::make_unique<RenderObject>(moonVertices, earthIndices);
+        LOG_INFO(logger_, "Simulation", "Moon renderObject created: vertices=" + 
+                 std::to_string(moonVertices.size()) + ", indices=" + std::to_string(earthIndices.size()));
     } catch (const std::exception& e) {
-        std::cerr << "Error creating moon renderObject: " << e.what() << std::endl;
+        LOG_ERROR(logger_, "Simulation", "Error creating moon renderObject: " + std::string(e.what()));
         return;
     }
-
-    std::cout << "Earth initialized: " << (bodies.find("Earth") != bodies.end() ? "valid" : "null") << std::endl;
-    std::cout << "Moon initialized: " << (bodies.find("Moon")  != bodies.end() ? "valid" : "null") << std::endl;
-    std::cout << "Map objects initialized" << std::endl;
+    LOG_INFO(logger_, "Simulation", "Earth initialized: " + std::string(bodies.find("earth") != bodies.end() ? "valid" : "null"));
+    LOG_INFO(logger_, "Simulation", "Moon initialized: " + std::string(bodies.find("moon") != bodies.end() ? "valid" : "null"));
+    LOG_INFO(logger_, "Simulation", "Map objects initialized");
 }
 
 void Simulation::update(float deltaTime) {
+    static float elapsed_time = 0.0f;
+    elapsed_time += deltaTime * timeScale;
     float dt = deltaTime * timeScale;
     
     // Step 1: Update all celestial bodies (Velocity Verlet)
@@ -112,18 +132,16 @@ void Simulation::update(float deltaTime) {
         
         // Check for NaN
         if (std::isnan(body->position.x) || std::isnan(body->velocity.x)) {
-            std::cerr << "NaN detected in " << name << ": Pos=" << glm::to_string(body->position) 
-                      << ", Vel=" << glm::to_string(body->velocity) << std::endl;
+            LOG_ERROR(logger_, "Simulation", "NaN detected in " + name + ": Pos=" + 
+                      glm::to_string(body->position) + ", Vel=" + glm::to_string(body->velocity));
         }
     }
     
-    // Step 2: Update the rocket (using RK4)
     rocket.update(dt, bodies);
     
     float moon_radius = glm::length(bodies["moon"]->position);
-    // std::cout << "Moon: Pos=" << glm::to_string(bodies["moon"]->position) 
-    //           << ", Radius=" << moon_radius << ", Vel=" << glm::to_string(bodies["moon"]->velocity) 
-    //           << ", Rocket: Pos=" << glm::to_string(rocket.getPosition()) << std::endl;
+    LOG_ORBIT(logger_, "Moon", elapsed_time, bodies["moon"]->position, moon_radius, bodies["moon"]->velocity);
+    LOG_DEBUG(logger_, "Simulation", "Rocket: Pos=" + glm::to_string(rocket.getPosition()));
 }
 
 void Simulation::updateCameraPosition() const {
@@ -138,7 +156,7 @@ void Simulation::render(const Shader& shader) const {
     // Scale factor (physical unit meters to rendering unit kilometers)
     const float scale = 0.001f; // 1 meter = 0.001 rendering units (i.e., 1 km = 1 unit)
     // glm::vec3 target = glm::vec3(0.0f, 0.0f, 0.0f); // Earth's center
-    glm::vec3 target = glm::vec3(0.0, 384400000.0f * scale / 2, 0.0f); // middle of the Earth and Moon
+    glm::vec3 target = glm::vec3(0.0f, 384400000.0f * scale / 2, 0.0f); // middle of the Earth and Moon
     float radPitch = glm::radians(cameraPitch);
     float radYaw = glm::radians(cameraYaw);
     glm::vec3 cameraPos;
@@ -146,7 +164,6 @@ void Simulation::render(const Shader& shader) const {
     cameraPos.y = target.y + cameraDistance * sin(radPitch);
     cameraPos.z = target.z + cameraDistance * cos(radPitch) * cos(radYaw);
 
-    // Generate view and projection matrices
     glm::mat4 view = glm::lookAt(cameraPos, target, glm::vec3(0.0f, 1.0f, 0.0f));
     glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)width / sceneHeight, 0.1f, cameraDistance * 2.0f);
 
@@ -155,50 +172,56 @@ void Simulation::render(const Shader& shader) const {
     shader.setMat4("projection", projection);
 
     // Render the Earth (scaled)
-    glm::mat4 earthModel = glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale));
+    glm::mat4 earthModel = glm::translate(glm::mat4(1.0f), bodies.at("earth")->position * scale);
+    earthModel = glm::scale(earthModel, glm::vec3(scale, scale, scale));
     shader.setMat4("model", earthModel);
     shader.setVec4("color", glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
-    if (bodies.find("earth") != bodies.end()) {
+    if (bodies.find("earth") != bodies.end() && bodies.at("earth")->renderObject) {
         bodies.at("earth")->renderObject->render();
     } else {
-        std::cerr << "Earth is null!" << std::endl;
+        LOG_ERROR(logger_, "Simulation", "Earth is null or has no renderObject!");
     }
 
-    // Render the rocket (scaled)
     rocket.render(shader);
 
-    if (bodies.find("moon") != bodies.end()) {
+    
+    if (bodies.find("moon") != bodies.end() && bodies.at("moon")->renderObject) {
         glm::mat4 moonModel = glm::translate(glm::mat4(1.0f), bodies.at("moon")->position * scale);
         moonModel = glm::scale(moonModel, glm::vec3(scale, scale, scale));
         shader.setMat4("model", moonModel);
         shader.setVec4("color", glm::vec4(0.7f, 0.7f, 0.7f, 1.0f));
         bodies.at("moon")->renderObject->render();
     } else {
-        std::cerr << "Moon is null!" << std::endl;
+        LOG_ERROR(logger_, "Simulation", "Earth is null or has no renderObject!");
     }
 
     GLenum err = glGetError();
     if (err != GL_NO_ERROR) {
-        std::cerr << "OpenGL error in Simulation::render: " << err << std::endl;
+        LOG_ERROR(logger_, "Simulation", "OpenGL error in render: " + std::to_string(err));
     }
 }
 
 void Simulation::setTimeScale(float ts) { 
     timeScale = std::max(ts, 0.1f); 
+    LOG_INFO(logger_, "Simulation", "Time scale set to " + std::to_string(ts));
 }
 
 void Simulation::adjustTimeScale(float delta) { 
     timeScale = std::max(0.1f, std::min(timeScale + delta, 100.0f)); 
+    LOG_INFO(logger_, "Simulation", "Time scale adjusted to " + std::to_string(timeScale));
 }
 
 void Simulation::adjustCameraDistance(float delta) { 
     cameraDistance = std::max(std::min(cameraDistance + delta, 500000.0f), 12500.0f); 
+    LOG_INFO(logger_, "Simulation", "Camera distance adjusted to " + std::to_string(cameraDistance));
 }
 
 void Simulation::adjustCameraRotation(float deltaPitch, float deltaYaw) {
     cameraPitch += deltaPitch;
     cameraYaw += deltaYaw;
     cameraPitch = glm::clamp(cameraPitch, -89.0f, 89.0f); // Limit the pitch angle to avoid flipping
+    LOG_INFO(logger_, "Simulation", "Camera rotation: pitch=" + std::to_string(cameraPitch) + 
+             ", yaw=" + std::to_string(cameraYaw));
 }
 
 glm::vec3 Simulation::computeBodyAcceleration(const Body& body, const BODY_MAP& bodies) const {
@@ -209,6 +232,8 @@ glm::vec3 Simulation::computeBodyAcceleration(const Body& body, const BODY_MAP& 
             float r = glm::length(delta);
             if (r > 1e-6f) {
                 acc -= (config.physics_gravity_constant * other->mass / (r * r * r)) * delta;
+            } else {
+                LOG_WARN(logger_, "Simulation", "Close encounter detected for " + name);
             }
         }
     }

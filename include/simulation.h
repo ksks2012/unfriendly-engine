@@ -4,10 +4,12 @@
 #define GLM_ENABLE_EXPERIMENTAL
 
 #include "body.h"
+#include "logger.h"
 #include "flight_plan.h"
 #include "render_object.h"
 #include "rocket.h"
 #include "shader.h"
+#include "spdlog_logger.h"
 
 #include <glm/ext.hpp>
 #include <glm/glm.hpp>
@@ -20,7 +22,7 @@
 class Simulation {
 public:
     Simulation();
-    explicit Simulation(Config& config);
+    explicit Simulation(Config& config, std::shared_ptr<ILogger> logger);
     ~Simulation();
 
     void init();
@@ -58,6 +60,8 @@ private:
     std::unique_ptr<RenderObject> mapEarth;
     std::unique_ptr<RenderObject> mapMoon;
     std::unique_ptr<RenderObject> mapRocket;
+
+    std::shared_ptr<ILogger> logger_;
 };
 
 #endif
