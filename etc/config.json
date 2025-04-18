@@ -32,5 +32,8 @@
         "prediction_duration": 30.0,
         "prediction_step": 0.1,
         "rendering_scale": 0.001
+    },
+    "logger": {
+        "level": 1
     }
 }

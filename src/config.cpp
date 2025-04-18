@@ -53,6 +53,9 @@ void Config::setDefaults() {
     simulation_prediction_duration = 30.0f;
     simulation_prediction_step = 0.1f;
     simulation_rendering_scale = 0.001f;
+
+    // Logger settings
+    logger_level = 3; // 0: DEBUG, 1: INFO, 2: WARN, 3: ERROR
 }
 
 void Config::parseConfig(const json& config) {
@@ -110,5 +113,11 @@ void Config::parseConfig(const json& config) {
         simulation_prediction_duration = simulation.value("prediction_duration", simulation_prediction_duration);
         simulation_prediction_step = simulation.value("prediction_step", simulation_prediction_step);
         simulation_rendering_scale = simulation.value("rendering_scale", simulation_rendering_scale);
+    }
+
+    // Logger settings
+    if (config.contains("logger")) {
+        const auto& logger = config["logger"];
+        logger_level = logger.value("level", logger_level);
     }
 }

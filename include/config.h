@@ -54,6 +54,9 @@ public:
     float simulation_prediction_step = 0.1f;
     float simulation_rendering_scale = 0.001f;
 
+    // Logger settings
+    int logger_level = 3; // 0: DEBUG, 1: INFO, 2: WARN, 3: ERROR
+
 private:
     void setDefaults();
     void parseConfig(const json&);

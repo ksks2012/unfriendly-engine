@@ -50,6 +50,11 @@ The simulation provides real-time data displayed in an ImGui window:
     https://github.com/nlohmann/json
     ```
 
+- spdlog
+    ```
+    https://github.com/gabime/spdlog.git
+    ```
+
 ## Build Instructions
 1. Install dependencies: `libglfw3-dev`, `libglew-dev`, `libglm-dev`.   
 2. Run `./scripts/build.sh`.
