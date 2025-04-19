@@ -59,3 +59,55 @@ The simulation provides real-time data displayed in an ImGui window:
 1. Install dependencies: `libglfw3-dev`, `libglew-dev`, `libglm-dev`.   
 2. Run `./scripts/build.sh`.
 3. Execute `./bin/RocketSimulation`.
+
+# Structure
+```bash
+RocketSimulation/
+├── include/
+│ ├── core/ # Core modules (simulation, physics)
+│ │ ├── body.h
+│ │ ├── rocket.h
+│ │ ├── simulation.h
+│ │ └── flight_plan.h
+│ ├── rendering/ # Rendering related
+│ │ ├── camera.h
+│ │ ├── render_object.h
+│ │ └── shader.h
+│ ├── logging/ # Logging module
+│ │ ├── logger.h
+│ │ ├── spdlog_logger.h
+│ │ └── loguru_logger.h
+│ ├── app/ # Application layer (main logic, configuration)
+│ │ ├── app.h
+│ │ ├── config.h
+│ │ └── map.h
+│ ├── ui/ # User interface and input
+│ │ ├── input_handler.h
+│ │ └── ui.h
+├── src/
+│ ├── core/
+│ │ ├── body.cpp
+│ │ ├── rocket.cpp
+│ │ ├── simulation.cpp
+│ │ └── flight_plan.cpp
+│ ├── rendering/
+│ │ ├── camera.cpp
+│ │ ├── render_object.cpp
+│ │ └── shader.cpp
+│ ├── logging/
+│ │ ├── spdlog_logger.cpp
+│ ├── app/
+│ │ ├── app.cpp
+│ │ ├── config.cpp
+│ │ └── map.cpp
+│ ├── ui/
+│ │ ├── input_handler.cpp
+│ │ └── ui.cpp
+│ ├── main.cpp # Keep the entry at the top level
+├── lib/
+│ ├── spdlog/ # Submodule
+├── tests/
+│ ├── test_main.cpp
+├── logs/
+├── CMakeLists.txt
+```
