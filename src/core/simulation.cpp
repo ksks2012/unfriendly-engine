@@ -1,4 +1,4 @@
-#include "simulation.h"
+#include "core/simulation.h"
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <vector>

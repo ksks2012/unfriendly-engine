@@ -1,7 +1,7 @@
 
 #include <iostream>
 
-#include "shader.h"
+#include "rendering/shader.h"
 
 Shader::Shader() : program(0), vertexShader(0), fragmentShader(0) {}
 

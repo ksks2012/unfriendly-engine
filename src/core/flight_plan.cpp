@@ -1,4 +1,4 @@
-#include "flight_plan.h"
+#include "core/flight_plan.h"
 
 FlightPlan::FlightPlan(std::string filename) {
     std::ifstream file(filename);

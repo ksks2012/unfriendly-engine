@@ -1,8 +1,8 @@
 #ifndef INPUT_HANDLER_H
 #define INPUT_HANDLER_H
 
-#include "config.h"
-#include "simulation.h"
+#include "app/config.h"
+#include "core/simulation.h"
 
 #include <GLFW/glfw3.h>
 #include <unordered_map>

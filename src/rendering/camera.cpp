@@ -1,4 +1,4 @@
-#include "camera.h"
+#include "rendering/camera.h"
 
 Camera::Camera() : pitch(0.0f), yaw(0.0f), distance(100000.0f) {
     position = glm::vec3(0.0f, 0.0f, distance);

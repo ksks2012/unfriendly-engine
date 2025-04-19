@@ -2,87 +2,81 @@ cmake_minimum_required(VERSION 3.10)
 project(RocketSimulation)
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(OpenGL REQUIRED)
 find_package(glfw3 REQUIRED)
 find_package(GLEW REQUIRED)
 find_package(GTest REQUIRED)
 
-# Main program source files
+# set the output directory for the executable
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
+
+include_directories(${CMAKE_SOURCE_DIR}/include)
+
+# path of spdlog 
+set(SPDLOG_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/lib/spdlog/)
+file(GLOB SPDLOG_SOURCES ${SPDLOG_INCLUDE_DIRS}/*.h)
+
+# path of IMGUI
+set(IMGUI_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/lib/imgui)
+file(GLOB IMGUI_SOURCES ${IMGUI_INCLUDE_DIRS}/*.cpp)
+
+# path of JSON
+set(NLOHMANN_JSON_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/lib)
+
+include_directories(
+    ${SPDLOG_INCLUDE_DIRS}
+    ${IMGUI_INCLUDE_DIRS}
+    ${NLOHMANN_JSON_INCLUDE_DIRS}
+)
+
+# 收集源文件
+file(GLOB CORE_SOURCES src/core/*.cpp src/core/*/*.cpp)
+file(GLOB RENDERING_SOURCES src/rendering/*.cpp src/rendering/*/*.cpp)
+file(GLOB LOGGING_SOURCES src/logging/*.cpp src/logging/*/*.cpp)
+file(GLOB APP_SOURCES src/app/*.cpp src/app/*/*.cpp)
+file(GLOB UI_SOURCES src/ui/*.cpp src/ui/*/*.cpp)
+set(MAIN_SOURCE src/main.cpp)
+
+# 收集頭文件（僅用於 IDE 顯示）
+file(GLOB HEADERS include/*.h)
+
+# 所有源文件
 set(SOURCES
-    src/main.cpp
-    src/app.cpp
-    src/simulation.cpp
-    src/shader.cpp
-    src/render_object.cpp
-    src/rocket.cpp
-    src/input_handler.cpp
-    src/ui.cpp
-    src/config.cpp
-    src/flight_plan.cpp
-    src/camera.cpp
-    src/map.cpp
-    src/body.cpp
-    src/spdlog_logger.cpp
-    include/logger.h
-    lib/imgui/imgui.cpp
-    lib/imgui/imgui_draw.cpp
-    lib/imgui/imgui_widgets.cpp
-    lib/imgui/imgui_tables.cpp
-    lib/imgui/imgui_impl_glfw.cpp
-    lib/imgui/imgui_impl_opengl3.cpp
-    lib/spdlog/spdlog.h
-    lib/spdlog/sinks/stdout_color_sinks.h
-    lib/spdlog/sinks/rotating_file_sink.h
+    ${CORE_SOURCES}
+    ${RENDERING_SOURCES}
+    ${LOGGING_SOURCES}
+    ${APP_SOURCES}
+    ${UI_SOURCES}
+    ${MAIN_SOURCE}
+    ${SPDLOG_SOURCES}
+    ${IMGUI_SOURCES}
+    ${NLOHMANN_JSON_SOURCES}
 )
 
-add_executable(RocketSimulation ${SOURCES})
+add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 
-target_include_directories(RocketSimulation PRIVATE
-    include
-    ${OPENGL_INCLUDE_DIRS}
-    ${GLFW_INCLUDE_DIRS}
-    ${GLEW_INCLUDE_DIRS}
-    lib/imgui
-    lib/
-)
-
-target_link_libraries(RocketSimulation
+target_link_libraries(${PROJECT_NAME}
     ${OPENGL_LIBRARIES}
     glfw
     GLEW::GLEW
 )
 
-# Test program
-enable_testing()
+# Test target
+file(GLOB TEST_SOURCES tests/*.cpp)
 set(TEST_SOURCES
-    tests/test_config.cpp
-    tests/test_rocket.cpp
-    src/config.cpp
-    src/rocket.cpp
-    src/input_handler.cpp
-    src/simulation.cpp
-    src/render_object.cpp
-    src/shader.cpp
-    src/flight_plan.cpp
-    src/body.cpp
-    src/spdlog_logger.cpp
+    ${TEST_SOURCES}
+    ${CORE_SOURCES}
+    ${RENDERING_SOURCES}
+    ${LOGGING_SOURCES}
+    ${APP_SOURCES}
+    ${UI_SOURCES}
+    ${SPDLOG_SOURCES}
+    ${IMGUI_SOURCES}
+    ${NLOHMANN_JSON_SOURCES}
 )
-
-add_executable(runTests ${TEST_SOURCES})
-
-target_include_directories(runTests PRIVATE
-    include
-    ${OPENGL_INCLUDE_DIRS}
-    ${GLFW_INCLUDE_DIRS}
-    ${GLEW_INCLUDE_DIRS}
-    lib/
-    /usr/local/lib/gtest/include
-    /usr/local/lib/gmock/include
-    /usr/local/lib/gtest
-    /usr/local/lib/gmock
-)
-
+add_executable(runTests ${TEST_SOURCES} ${HEADERS})
 target_link_libraries(runTests
     /usr/local/lib/libgtest.a
     /usr/local/lib/libgtest_main.a
@@ -94,4 +88,5 @@ target_link_libraries(runTests
     pthread
 )
 
-add_test(NAME UnitTests COMMAND runTests)
+install(TARGETS ${PROJECT_NAME} DESTINATION bin)
+install(TARGETS runTests DESTINATION bin)

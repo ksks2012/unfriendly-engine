@@ -1,7 +1,7 @@
 #ifndef MAP_H
 #define MAP_H
 
-#include "simulation.h"
+#include "core/simulation.h"
 
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>

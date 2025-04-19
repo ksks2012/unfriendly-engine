@@ -1,5 +1,5 @@
-#include "input_handler.h"
-#include "simulation.h"
+#include "ui/input_handler.h"
+#include "core/simulation.h"
 
 InputHandler::InputHandler(GLFWwindow* win, Simulation& sim, const Config& config) 
     : window(win), simulation(sim), rotationSpeed(config.rocket_rotation_speed), 

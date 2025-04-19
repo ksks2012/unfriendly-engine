@@ -1,12 +1,12 @@
 #ifndef APP_H
 #define APP_H
 
-#include "input_handler.h"
-#include "logger.h"
-#include "simulation.h"
-#include "shader.h"
-#include "map.h"
-#include "ui.h"
+#include "ui/input_handler.h"
+#include "logging/logger.h"
+#include "core/simulation.h"
+#include "rendering/shader.h"
+#include "app/map.h"
+#include "ui/ui.h"
 
 #include <GLFW/glfw3.h>
 #include <memory>

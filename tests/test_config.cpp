@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "config.h"
+#include "app/config.h"
 #include <fstream>
 
 void PrintTo(const glm::vec3& v, std::ostream* os) {

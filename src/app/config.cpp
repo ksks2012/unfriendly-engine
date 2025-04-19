@@ -1,4 +1,4 @@
-#include "config.h"
+#include "app/config.h"
 
 Config::Config(){
     setDefaults();

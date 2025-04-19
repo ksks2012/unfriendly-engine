@@ -4,12 +4,12 @@
 #define GLM_ENABLE_EXPERIMENTAL
 
 #include "body.h"
-#include "logger.h"
-#include "flight_plan.h"
-#include "render_object.h"
-#include "rocket.h"
-#include "shader.h"
-#include "spdlog_logger.h"
+#include "logging/logger.h"
+#include "core/flight_plan.h"
+#include "rendering/render_object.h"
+#include "core/rocket.h"
+#include "rendering/shader.h"
+#include "logging/spdlog_logger.h"
 
 #include <glm/ext.hpp>
 #include <glm/glm.hpp>

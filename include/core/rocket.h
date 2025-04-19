@@ -4,10 +4,10 @@
 #define GLM_ENABLE_EXPERIMENTAL
 
 #include "body.h"
-#include "config.h"
-#include "flight_plan.h"
-#include "shader.h"
-#include "render_object.h"
+#include "app/config.h"
+#include "core/flight_plan.h"
+#include "rendering/shader.h"
+#include "rendering/render_object.h"
 
 #include <glm/ext.hpp>
 #include <glm/glm.hpp>

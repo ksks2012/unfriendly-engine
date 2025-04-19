@@ -1,8 +1,8 @@
 #include <iostream>
 
-#include "app.h"
-#include "config.h"
-#include "spdlog_logger.h"
+#include "app/app.h"
+#include "app/config.h"
+#include "logging/spdlog_logger.h"
 
 
 int main() {

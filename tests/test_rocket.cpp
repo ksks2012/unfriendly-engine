@@ -1,6 +1,6 @@
 // #include "mock.h"
-#include "render_object.h"
-#include "rocket.h"
+#include "rendering/render_object.h"
+#include "core/rocket.h"
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 

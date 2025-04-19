@@ -1,7 +1,7 @@
 #ifndef SPDLOG_LOGGER_H
 #define SPDLOG_LOGGER_H
 
-#include "logger.h"
+#include "logging/logger.h"
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/rotating_file_sink.h>

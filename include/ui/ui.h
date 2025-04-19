@@ -1,14 +1,14 @@
 #ifndef UI_H
 #define UI_H
 
-#include "rocket.h"
+#include "core/rocket.h"
 
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 #include <GLFW/glfw3.h>
-#include "rocket.h"
-#include "map.h"
+#include "core/rocket.h"
+#include "app/map.h"
 
 class UI {
 public:
@@ -19,6 +19,6 @@ public:
 
 private:
     GLFWwindow* window;
-    Map map; // 內嵌 Map 實例
+    Map map;
 };
 #endif

@@ -1,7 +1,7 @@
 #ifndef BODY_H
 #define BODY_H
 
-#include "render_object.h"
+#include "rendering/render_object.h"
 
 #include <glm/glm.hpp>
 #include <memory>

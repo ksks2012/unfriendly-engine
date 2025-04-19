@@ -1,6 +1,6 @@
 #include <stdexcept>
 
-#include "app.h"
+#include "app/app.h"
 
 App::App(const std::string& title, int width, int height, Config& config, std::shared_ptr<ILogger> logger) 
     : window(nullptr), config(config), simulation(Simulation(config, logger)) {

@@ -1,4 +1,4 @@
-#include "body.h"
+#include "core/body.h"
 
 Body::Body() : position(0.0f), velocity(0.0f), mass(1.0f) {
 };
