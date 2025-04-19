@@ -3,9 +3,8 @@
 #include <iostream>
 #include <vector>
 
-Simulation::Simulation() : config(Config()), rocket(config, FlightPlan(config.flight_plan_path)), 
-    cameraDistance(20000.0f), cameraPitch(45.0f), cameraYaw(45.0f), timeScale(1.0f),
-    moonPos(0.0f, 384400000.0f, 0.0f),
+Simulation::Simulation(Camera &camera) : config(Config()), rocket(config, FlightPlan(config.flight_plan_path)), 
+    camera(camera), moonPos(0.0f, 384400000.0f, 0.0f),
     /*
      * NOTE: The logger is initialized with a default SpdlogLogger instance
      * which can be replaced with a custom logger if needed.
@@ -13,11 +12,9 @@ Simulation::Simulation() : config(Config()), rocket(config, FlightPlan(config.fl
     logger_(std::make_shared<SpdlogLogger>()) {
 }
 
-Simulation::Simulation(Config& config, std::shared_ptr<ILogger> logger) 
-    : config(config), rocket(config, FlightPlan(config.flight_plan_path)), 
-      cameraDistance(500000.0f), cameraPitch(45.0f), cameraYaw(45.0f), timeScale(1.0f),
-      moonPos(0.0f, 384400000.0f, 0.0f),
-      logger_(logger) {
+Simulation::Simulation(Config& config, std::shared_ptr<ILogger> logger, Camera& camera) : 
+        config(config), rocket(config, FlightPlan(config.flight_plan_path)), 
+        logger_(logger), camera(camera), timeScale(1.0f), moonPos(0.0f, 384400000.0f, 0.0f) {
     logger_->set_level((LogLevel)config.logger_level);
     if (!logger_) {
         LOG_ERROR(logger_, "Simulation", "Logger is null!");
@@ -157,15 +154,11 @@ void Simulation::render(const Shader& shader) const {
     const float scale = 0.001f; // 1 meter = 0.001 rendering units (i.e., 1 km = 1 unit)
     // glm::vec3 target = glm::vec3(0.0f, 0.0f, 0.0f); // Earth's center
     glm::vec3 target = glm::vec3(0.0f, 384400000.0f * scale / 2, 0.0f); // middle of the Earth and Moon
-    float radPitch = glm::radians(cameraPitch);
-    float radYaw = glm::radians(cameraYaw);
-    glm::vec3 cameraPos;
-    cameraPos.x = target.x + cameraDistance * cos(radPitch) * sin(radYaw);
-    cameraPos.y = target.y + cameraDistance * sin(radPitch);
-    cameraPos.z = target.z + cameraDistance * cos(radPitch) * cos(radYaw);
 
-    glm::mat4 view = glm::lookAt(cameraPos, target, glm::vec3(0.0f, 1.0f, 0.0f));
-    glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)width / sceneHeight, 0.1f, cameraDistance * 2.0f);
+    // TODO: move to camera class
+    camera.update(target);
+    glm::mat4 view = camera.getViewMatrix();
+    glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)width / sceneHeight, 0.1f, camera.distance * 2.0f);
 
     shader.use();
     shader.setMat4("view", view);
@@ -212,16 +205,14 @@ void Simulation::adjustTimeScale(float delta) {
 }
 
 void Simulation::adjustCameraDistance(float delta) { 
-    cameraDistance = std::max(std::min(cameraDistance + delta, 500000.0f), 12500.0f); 
-    LOG_INFO(logger_, "Simulation", "Camera distance adjusted to " + std::to_string(cameraDistance));
+    camera.zoom(delta);
+    LOG_INFO(logger_, "Simulation", "Camera distance adjusted to " + std::to_string(camera.distance));
 }
 
 void Simulation::adjustCameraRotation(float deltaPitch, float deltaYaw) {
-    cameraPitch += deltaPitch;
-    cameraYaw += deltaYaw;
-    cameraPitch = glm::clamp(cameraPitch, -89.0f, 89.0f); // Limit the pitch angle to avoid flipping
-    LOG_INFO(logger_, "Simulation", "Camera rotation: pitch=" + std::to_string(cameraPitch) + 
-             ", yaw=" + std::to_string(cameraYaw));
+    camera.rotate(deltaPitch, deltaYaw);
+    LOG_INFO(logger_, "Simulation", "Camera rotation adjusted: pitch=" + std::to_string(camera.pitch) + 
+             ", yaw=" + std::to_string(camera.yaw));
 }
 
 glm::vec3 Simulation::computeBodyAcceleration(const Body& body, const BODY_MAP& bodies) const {

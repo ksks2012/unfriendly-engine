@@ -4,6 +4,7 @@
 #define GLM_ENABLE_EXPERIMENTAL
 
 #include "body.h"
+#include "rendering/camera.h"
 #include "logging/logger.h"
 #include "core/flight_plan.h"
 #include "rendering/render_object.h"
@@ -21,8 +22,8 @@
 
 class Simulation {
 public:
-    Simulation();
-    explicit Simulation(Config& config, std::shared_ptr<ILogger> logger);
+    Simulation(Camera &camera);
+    explicit Simulation(Config& config, std::shared_ptr<ILogger> logger, Camera &camera);
     ~Simulation();
 
     void init();
@@ -48,10 +49,8 @@ private:
     Rocket rocket;
     BODY_MAP bodies;
 
-    // Camera parameters
-    float cameraDistance;
-    float cameraPitch;  // Pitch angle (degrees)
-    float cameraYaw;    // Yaw angle (degrees)
+    Camera& camera;
+
     float timeScale;
 
     void updateCameraPosition() const; // Update camera position

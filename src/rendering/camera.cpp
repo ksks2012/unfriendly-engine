@@ -1,6 +1,6 @@
 #include "rendering/camera.h"
 
-Camera::Camera() : pitch(0.0f), yaw(0.0f), distance(100000.0f) {
+Camera::Camera() : pitch(45.0f), yaw(45.0f), distance(500000.0f) {
     position = glm::vec3(0.0f, 0.0f, distance);
     target = glm::vec3(0.0f, 6371000.0f, 0.0f); // Initially pointing to Earth's surface
 }

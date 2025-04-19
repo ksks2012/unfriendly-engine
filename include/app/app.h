@@ -13,7 +13,7 @@
 
 class App {
 public:
-    App(const std::string& title, int width, int height, Config& config, std::shared_ptr<ILogger> logger);
+    App(const std::string& title, int width, int height, Config& config, std::shared_ptr<ILogger> logger, Camera& camera);
     ~App();
     void run();
 
