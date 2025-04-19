@@ -6,8 +6,7 @@
 **/build/**
 **/test_code/**
 **/bin/**
-**/lib/nlohmann/**
-**/lib/spdlog/**
+**/lib/**
 
 **/**.o
 **/**.so
@@ -17,3 +16,5 @@
 **/**.ini
 **/**.csv
 **/**.log
+
+loguru_logger.h
