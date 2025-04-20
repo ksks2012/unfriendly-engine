@@ -7,6 +7,9 @@ A simple rocket simulator built with C++, OpenGL, GLFW, GLM, and Dear ImGui.
 - **Keyboard control**
   - `Q`/`E`: Adjustable time scale
   - `W`/`S`: Camera zoom
+  - `F`: Camera mode -> Free
+  - `Z`: Camera mode -> Fixed
+  - `L`: Camera mode -> Locked
 - **Mouse Control**
   - Left mouse button drag: Rotate
   - Mouse wheel: Camera zoom
@@ -23,6 +26,7 @@ A simple rocket simulator built with C++, OpenGL, GLFW, GLM, and Dear ImGui.
 - Simulates gravitational interaction between Earth and Moon
 - Realistic rocket acceleration computation using current physics configuration
 - Real-time moon orbit simulation based on angular velocity
+- More flexible viewing angle control
 
 ### Simulation Info
 The simulation provides real-time data displayed in an ImGui window:
