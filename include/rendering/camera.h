@@ -1,3 +1,8 @@
+#ifndef CAMERA_H
+#define CAMERA_H
+
+#include "app/config.h"
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -11,9 +16,13 @@ public:
 
 public:
     Camera();
+    Camera(Config& config);
+    // TODO: constuctor with config parameters
 
     void update(const glm::vec3& rocketPosition);
     glm::mat4 getViewMatrix() const;
     void rotate(float deltaPitch, float deltaYaw);
     void zoom(float deltaDistance);
 };
+
+#endif // CAMERA_H

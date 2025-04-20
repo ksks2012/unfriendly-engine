@@ -10,7 +10,7 @@ int main() {
         Config config;
         config.loadFromFile("etc/config.json");
         auto logger = std::make_shared<SpdlogLogger>();
-        auto camera = Camera();
+        auto camera = Camera(config);
         App app("Rocket Simulation", 800, 600, config, logger, camera);
         app.run();
     } catch (const std::exception& e) {

@@ -56,6 +56,13 @@ void Config::setDefaults() {
 
     // Logger settings
     logger_level = 3; // 0: DEBUG, 1: INFO, 2: WARN, 3: ERROR
+
+    // Camera settings
+    camera_pitch = 45.0f;
+    camera_yaw = 45.0f;
+    camera_distance = 500000.0f;
+    camera_position = {0.0f, 6371000.0f, 0.0f};
+    camera_target = {0.0f, 6371000.0f, 0.0f};
 }
 
 void Config::parseConfig(const json& config) {
@@ -119,5 +126,27 @@ void Config::parseConfig(const json& config) {
     if (config.contains("logger")) {
         const auto& logger = config["logger"];
         logger_level = logger.value("level", logger_level);
+    }
+
+    // Camera settings
+    if (config.contains("camera")) {
+        const auto& camera = config["camera"];
+        camera_pitch = camera.value("pitch", camera_pitch);
+        camera_yaw = camera.value("yaw", camera_yaw);
+        camera_distance = camera.value("distance", camera_distance);
+        if (camera.contains("position") && camera["position"].size() == 3) {
+            camera_position = {
+                camera["position"][0].get<float>(),
+                camera["position"][1].get<float>(),
+                camera["position"][2].get<float>()
+            };
+        }
+        if (camera.contains("target") && camera["target"].size() == 3) {
+            camera_target = {
+                camera["target"][0].get<float>(),
+                camera["target"][1].get<float>(),
+                camera["target"][2].get<float>()
+            };
+        }
     }
 }

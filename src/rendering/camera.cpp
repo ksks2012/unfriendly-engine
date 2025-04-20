@@ -5,6 +5,11 @@ Camera::Camera() : pitch(45.0f), yaw(45.0f), distance(500000.0f) {
     target = glm::vec3(0.0f, 6371000.0f, 0.0f); // Initially pointing to Earth's surface
 }
 
+Camera::Camera(Config& config) : pitch(config.camera_pitch), yaw(config.camera_yaw), distance(config.camera_distance) {
+    position = config.camera_position;
+    target = config.camera_target;
+}
+
 // Update camera position
 void Camera::update(const glm::vec3& rocketPosition) {
     target = rocketPosition;

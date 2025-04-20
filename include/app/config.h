@@ -57,6 +57,13 @@ public:
     // Logger settings
     int logger_level = 3; // 0: DEBUG, 1: INFO, 2: WARN, 3: ERROR
 
+    // Camera settings
+    float camera_pitch = 45.0f;
+    float camera_yaw = 45.0f;
+    float camera_distance = 500000.0f;
+    glm::vec3 camera_position = {0.0f, 6371000.0f, 0.0f};
+    glm::vec3 camera_target = {0.0f, 6371000.0f, 0.0f};
+
 private:
     void setDefaults();
     void parseConfig(const json&);
