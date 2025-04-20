@@ -34,6 +34,8 @@ public:
     void adjustTimeScale(float delta);
     void adjustCameraDistance(float delta);
     void adjustCameraRotation(float deltaPitch, float deltaYaw); // Adjust camera rotation
+    void adjustCameraMode(Camera::Mode mode); // Adjust camera mode
+    void adjustCameraTarget(const glm::vec3& target); // Adjust camera target    
 
     glm::vec3 computeBodyAcceleration(const Body& body, const BODY_MAP& bodies) const; // Velocity Verlet
 

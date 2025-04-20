@@ -154,6 +154,12 @@ void Simulation::render(const Shader& shader) const {
     const float scale = 0.001f; // 1 meter = 0.001 rendering units (i.e., 1 km = 1 unit)
     // glm::vec3 target = glm::vec3(0.0f, 0.0f, 0.0f); // Earth's center
     glm::vec3 target = glm::vec3(0.0f, 384400000.0f * scale / 2, 0.0f); // middle of the Earth and Moon
+    // TODO:
+    if (camera.mode == Camera::Mode::Locked) {
+        target = rocket.getPosition() * scale;
+    } else if (camera.mode == Camera::Mode::Fixed) {
+        target = glm::vec3(0.0f, 0.0f, 0.0f); // Earth's center
+    }
 
     // TODO: move to camera class
     camera.update(target);
@@ -213,6 +219,16 @@ void Simulation::adjustCameraRotation(float deltaPitch, float deltaYaw) {
     camera.rotate(deltaPitch, deltaYaw);
     LOG_INFO(logger_, "Simulation", "Camera rotation adjusted: pitch=" + std::to_string(camera.pitch) + 
              ", yaw=" + std::to_string(camera.yaw));
+}
+
+void Simulation::adjustCameraMode(Camera::Mode mode) {
+    camera.setMode(mode);
+    LOG_INFO(logger_, "Simulation", "Camera mode adjusted to " + std::to_string(static_cast<int>(mode)));
+}
+
+void Simulation::adjustCameraTarget(const glm::vec3& target) {
+    camera.setFixedTarget(target);
+    LOG_INFO(logger_, "Simulation", "Camera target adjusted to " + glm::to_string(target));
 }
 
 glm::vec3 Simulation::computeBodyAcceleration(const Body& body, const BODY_MAP& bodies) const {
