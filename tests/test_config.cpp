@@ -68,3 +68,40 @@ TEST(ConfigTest, MoonParameters) {
     EXPECT_FLOAT_EQ(config.physics_moon_gravity_constant, 1.982e-14f);
     EXPECT_FLOAT_EQ(config.physics_moon_gravity, 1.62f);
 }
+
+TEST(ConfigTest, CameraParameters) {
+    Config config;
+    EXPECT_FLOAT_EQ(config.camera_pitch, 45.0f);
+    EXPECT_FLOAT_EQ(config.camera_yaw, 45.0f);
+    EXPECT_FLOAT_EQ(config.camera_distance, 500000.0f);
+    EXPECT_EQ(config.camera_position.x, 0.0f);
+    EXPECT_EQ(config.camera_position.y, 6371000.0f);
+    EXPECT_EQ(config.camera_position.z, 0.0f);
+    
+    EXPECT_EQ(config.camera_target.x, 0.0f);
+    EXPECT_EQ(config.camera_target.y, 6371000.0f);
+    EXPECT_EQ(config.camera_target.z, 0.0f);
+
+    std::ofstream file("./var/test_camera_config.json");
+    file << R"({
+        "camera": {
+            "pitch": 30.0,
+            "yaw": 60.0,
+            "distance": 1000000.0,
+            "position": [100000.0, 200000.0, 300000.0],
+            "target": [400000.0, 500000.0, 600000.0]
+        }
+    })";
+    file.close();
+
+    config.loadFromFile("./var/test_camera_config.json");
+    EXPECT_FLOAT_EQ(config.camera_pitch, 30.0f);
+    EXPECT_FLOAT_EQ(config.camera_yaw, 60.0f);
+    EXPECT_FLOAT_EQ(config.camera_distance, 1000000.0f);
+    EXPECT_EQ(config.camera_position.x, 100000.0f);
+    EXPECT_EQ(config.camera_position.y, 200000.0f);
+    EXPECT_EQ(config.camera_position.z, 300000.0f);
+    EXPECT_EQ(config.camera_target.x, 400000.0f);
+    EXPECT_EQ(config.camera_target.y, 500000.0f);
+    EXPECT_EQ(config.camera_target.z, 600000.0f);
+}
