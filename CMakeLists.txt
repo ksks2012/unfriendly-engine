@@ -31,7 +31,7 @@ include_directories(
     ${NLOHMANN_JSON_INCLUDE_DIRS}
 )
 
-# 收集源文件
+# Collect source files
 file(GLOB CORE_SOURCES src/core/*.cpp src/core/*/*.cpp)
 file(GLOB RENDERING_SOURCES src/rendering/*.cpp src/rendering/*/*.cpp)
 file(GLOB LOGGING_SOURCES src/logging/*.cpp src/logging/*/*.cpp)
@@ -39,10 +39,8 @@ file(GLOB APP_SOURCES src/app/*.cpp src/app/*/*.cpp)
 file(GLOB UI_SOURCES src/ui/*.cpp src/ui/*/*.cpp)
 set(MAIN_SOURCE src/main.cpp)
 
-# 收集頭文件（僅用於 IDE 顯示）
 file(GLOB HEADERS include/*.h)
 
-# 所有源文件
 set(SOURCES
     ${CORE_SOURCES}
     ${RENDERING_SOURCES}

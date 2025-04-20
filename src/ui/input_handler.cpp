@@ -67,6 +67,20 @@ void InputHandler::process(Simulation& sim) {
         glm::vec3 newDir = glm::vec3(rotation * glm::vec4(currentDir, 0.0f));
         rocket.setThrustDirection(newDir);
     }
+
+    // Camera mode switching
+    // Free mode
+    if (isKeyPressedWithCooldown(GLFW_KEY_F, 0.2)) {
+        sim.adjustCameraMode(Camera::Mode::Free);
+    }
+    // Locked mode
+    if (isKeyPressedWithCooldown(GLFW_KEY_L, 0.2)) {
+        sim.adjustCameraMode(Camera::Mode::Locked);
+    }
+    // Fixed mode
+    if (isKeyPressedWithCooldown(GLFW_KEY_Z, 0.2)) {
+        sim.adjustCameraMode(Camera::Mode::Fixed);
+    }
 }
 
 void InputHandler::mouseCallback(double xpos, double ypos) {
