@@ -5,10 +5,9 @@
 #include <iostream>
 
 Rocket::Rocket(const Config& config, const FlightPlan& plan) 
-    : config(config), flightPlan(plan),
-      mass(config.rocket_mass), fuel_mass(config.rocket_fuel_mass),
+    : config(config), flightPlan(plan), fuel_mass(config.rocket_fuel_mass),
       thrust(config.rocket_thrust), exhaust_velocity(config.rocket_exhaust_velocity),
-      position(config.rocket_initial_position), velocity(config.rocket_initial_velocity),
+      Body(config.rocket_initial_position, config.rocket_initial_velocity, config.rocket_mass),
       time(0.0f), launched(false), trajectorySampleTime(0.0f) {
 }
 
