@@ -48,7 +48,7 @@ The simulation provides real-time data displayed in an ImGui window:
 
 - System libraries (Ubuntu/Debian):
     ```bash
-    sudo apt-get install libglfw3-dev libglew-dev libglm-dev libgtest-dev libgmock-dev
+    sudo apt-get install libglfw3-dev libglew-dev libglm-dev libgtest-dev libgmock-dev ccache
     ```
 
 - [Dear ImGui](https://github.com/ocornut/imgui): UI rendering

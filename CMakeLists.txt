@@ -3,6 +3,8 @@ project(RocketSimulation)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_C_COMPILER_LAUNCHER ccache)
+set(CMAKE_CXX_COMPILER_LAUNCHER ccache)
 
 find_package(OpenGL REQUIRED)
 find_package(glfw3 REQUIRED)
