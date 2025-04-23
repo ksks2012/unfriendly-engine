@@ -1,14 +1,17 @@
 #include "core/rocket.h"
+#include "logging/spdlog_logger.h"
 #include <vector>
 #include <cmath>
 
 #include <iostream>
 
-Rocket::Rocket(const Config& config, const FlightPlan& plan) 
-    : config(config), flightPlan(plan), fuel_mass(config.rocket_fuel_mass),
-      thrust(config.rocket_thrust), exhaust_velocity(config.rocket_exhaust_velocity),
-      Body(config.rocket_initial_position, config.rocket_initial_velocity, config.rocket_mass),
-      time(0.0f), launched(false), trajectorySampleTime(0.0f) {
+Rocket::Rocket(const Config& config, std::shared_ptr<ILogger> logger, const FlightPlan& plan)
+     : flightPlan(plan), fuel_mass(config.rocket_fuel_mass),
+        thrust(config.rocket_thrust), exhaust_velocity(config.rocket_exhaust_velocity),
+        Body(config, logger, "Rocket", config.rocket_mass, config.rocket_initial_position, config.rocket_initial_velocity) {
+    if (!logger_) {
+        throw std::runtime_error("[Rocket] Logger is null");
+    }
 }
 
 void Rocket::init() {
@@ -23,24 +26,21 @@ void Rocket::init() {
     if(!renderObject)
         renderObject = std::make_unique<RenderObject>(vertices, indices);
 
-    std::vector<GLfloat> trajectoryVertices(TRAJECTORY_SIZE * 3, 0.0f);
-    if(!trajectoryObject)
-        trajectoryObject = std::make_unique<RenderObject>(trajectoryVertices, std::vector<GLuint>());
-    trajectoryPoints.fill(glm::vec3(0.0f));
+    trajectory_ = TrajectoryFactory::createRocketTrajectory(config_, logger_);
+    trajectory_->init();
 
-    if(!predictionObject)
-        predictionObject = std::make_unique<RenderObject>(std::vector<GLfloat>(), std::vector<GLuint>());
-    predictionPoints.reserve(PREDICTION_SIZE);
+    prediction_ = TrajectoryFactory::createRocketPredictionTrajectory(config_, logger_);
+    prediction_->init();
 }
 
 void Rocket::update(float deltaTime, const BODY_MAP& bodies) {
     if (!launched) return;
     time += deltaTime;
-    trajectorySampleTime += deltaTime;
-    if (trajectorySampleTime >= 0.1f) {
-        updateTrajectory();
-        predictTrajectory(config.simulation_prediction_duration, config.simulation_prediction_step);
-        trajectorySampleTime = 0.0f;
+    LOG_DEBUG(logger_, "Rocket", "update");
+    if (trajectory_ && trajectory_->getSampleTimer() > 0.0f) {
+        LOG_DEBUG(logger_, "Rocket", "Trajectory trajectory_ update");
+        trajectory_->update(offsetPosition(position), deltaTime);
+        predictTrajectory(config_.simulation_prediction_duration, config_.simulation_prediction_step);
     }
     
     Body current = *this;
@@ -51,9 +51,9 @@ void Rocket::update(float deltaTime, const BODY_MAP& bodies) {
     mass = currentMass;
     
     float r = glm::length(position);
-    float altitude = r - config.physics_earth_radius;
+    float altitude = r - config_.physics_earth_radius;
     if (altitude < 0.0f) {
-        position = glm::normalize(position) * config.physics_earth_radius;
+        position = glm::normalize(position) * config_.physics_earth_radius;
         velocity = glm::vec3(0.0f);
         launched = false;
     }
@@ -73,29 +73,17 @@ void Rocket::render(const Shader& shader) const {
         renderObject->render();
 
     // Render trajectory (delegated to RenderObject)
-    shader.setMat4("model", glm::mat4(1.0f)); // set model matrix to identity
-    shader.setVec4("color", glm::vec4(1.0f, 0.0f, 0.0f, 1.0f)); // set color to red
-    if (trajectoryObject && trajectoryCount > 0) {
-        trajectoryObject->renderTrajectory(trajectoryHead, trajectoryCount, TRAJECTORY_SIZE);
-    }
+    trajectory_->render(shader);
 
     // Render prediction trajectory (delegated to RenderObject)
-    shader.setMat4("model", glm::mat4(1.0f));
-    shader.setVec4("color", glm::vec4(0.0f, 1.0f, 0.0f, 1.0f)); // set color to green
-    if (predictionObject && !predictionPoints.empty()) {
-        predictionObject->renderTrajectory(0, PREDICTION_SIZE - 1, PREDICTION_SIZE);
-    }
+    prediction_->render(shader);
 }
 
 void Rocket::toggleLaunch() {
     launched = !launched;
     // NOTE: Wind force can be added here if needed
     // NOTE: Initial horizontal velocity to enter orbit (approximately the first cosmic velocity)
-    if (launched) {
-        trajectoryHead = 0;
-        trajectoryCount = 0;
-        trajectorySampleTime = 0.0f; // Reset the timer
-    } else {
+    if (!launched) {
         resetTime();
     }
 }
@@ -147,12 +135,13 @@ void Rocket::setThrustDirection(const glm::vec3& direction) {
     }
 }
 
+// For unit tests
 void Rocket::setRenderObjects(std::unique_ptr<IRenderObject> render,
     std::unique_ptr<IRenderObject> trajectory,
     std::unique_ptr<IRenderObject> prediction) {
     renderObject = std::move(render);
-    trajectoryObject = std::move(trajectory);
-    predictionObject = std::move(prediction);
+    trajectory_->setRenderObject(std::move(trajectory));
+    prediction_->setRenderObject(std::move(prediction));
 }
 
 // private
@@ -164,7 +153,7 @@ glm::vec3 Rocket::computeAccelerationRK4(float currentMass, const BODY_MAP& bodi
             glm::vec3 delta = position - body->position;
             float r = glm::length(delta);
             if (r > 1e-6f) {
-                acc -= (config.physics_gravity_constant * body->mass / (r * r * r)) * delta;
+                acc -= (config_.physics_gravity_constant * body->mass / (r * r * r)) * delta;
             }
         }
     }
@@ -174,13 +163,13 @@ glm::vec3 Rocket::computeAccelerationRK4(float currentMass, const BODY_MAP& bodi
     }
     
     float r = glm::length(position);
-    float altitude = r - config.physics_earth_radius;
+    float altitude = r - config_.physics_earth_radius;
     if (altitude < 100000.0f) {
-        float rho = config.physics_air_density * std::exp(-altitude / config.physics_scale_height);
+        float rho = config_.physics_air_density * std::exp(-altitude / config_.physics_scale_height);
         float v_magnitude = glm::length(velocity);
         if (v_magnitude > 0.0f) {
             glm::vec3 v_unit = velocity / v_magnitude;
-            float drag_force = 0.5f * rho * config.physics_drag_coefficient * config.physics_cross_section_area * v_magnitude * v_magnitude;
+            float drag_force = 0.5f * rho * config_.physics_drag_coefficient * config_.physics_cross_section_area * v_magnitude * v_magnitude;
             acc -= drag_force * v_unit / currentMass;
         }
     }
@@ -189,61 +178,31 @@ glm::vec3 Rocket::computeAccelerationRK4(float currentMass, const BODY_MAP& bodi
     return acc;
 }
 
-void Rocket::updateTrajectory() {
-    trajectoryPoints[trajectoryHead] = offsetPosition();
-    size_t offset = trajectoryHead * 3 * sizeof(GLfloat);
-    size_t bufferSize = TRAJECTORY_SIZE * 3 * sizeof(GLfloat);
-
-    if (offset >= bufferSize) {
-        std::cerr << "Error: Offset exceeds buffer size!" << std::endl;
-        return;
-    }
-
-    // Update VBO
-    GLfloat vertex[3] = {trajectoryPoints[trajectoryHead].x, 
-                         trajectoryPoints[trajectoryHead].y, 
-                         trajectoryPoints[trajectoryHead].z};
-    trajectoryObject->updateBuffer(offset, 3 * sizeof(GLfloat), vertex);
-
-    trajectoryHead = (trajectoryHead + 1) % TRAJECTORY_SIZE;
-    if (trajectoryCount < TRAJECTORY_SIZE) {
-        trajectoryCount++;
-    }
-
-}
-
 glm::vec3 Rocket::offsetPosition() const {
     // Offset position for rendering
-    float altitude = glm::length(position) - config.physics_earth_radius;
-    return glm::vec3(position.x * config.simulation_rendering_scale, altitude * config.simulation_rendering_scale + (config.physics_earth_radius * config.simulation_rendering_scale), position.z * config.simulation_rendering_scale);
+    float altitude = glm::length(position) - config_.physics_earth_radius;
+    return glm::vec3(position.x * config_.simulation_rendering_scale, altitude * config_.simulation_rendering_scale + (config_.physics_earth_radius * config_.simulation_rendering_scale), position.z * config_.simulation_rendering_scale);
 }
 
 glm::vec3 Rocket::offsetPosition(glm::vec3 inputPosition) const {
     // Offset position for rendering
-    float altitude = glm::length(inputPosition) - config.physics_earth_radius;
-    return glm::vec3(inputPosition.x * config.simulation_rendering_scale, altitude * config.simulation_rendering_scale + (config.physics_earth_radius * config.simulation_rendering_scale), inputPosition.z * config.simulation_rendering_scale);
+    float altitude = glm::length(inputPosition) - config_.physics_earth_radius;
+    return glm::vec3(inputPosition.x * config_.simulation_rendering_scale, altitude * config_.simulation_rendering_scale + (config_.physics_earth_radius * config_.simulation_rendering_scale), inputPosition.z * config_.simulation_rendering_scale);
 }
 
 void Rocket::predictTrajectory(float duration, float step) {
-    predictionPoints.clear();
+    prediction_.reset();
     Body state = *this;
     float predMass = mass;
     float predFuel = fuel_mass;
     float predTime = 0.0f;
-    
     while (predTime < duration && predFuel >= 0.0f) {
-        predictionPoints.push_back(offsetPosition(state.position));
+        LOG_DEBUG(logger_, "Rocket", "Trajectory prediction_ update");
+        prediction_->update(state.position, step);
         state = updateStateRK4(state, step, predMass, predFuel, {});
         predTime += step;
     }
-    
-    std::vector<GLfloat> vertices;
-    for (const auto& point : predictionPoints) {
-        vertices.push_back(point.x);
-        vertices.push_back(point.y);
-        vertices.push_back(point.z);
-    }
-    predictionObject = std::make_unique<RenderObject>(vertices, std::vector<GLuint>());
+    prediction_->updateRenderObject();
 }
 
 Body Rocket::updateStateRK4(const Body& state, float deltaTime, float& currentMass, float& currentFuel, const BODY_MAP& bodies) const {

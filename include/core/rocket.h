@@ -6,8 +6,11 @@
 #include "body.h"
 #include "app/config.h"
 #include "core/flight_plan.h"
+#include "logging/logger.h"
 #include "rendering/shader.h"
 #include "rendering/render_object.h"
+#include "rendering/trajectory.h"
+#include "rendering/trajectory_factory.h"
 
 #include <glm/ext.hpp>
 #include <glm/glm.hpp>
@@ -19,9 +22,6 @@
 
 class Rocket : Body {
 private:
-    const Config& config;    
-    std::unique_ptr<IRenderObject> renderObject; // Rocket rendering object
-
     float predictionDuration, predictionStep; // Prediction parameters
 
     float fuel_mass;           // Fuel mass (kg)
@@ -31,17 +31,6 @@ private:
     glm::vec3 thrustDirection; // Thrust direction
     bool launched;             // Whether the rocket is launched
     
-    static constexpr size_t TRAJECTORY_SIZE = 1000;
-    std::unique_ptr<IRenderObject> trajectoryObject; // Trajectory rendering object
-    std::array<glm::vec3, TRAJECTORY_SIZE> trajectoryPoints; // Trajectory points
-    size_t trajectoryHead{0}; // Head of the trajectory
-    size_t trajectoryCount{0}; // Number of trajectory points
-    float trajectorySampleTime; // Trajectory sampling timer
-
-    static constexpr size_t PREDICTION_SIZE = 100;
-    std::unique_ptr<IRenderObject> predictionObject; // Prediction rendering object
-    std::vector<glm::vec3> predictionPoints; // Prediction points
-
     FlightPlan flightPlan;
 
     // For testing
@@ -64,7 +53,7 @@ private:
     Body updateStateRK4(const Body& state, float deltaTime, float& currentMass, float& currentFuel, const BODY_MAP& bodies) const;
 
 public:
-    Rocket(const Config&, const FlightPlan&);
+    Rocket(const Config&, std::shared_ptr<ILogger> logger, const FlightPlan&);
 
     // Public functions
     void init();
