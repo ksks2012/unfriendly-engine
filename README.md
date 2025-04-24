@@ -86,6 +86,8 @@ RocketSimulation/
 │ │ ├── camera.h
 │ │ ├── render_object.h
 │ │ └── shader.h
+│ │ └── trajectory_factory.cpp
+│ │ └── trajectory.cpp
 │ ├── logging/ # Logging module
 │ │ ├── logger.h
 │ │ ├── spdlog_logger.h
@@ -107,6 +109,8 @@ RocketSimulation/
 │ │ ├── camera.cpp
 │ │ ├── render_object.cpp
 │ │ └── shader.cpp
+│ │ └── trajectory_factory.cpp
+│ │ └── trajectory.cpp
 │ ├── logging/
 │ │ ├── spdlog_logger.cpp
 │ ├── app/
