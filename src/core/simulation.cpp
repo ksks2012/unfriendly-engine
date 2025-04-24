@@ -3,23 +3,22 @@
 #include <iostream>
 #include <vector>
 
-Simulation::Simulation(Camera &camera) : config(Config()), rocket(config, FlightPlan(config.flight_plan_path)), 
-    camera(camera), moonPos(0.0f, 384400000.0f, 0.0f),
-    /*
-     * NOTE: The logger is initialized with a default SpdlogLogger instance
-     * which can be replaced with a custom logger if needed.
-     */
-    logger_(std::make_shared<SpdlogLogger>()) {
+/*
+ * NOTE: The logger is initialized with a default SpdlogLogger instance
+ * which can be replaced with a custom logger if needed.
+ */
+Simulation::Simulation(Camera &camera) 
+    : config(Config()), logger_(std::make_shared<SpdlogLogger>()), rocket(config, logger_, FlightPlan(config.flight_plan_path)), 
+        camera(camera), moonPos(0.0f, 384400000.0f, 0.0f) {
 }
 
 Simulation::Simulation(Config& config, std::shared_ptr<ILogger> logger, Camera& camera) : 
-        config(config), rocket(config, FlightPlan(config.flight_plan_path)), 
+        config(config), rocket(config, logger, FlightPlan(config.flight_plan_path)), 
         logger_(logger), camera(camera), timeScale(1.0f), moonPos(0.0f, 384400000.0f, 0.0f) {
-    logger_->set_level((LogLevel)config.logger_level);
     if (!logger_) {
-        LOG_ERROR(logger_, "Simulation", "Logger is null!");
         throw std::runtime_error("Logger is null");
     }
+    logger_->set_level((LogLevel)config.logger_level);
 }
 
 Simulation::~Simulation() = default;
@@ -27,9 +26,9 @@ Simulation::~Simulation() = default;
 void Simulation::init() {
     LOG_DEBUG(logger_, "Simulation", "Initializing simulation...");
     
-    bodies["earth"] = std::make_unique<Body>(glm::vec3(0.0f), glm::vec3(0.0f), config.physics_earth_mass);
+    bodies["earth"] = std::make_unique<Body>(config, logger_, "earth", config.physics_earth_mass, glm::vec3(0.0f), glm::vec3(0.0f));
     // Moon
-    bodies["moon"] = std::make_unique<Body>(moonPos, glm::vec3(-1022.0f, 0.0f, 0.0f), config.physics_moon_mass);
+    bodies["moon"] = std::make_unique<Body>(config, logger_, "moon", config.physics_moon_mass, moonPos, glm::vec3(-1022.0f, 0.0f, 0.0f));
     if (!bodies["earth"] || !bodies["moon"]) {
         LOG_ERROR(logger_, "Simulation", "Failed to initialize earth or moon!");
         return;
