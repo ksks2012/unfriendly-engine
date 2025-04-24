@@ -4,9 +4,6 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-using ::testing::_;
-using ::testing::AtLeast;
-
 class TrajectoryTest : public ::testing::Test {
 protected:
     Config config;
