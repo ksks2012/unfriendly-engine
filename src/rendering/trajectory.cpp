@@ -21,9 +21,13 @@ Trajectory::Trajectory(const Config& config, std::shared_ptr<ILogger> logger)
 void Trajectory::init() {
     std::vector<GLfloat> vertices(config_.maxPoints * 3, 0.0f);
     points_.resize(config_.maxPoints, glm::vec3(0.0f));
-    renderObject_ = std::make_unique<RenderObject>(vertices, std::vector<GLuint>());
     if (!renderObject_) {
-        throw std::runtime_error("Failed to create RenderObject");
+        try {
+            renderObject_ = std::make_unique<RenderObject>(vertices, std::vector<GLuint>());
+        } catch (const std::exception& e) {
+            LOG_ERROR(logger_, "Trajectory", "Failed to create RenderObject: " + std::string(e.what()));
+            throw;
+        }
     }
 }
 
