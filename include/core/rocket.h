@@ -40,9 +40,8 @@ private:
     FRIEND_TEST(RocketTest, OffsetPosition_CustomPosition);
     FRIEND_TEST(RocketTest, FlightPlanExecution);
 
-    void setRenderObjects(std::unique_ptr<IRenderObject> render,
-        std::unique_ptr<IRenderObject> trajectory,
-        std::unique_ptr<IRenderObject> prediction);
+    void setRender(std::unique_ptr<IRenderObject> render);
+    void setTrajectoryRender(std::unique_ptr<IRenderObject> trajectory, std::unique_ptr<IRenderObject> prediction);
 
     // Private functions
     // Runge-Kutta 4th order method

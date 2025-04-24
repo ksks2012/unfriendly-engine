@@ -26,10 +26,12 @@ void Rocket::init() {
     if(!renderObject)
         renderObject = std::make_unique<RenderObject>(vertices, indices);
 
-    trajectory_ = TrajectoryFactory::createRocketTrajectory(config_, logger_);
+    if(!trajectory_)
+        trajectory_ = TrajectoryFactory::createRocketTrajectory(config_, logger_);
     trajectory_->init();
 
-    prediction_ = TrajectoryFactory::createRocketPredictionTrajectory(config_, logger_);
+    if(!prediction_)
+        prediction_ = TrajectoryFactory::createRocketPredictionTrajectory(config_, logger_);
     prediction_->init();
 }
 
@@ -136,11 +138,19 @@ void Rocket::setThrustDirection(const glm::vec3& direction) {
 }
 
 // For unit tests
-void Rocket::setRenderObjects(std::unique_ptr<IRenderObject> render,
-    std::unique_ptr<IRenderObject> trajectory,
-    std::unique_ptr<IRenderObject> prediction) {
+void Rocket::setRender(std::unique_ptr<IRenderObject> render) {
     renderObject = std::move(render);
+}
+
+void Rocket::setTrajectoryRender(std::unique_ptr<IRenderObject> trajectory, std::unique_ptr<IRenderObject> prediction) {
+    if (!trajectory_) {
+        trajectory_ = TrajectoryFactory::createRocketTrajectory(config_, logger_);
+    }
     trajectory_->setRenderObject(std::move(trajectory));
+
+    if (!prediction_) {
+        prediction_ = TrajectoryFactory::createRocketTrajectory(config_, logger_);
+    }
     prediction_->setRenderObject(std::move(prediction));
 }
 
@@ -174,7 +184,7 @@ glm::vec3 Rocket::computeAccelerationRK4(float currentMass, const BODY_MAP& bodi
         }
     }
     
-    std::cout << "Rocket: Acc=" << glm::to_string(acc) << ", Fuel=" << fuel_mass << std::endl;
+    LOG_DEBUG(logger_, "Rocket", "Acc=" + glm::to_string(acc) + ", Fuel=" + std::to_string(fuel_mass));
     return acc;
 }
 
