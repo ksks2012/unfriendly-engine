@@ -6,6 +6,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
+#include <thread>
 
 using ::testing::_;
 using ::testing::AtLeast;
@@ -110,4 +111,16 @@ TEST_F(RocketTest, FlightPlanExecution) {
     rocket->update(0.1f, {});
     EXPECT_FLOAT_EQ(rocket->getThrustDirection().y, 1.0f);
     EXPECT_FLOAT_EQ(rocket->thrust, 25000000.0f);
+}
+
+TEST_F(RocketTest, ConcurrentUpdate) {
+    rocket->setRender(std::move(mockRenderObject));
+    rocket->setTrajectoryRender(std::move(mockTrajectory), std::move(mockPrediction));
+
+    rocket->init();
+    rocket->launched = true;
+    std::thread t1([&] { rocket->update(0.1f, {}); });
+    std::thread t2([&] { rocket->update(0.1f, {}); });
+    t1.join();
+    t2.join();
 }

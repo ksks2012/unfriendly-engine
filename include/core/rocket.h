@@ -39,6 +39,7 @@ private:
     FRIEND_TEST(RocketTest, OffsetPosition_Default);
     FRIEND_TEST(RocketTest, OffsetPosition_CustomPosition);
     FRIEND_TEST(RocketTest, FlightPlanExecution);
+    FRIEND_TEST(RocketTest, ConcurrentUpdate);
 
     void setRender(std::unique_ptr<IRenderObject> render);
     void setTrajectoryRender(std::unique_ptr<IRenderObject> trajectory, std::unique_ptr<IRenderObject> prediction);
