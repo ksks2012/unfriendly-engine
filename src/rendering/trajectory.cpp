@@ -43,7 +43,7 @@ void Trajectory::update(const glm::vec3& position, float deltaTime) {
     }
 
     sampleTimer_ += deltaTime;
-    if (sampleTimer_ == 0 || sampleTimer_ < config_.sampleInterval) {
+    if (sampleTimer_ == 0) {
         return;
     }
     sampleTimer_ = 0.0f;
@@ -59,6 +59,7 @@ void Trajectory::update(const glm::vec3& position, float deltaTime) {
         count_++;
     }
     // TODO: Batch update
+    // LOG_INFO(logger_, "Trajectory", "update end");
 }
 
 void Trajectory::render(const Shader& shader) const {

@@ -38,8 +38,7 @@ void Rocket::init() {
 void Rocket::update(float deltaTime, const BODY_MAP& bodies) {
     if (!launched) return;
     time += deltaTime;
-    LOG_DEBUG(logger_, "Rocket", "update");
-    if (trajectory_ && trajectory_->getSampleTimer() > 0.0f) {
+    if (trajectory_ && deltaTime > 0.0f) {
         LOG_DEBUG(logger_, "Rocket", "Trajectory trajectory_ update");
         trajectory_->update(offsetPosition(position), deltaTime);
         predictTrajectory(config_.simulation_prediction_duration, config_.simulation_prediction_step);
@@ -201,18 +200,17 @@ glm::vec3 Rocket::offsetPosition(glm::vec3 inputPosition) const {
 }
 
 void Rocket::predictTrajectory(float duration, float step) {
-    prediction_.reset();
+    LOG_DEBUG(logger_, "Rocket", "predictTrajectory");
+
     Body state = *this;
     float predMass = mass;
     float predFuel = fuel_mass;
     float predTime = 0.0f;
     while (predTime < duration && predFuel >= 0.0f) {
-        LOG_DEBUG(logger_, "Rocket", "Trajectory prediction_ update");
-        prediction_->update(state.position, step);
+        prediction_->update(offsetPosition(state.position), step);
         state = updateStateRK4(state, step, predMass, predFuel, {});
         predTime += step;
     }
-    prediction_->updateRenderObject();
 }
 
 Body Rocket::updateStateRK4(const Body& state, float deltaTime, float& currentMass, float& currentFuel, const BODY_MAP& bodies) const {

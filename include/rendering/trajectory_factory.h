@@ -21,7 +21,7 @@ public:
 
     static std::unique_ptr<Trajectory> createRocketPredictionTrajectory(const Config& config, std::shared_ptr<ILogger> logger) {
         Trajectory::Config trajConfig{
-            100,
+            1000,
             0.1f,
             glm::vec4(0.0f, 1.0f, 0.0f, 1.0f), // green
             config.simulation_rendering_scale,
