@@ -1,13 +1,10 @@
 #include "ui/ui.h"
-#include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_opengl3.h>
 #include <glm/gtx/string_cast.hpp>
 
-UI::UI(GLFWwindow* win, Simulation& sim) : window(win), map(sim) {
+UI::UI(GLFWwindow* win, Simulation& sim) : window_(win), map_(sim), fpsCounter_(FPSCounter()), lastTime_(0.0f) {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplGlfw_InitForOpenGL(window_, true);
     ImGui_ImplOpenGL3_Init("#version 330");
 }
 
@@ -37,7 +34,9 @@ void UI::render(float timeScale, const Rocket& rocket, int width, int height) {
     ImGui::End();
 
     // Thumbnail (top-left corner)
-    map.render(width, height);
+    map_.render(width, height);
+
+    renderFPS();
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -47,4 +46,23 @@ void UI::shutdown() {
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
+}
+
+void UI::renderFPS() {
+    double currentTime = glfwGetTime();
+    double deltaTime = currentTime - lastTime_;
+    lastTime_ = currentTime;
+    fpsCounter_.update(deltaTime);
+
+    int windowWidth, windowHeight;
+    glfwGetWindowSize(window_, &windowWidth, &windowHeight);
+
+    ImGui::SetNextWindowPos(ImVec2(windowWidth - 110.0f, 10.0f), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(100.0f, 25.0f), ImGuiCond_Always);
+
+    ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+                                   ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar;
+    ImGui::Begin("FPS Display", nullptr, windowFlags);
+    ImGui::Text("FPS: %.1f", fpsCounter_.getFPS());
+    ImGui::End();
 }
