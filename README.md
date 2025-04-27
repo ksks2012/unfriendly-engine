@@ -20,6 +20,7 @@ A simple rocket simulator built with C++, OpenGL, GLFW, GLM, and Dear ImGui.
 - Rocket Trajectory Visualization: Displays the rocket's flight path in real-time
 - Predict Trajectory for Rocket
 - Map View: Displays celestial body positions (Earth, Moon, Rocket) in a 2D map
+- Trajectory of the Moon
 
 ### Simulation
 - Velocity Verlet integration for more accurate physics simulation
