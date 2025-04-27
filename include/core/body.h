@@ -44,6 +44,7 @@ public:
     // Setters
     void setPosition(const glm::vec3& position) { this->position = position; }
     void setVelocity(const glm::vec3& velocity) { this->velocity = velocity; }
+    void setTrajectory(std::unique_ptr<Trajectory> trajectory);
 };
 
 typedef std::unordered_map<std::string, std::unique_ptr<Body>> BODY_MAP;

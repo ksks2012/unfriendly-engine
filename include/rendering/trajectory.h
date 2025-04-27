@@ -35,6 +35,7 @@ public:
     float getSampleTimer() const;
 
     void setSampleTimer(float sampleTimer);
+    void setPoints(std::vector<glm::vec3> points);
 
     // For testing
     void setRenderObject(std::unique_ptr<IRenderObject> renderObject) {

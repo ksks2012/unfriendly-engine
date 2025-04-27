@@ -59,10 +59,10 @@ void Trajectory::update(const glm::vec3& position, float deltaTime) {
         count_++;
     }
     // TODO: Batch update
-    // LOG_INFO(logger_, "Trajectory", "update end");
 }
 
 void Trajectory::render(const Shader& shader) const {
+    LOG_DEBUG(logger_, "Trajectory", "render");
     if (count_ == 0) {
         return;
     }
@@ -113,4 +113,15 @@ float Trajectory::getSampleTimer() const {
 
 void Trajectory::setSampleTimer(float sampleTimer) {
     sampleTimer_ = sampleTimer;
+}
+
+void Trajectory::setPoints(std::vector<glm::vec3> points) {
+    if (points.size() > config_.maxPoints) {
+        points.resize(config_.maxPoints);
+    }
+    points_ = std::move(points);
+    head_ = points_.size() - 1.0f;
+    count_ = points_.size();
+    updateRenderObject();
+    LOG_INFO(logger_, "Trajectory", "setPoints: head_=" + std::to_string(head_) + ", count_=" + std::to_string(count_));
 }

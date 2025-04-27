@@ -28,9 +28,9 @@ void Body::update(float deltaTime) {
 
 void Body::render(const Shader& shader) const {
     // TODO: Ensure position is in the correct coordinate system
-    shader.setMat4("model", glm::translate(glm::mat4(1.0f), position));
-    shader.setVec4("color", glm::vec4(1.0f));
-    trajectory_->render(shader);
+    if(trajectory_) {
+        trajectory_->render(shader);
+    }
 }
 
 Body& Body::operator=(const Body& other) {
@@ -40,4 +40,8 @@ Body& Body::operator=(const Body& other) {
         mass = other.mass;
     }
     return *this;
+}
+
+void Body::setTrajectory(std::unique_ptr<Trajectory> trajectory) {
+    trajectory_ = std::move(trajectory);
 }

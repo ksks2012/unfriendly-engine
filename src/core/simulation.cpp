@@ -29,6 +29,8 @@ void Simulation::init() {
     bodies["earth"] = std::make_unique<Body>(config, logger_, "earth", config.physics_earth_mass, glm::vec3(0.0f), glm::vec3(0.0f));
     // Moon
     bodies["moon"] = std::make_unique<Body>(config, logger_, "moon", config.physics_moon_mass, moonPos, glm::vec3(-1022.0f, 0.0f, 0.0f));
+    bodies["moon"]->setTrajectory(TrajectoryFactory::createMoonTrajectory(config, logger_));
+
     if (!bodies["earth"] || !bodies["moon"]) {
         LOG_ERROR(logger_, "Simulation", "Failed to initialize earth or moon!");
         return;
@@ -189,6 +191,7 @@ void Simulation::render(const Shader& shader) const {
         shader.setMat4("model", moonModel);
         shader.setVec4("color", glm::vec4(0.7f, 0.7f, 0.7f, 1.0f));
         bodies.at("moon")->renderObject->render();
+        bodies.at("moon")->render(shader);
     } else {
         LOG_ERROR(logger_, "Simulation", "Earth is null or has no renderObject!");
     }
