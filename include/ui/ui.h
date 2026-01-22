@@ -3,6 +3,7 @@
 
 #include "app/map.h"
 #include "core/rocket.h"
+#include "rendering/camera.h"
 #include "ui/fps_counter.h"
 
 #include <imgui.h>
@@ -14,9 +15,10 @@ class UI {
 public:
     UI(GLFWwindow* win, Simulation& sim);
     ~UI();
-    void render(float timeScale, const Rocket& rocket, int width, int height);
+    void render(float timeScale, const Rocket& rocket, const Camera& camera, int width, int height);
     void shutdown();
     void renderFPS();
+    void renderCameraMode(const Camera& camera, int width, int height);
 
 private:
     GLFWwindow* window_;

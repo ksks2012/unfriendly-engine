@@ -56,7 +56,7 @@ void App::run() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         simulation.render(shader);
-        ui->render(simulation.getTimeScale(), simulation.getRocket(), width, height);
+        ui->render(simulation.getTimeScale(), simulation.getRocket(), simulation.getCamera(), width, height);
         glfwSwapBuffers(window);
     }
 }

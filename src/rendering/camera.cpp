@@ -1,15 +1,17 @@
 #include "rendering/camera.h"
 
 Camera::Camera() : pitch(45.0f), yaw(45.0f), distance(500000.0f), mode(Mode::Free),
-        smoothingFactor(0.1f), lockedOffset(0.0f, 0.0f, 100000.0f) {
+        smoothingFactor(0.1f), lockedOffset(0.0f, 50000.0f, 50000.0f) {
     position = glm::vec3(0.0f, 0.0f, distance);
     target = glm::vec3(0.0f, 6371000.0f, 0.0f); // Initially pointing to Earth's surface
+    fixedTarget = glm::vec3(0.0f, 0.0f, 0.0f);
 }
 
 Camera::Camera(Config& config) : pitch(config.camera_pitch), yaw(config.camera_yaw), distance(config.camera_distance),
-        mode(Mode::Free), smoothingFactor(0.1f), lockedOffset(0.0f, 0.0f, 100000.0f) {
+        mode(Mode::Free), smoothingFactor(0.1f), lockedOffset(0.0f, 50000.0f, 50000.0f) {
     position = config.camera_position;
     target = config.camera_target;
+    fixedTarget = glm::vec3(0.0f, 0.0f, 0.0f);
 }
 
 // Update camera position
@@ -37,9 +39,34 @@ void Camera::update(const glm::vec3& rocketPosition) {
             position = smoothedPosition;
             break;
         }
-        case Mode::Fixed: {
-            // Fixed mode: keep pointing at the fixed target, no need to update the target
-            target = rocketPosition;
+        case Mode::FixedEarth: {
+            // Fixed on Earth: camera looks at Earth center, can be manually rotated
+            target = fixedTarget; // Earth center
+            float radPitch = glm::radians(pitch);
+            float radYaw = glm::radians(yaw);
+            position.x = target.x + distance * cos(radPitch) * sin(radYaw);
+            position.y = target.y + distance * sin(radPitch);
+            position.z = target.z + distance * cos(radPitch) * cos(radYaw);
+            smoothedPosition = position;
+            smoothedTarget = target;
+            break;
+        }
+        case Mode::FixedMoon: {
+            // Fixed on Moon: camera looks at Moon center, can be manually rotated
+            target = fixedTarget; // Moon center
+            float radPitch = glm::radians(pitch);
+            float radYaw = glm::radians(yaw);
+            position.x = target.x + distance * cos(radPitch) * sin(radYaw);
+            position.y = target.y + distance * sin(radPitch);
+            position.z = target.z + distance * cos(radPitch) * cos(radYaw);
+            smoothedPosition = position;
+            smoothedTarget = target;
+            break;
+        }
+        case Mode::Overview: {
+            // Overview mode: view the entire Earth-Moon system
+            // Target is the midpoint between Earth and Moon
+            target = fixedTarget; // Should be set to midpoint in simulation
             float radPitch = glm::radians(pitch);
             float radYaw = glm::radians(yaw);
             position.x = target.x + distance * cos(radPitch) * sin(radYaw);
@@ -78,7 +105,8 @@ void Camera::rotate(float deltaPitch, float deltaYaw) {
 // Control zoom
 void Camera::zoom(float deltaDistance) {
     distance += deltaDistance;
-    distance = glm::clamp(distance, 1000.0f, 1000000.0f);
+    // Extended range to support different viewing modes
+    distance = glm::clamp(distance, 1000.0f, 1000000000.0f); // Up to 1,000,000 km
     if (mode == Mode::Locked) {
         // Scale the length of lockedOffset
         lockedOffset = glm::normalize(lockedOffset) * distance;
@@ -92,7 +120,19 @@ void Camera::setMode(Mode newMode) {
     smoothedTarget = target;
 }
 
-void Camera::setFixedTarget(const glm::vec3& fixedTarget) {
-    target = fixedTarget;
-    smoothedTarget = target;
+void Camera::setFixedTarget(const glm::vec3& newTarget) {
+    fixedTarget = newTarget;
+    target = newTarget;
+    smoothedTarget = newTarget;
+}
+
+const char* Camera::getModeName() const {
+    switch (mode) {
+        case Mode::Free: return "Free View";
+        case Mode::Locked: return "Locked on Rocket";
+        case Mode::FixedEarth: return "Earth View";
+        case Mode::FixedMoon: return "Moon View";
+        case Mode::Overview: return "System Overview";
+        default: return "Unknown";
+    }
 }

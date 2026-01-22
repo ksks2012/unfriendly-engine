@@ -42,6 +42,7 @@ public:
 
     float getTimeScale() const;
     Rocket& getRocket();
+    Camera& getCamera();
 
     glm::vec3 getMoonPos() const;
     const BODY_MAP& getBodies() const;

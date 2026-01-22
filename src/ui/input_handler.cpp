@@ -69,17 +69,25 @@ void InputHandler::process(Simulation& sim) {
     }
 
     // Camera mode switching
-    // Free mode
+    // F - Free mode
     if (isKeyPressedWithCooldown(GLFW_KEY_F, 0.2)) {
         sim.adjustCameraMode(Camera::Mode::Free);
     }
-    // Locked mode
+    // L - Locked mode (follow rocket)
     if (isKeyPressedWithCooldown(GLFW_KEY_L, 0.2)) {
         sim.adjustCameraMode(Camera::Mode::Locked);
     }
-    // Fixed mode
-    if (isKeyPressedWithCooldown(GLFW_KEY_Z, 0.2)) {
-        sim.adjustCameraMode(Camera::Mode::Fixed);
+    // 1 - Fixed on Earth
+    if (isKeyPressedWithCooldown(GLFW_KEY_1, 0.2)) {
+        sim.adjustCameraMode(Camera::Mode::FixedEarth);
+    }
+    // 2 - Fixed on Moon
+    if (isKeyPressedWithCooldown(GLFW_KEY_2, 0.2)) {
+        sim.adjustCameraMode(Camera::Mode::FixedMoon);
+    }
+    // 3 - Overview mode (Earth-Moon system)
+    if (isKeyPressedWithCooldown(GLFW_KEY_3, 0.2)) {
+        sim.adjustCameraMode(Camera::Mode::Overview);
     }
 }
 

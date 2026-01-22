@@ -153,19 +153,34 @@ void Simulation::render(const Shader& shader) const {
 
     // Scale factor (physical unit meters to rendering unit kilometers)
     const float scale = 0.001f; // 1 meter = 0.001 rendering units (i.e., 1 km = 1 unit)
-    // glm::vec3 target = glm::vec3(0.0f, 0.0f, 0.0f); // Earth's center
     glm::vec3 target = glm::vec3(0.0f, 384400000.0f * scale / 2, 0.0f); // middle of the Earth and Moon
-    // TODO:
-    if (camera.mode == Camera::Mode::Locked) {
+    
+    // Update camera target based on mode
+    if (camera.mode == Camera::Mode::Locked || camera.mode == Camera::Mode::Free) {
         target = rocket.getPosition() * scale;
-    } else if (camera.mode == Camera::Mode::Fixed) {
+    } else if (camera.mode == Camera::Mode::FixedEarth) {
         target = glm::vec3(0.0f, 0.0f, 0.0f); // Earth's center
+    } else if (camera.mode == Camera::Mode::FixedMoon) {
+        if (bodies.find("moon") != bodies.end()) {
+            target = bodies.at("moon")->position * scale;
+            // Update fixed target for moon (since moon moves)
+            camera.setFixedTarget(target);
+        }
+    } else if (camera.mode == Camera::Mode::Overview) {
+        if (bodies.find("moon") != bodies.end()) {
+            target = bodies.at("moon")->position * scale * 0.5f; // Midpoint
+            camera.setFixedTarget(target);
+        }
     }
 
     // TODO: move to camera class
     camera.update(target);
     glm::mat4 view = camera.getViewMatrix();
-    glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)width / sceneHeight, 0.1f, camera.distance * 2.0f);
+    
+    // Adjust near/far planes based on distance for proper rendering at all zoom levels
+    float nearPlane = std::max(0.1f, camera.distance * 0.001f);
+    float farPlane = camera.distance * 10.0f;
+    glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)width / sceneHeight, nearPlane, farPlane);
 
     shader.use();
     shader.setMat4("view", view);
@@ -225,7 +240,41 @@ void Simulation::adjustCameraRotation(float deltaPitch, float deltaYaw) {
 
 void Simulation::adjustCameraMode(Camera::Mode mode) {
     camera.setMode(mode);
-    LOG_INFO(logger_, "Simulation", "Camera mode adjusted to " + std::to_string(static_cast<int>(mode)));
+    
+    // Scale factor for rendering (meters to km)
+    const float scale = 0.001f;
+    
+    // Set appropriate target and distance based on mode
+    // Note: distance is in rendering units (km), not meters
+    switch (mode) {
+        case Camera::Mode::FixedEarth:
+            camera.setFixedTarget(glm::vec3(0.0f)); // Earth center (in rendering coords)
+            camera.distance = 20000.0f; // 20,000 km view distance
+            break;
+        case Camera::Mode::FixedMoon:
+            if (bodies.find("moon") != bodies.end()) {
+                camera.setFixedTarget(bodies["moon"]->position * scale);
+                camera.distance = 10000.0f; // 10,000 km view distance
+            }
+            break;
+        case Camera::Mode::Overview:
+            // Midpoint between Earth and Moon
+            if (bodies.find("moon") != bodies.end()) {
+                glm::vec3 midpoint = bodies["moon"]->position * scale * 0.5f;
+                camera.setFixedTarget(midpoint);
+                camera.distance = 500000.0f; // 500,000 km to see both
+            }
+            break;
+        case Camera::Mode::Locked:
+            camera.distance = 100.0f; // 100 km close follow distance
+            break;
+        case Camera::Mode::Free:
+            // Keep current settings
+            break;
+    }
+    
+    LOG_INFO(logger_, "Simulation", "Camera mode changed to: " + 
+             std::string(camera.getModeName()));
 }
 
 void Simulation::adjustCameraTarget(const glm::vec3& target) {
@@ -255,6 +304,10 @@ float Simulation::getTimeScale() const {
 
 Rocket& Simulation::getRocket() { 
     return rocket; 
+}
+
+Camera& Simulation::getCamera() {
+    return camera;
 }
 
 glm::vec3 Simulation::getMoonPos() const {

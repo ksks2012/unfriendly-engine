@@ -9,9 +9,11 @@
 class Camera {
 public:
     enum class Mode {
-        Free,    // Free view, manually controlled
-        Locked,  // Locked on the rocket, automatically follows
-        Fixed    // Fixed on a celestial body (e.g., Earth)
+        Free,       // Free view, manually controlled
+        Locked,     // Locked on the rocket, automatically follows
+        FixedEarth, // Fixed on Earth center
+        FixedMoon,  // Fixed on Moon center
+        Overview    // Overview of Earth-Moon system
     };
 
     glm::vec3 position;    // Camera position
@@ -34,6 +36,7 @@ public:
 
     void setMode(Mode newMode);
     void setFixedTarget(const glm::vec3& fixedTarget);
+    const char* getModeName() const; // Get current mode name for display
 
 private:
     glm::vec3 smoothedPosition; // Smoothed camera position
