@@ -42,10 +42,10 @@ public:
     float physics_moon_radius = 1737100.0f;
     float physics_moon_mass = 7.34767309e22f;
     float physics_moon_distance = 384400000.0f;
-    float physics_moon_gravity_constant = 1.982e-14f;
+    float physics_moon_gravity_constant = 6.674e-11f;
     float physics_moon_gravity = 1.62f;
-    float physics_moon_angular_speed = 2.665e-6f; // radians per second
-    float physics_moon_rotation_speed = 2.0f * M_PI / 27.3f; // radians per second
+    float physics_moon_angular_speed = 2.6617e-6f; // radians per second
+    float physics_moon_rotation_speed = 2.6617e-6f; // radians per second
     float physics_moon_rotation_period = 27.3f * 24.0f * 3600.0f; // seconds
     
     // Simulation parameters
