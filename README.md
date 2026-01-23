@@ -7,11 +7,13 @@ A simple rocket simulator built with C++, OpenGL, GLFW, GLM, and Dear ImGui.
 - **Keyboard control**
   - `Q`/`E`: Adjustable time scale
   - `W`/`S`: Camera zoom
-  - `F`: Camera mode -> Free
-  - `Z`: Camera mode -> Fixed
-  - `L`: Camera mode -> Locked
+  - `F`: Camera mode -> Free (manually controlled)
+  - `L`: Camera mode -> Locked (follow rocket from behind)
+  - `1`: Camera mode -> Fixed on Earth
+  - `2`: Camera mode -> Fixed on Moon
+  - `3`: Camera mode -> Overview (Earth-Moon system)
 - **Mouse Control**
-  - Left mouse button drag: Rotate
+  - Left mouse button drag: Rotate camera
   - Mouse wheel: Camera zoom
 
 ### Rendering
