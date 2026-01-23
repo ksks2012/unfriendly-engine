@@ -15,6 +15,7 @@ public:
     MOCK_METHOD(GLuint, getVao, (), (const, override));
     MOCK_METHOD(GLuint, getVbo, (), (const, override));
     MOCK_METHOD(void, renderTrajectory, (size_t, size_t, size_t), (const, override));
+    MOCK_METHOD(void, renderOrbit, (size_t), (const, override));
     MOCK_METHOD(void, updateBuffer, (GLintptr, GLsizei, const void*), (override));
 };
 
