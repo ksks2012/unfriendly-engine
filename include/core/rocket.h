@@ -23,6 +23,8 @@
 class Rocket : Body {
 private:
     float predictionDuration, predictionStep; // Prediction parameters
+    float predictionTimer_ = 0.0f;            // Timer for prediction update frequency
+    float predictionUpdateInterval_ = 0.5f;   // Update prediction every 0.5 seconds
 
     float fuel_mass;           // Fuel mass (kg)
     float thrust;              // Thrust (N)

@@ -43,8 +43,8 @@ void Trajectory::update(const glm::vec3& position, float deltaTime) {
     }
 
     sampleTimer_ += deltaTime;
-    if (sampleTimer_ == 0) {
-        return;
+    if (sampleTimer_ < config_.sampleInterval) {
+        return; // Not time to sample yet
     }
     sampleTimer_ = 0.0f;
 
@@ -58,7 +58,6 @@ void Trajectory::update(const glm::vec3& position, float deltaTime) {
     if (count_ < config_.maxPoints) {
         count_++;
     }
-    // TODO: Batch update
 }
 
 void Trajectory::render(const Shader& shader) const {
@@ -68,7 +67,14 @@ void Trajectory::render(const Shader& shader) const {
     }
     shader.setMat4("model", glm::mat4(1.0f));
     shader.setVec4("color", config_.color);
-    renderObject_->renderTrajectory(head_, count_, config_.maxPoints);
+    
+    if (config_.renderMode == RenderMode::LineLoop) {
+        // Use LINE_LOOP for closed orbits
+        renderObject_->renderOrbit(count_);
+    } else {
+        // Use LINE_STRIP for open trajectories
+        renderObject_->renderTrajectory(head_, count_, config_.maxPoints);
+    }
 }
 
 void Trajectory::reset() {

@@ -12,6 +12,7 @@ public:
     virtual GLuint getVao() const = 0;
     virtual GLuint getVbo() const = 0;
     virtual void renderTrajectory(size_t, size_t, size_t) const = 0;
+    virtual void renderOrbit(size_t count) const = 0; // For closed orbits like moon
     virtual void updateBuffer(GLintptr, GLsizei, const void*) = 0;
 };
     
@@ -25,6 +26,7 @@ public:
     GLuint getVbo() const;
 
     void renderTrajectory(size_t, size_t, size_t) const;
+    void renderOrbit(size_t count) const override; // For closed orbits
 
     // Update the data at the specified offset in the VBO
     void updateBuffer(GLintptr, GLsizei, const void*);

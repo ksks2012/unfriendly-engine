@@ -38,10 +38,17 @@ void Rocket::init() {
 void Rocket::update(float deltaTime, const BODY_MAP& bodies) {
     if (!launched) return;
     time += deltaTime;
+    
     if (trajectory_ && deltaTime > 0.0f) {
         LOG_DEBUG(logger_, "Rocket", "Trajectory trajectory_ update");
         trajectory_->update(offsetPosition(position), deltaTime);
-        predictTrajectory(config_.simulation_prediction_duration, config_.simulation_prediction_step);
+        
+        // Update prediction less frequently to improve performance
+        predictionTimer_ += deltaTime;
+        if (predictionTimer_ >= predictionUpdateInterval_) {
+            predictTrajectory(config_.simulation_prediction_duration, config_.simulation_prediction_step);
+            predictionTimer_ = 0.0f;
+        }
     }
     
     Body current = *this;
@@ -202,12 +209,25 @@ glm::vec3 Rocket::offsetPosition(glm::vec3 inputPosition) const {
 void Rocket::predictTrajectory(float duration, float step) {
     LOG_DEBUG(logger_, "Rocket", "predictTrajectory");
 
+    // Reset prediction trajectory before recalculating
+    prediction_->reset();
+    
     Body state = *this;
     float predMass = mass;
     float predFuel = fuel_mass;
     float predTime = 0.0f;
-    while (predTime < duration && predFuel >= 0.0f) {
-        prediction_->update(offsetPosition(state.position), step);
+    
+    // Calculate prediction points
+    while (predTime < duration) {
+        glm::vec3 scaledPos = offsetPosition(state.position);
+        prediction_->update(scaledPos, step);
+        
+        // Stop if crashed or escaped
+        float altitude = glm::length(state.position) - config_.physics_earth_radius;
+        if (altitude < 0.0f || altitude > config_.physics_moon_distance * 2.0f) {
+            break;
+        }
+        
         state = updateStateRK4(state, step, predMass, predFuel, {});
         predTime += step;
     }

@@ -13,12 +13,18 @@
 
 class Trajectory {
 public:
+    enum class RenderMode {
+        LineStrip,  // For rocket trajectory (open path)
+        LineLoop    // For orbital paths (closed loop)
+    };
+
     struct Config {
         size_t maxPoints;        // Maximum number of trajectory points
         float sampleInterval;    // Sampling interval (seconds)
         glm::vec4 color;         // Trajectory color
         float scale;             // Rendering scale factor
         float earthRadius;       // Earth's radius (meters)
+        RenderMode renderMode = RenderMode::LineStrip; // Render mode
     };
 
     Trajectory(const Config& config);
