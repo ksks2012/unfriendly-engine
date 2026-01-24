@@ -17,15 +17,39 @@ Rocket::Rocket(const Config& config, std::shared_ptr<ILogger> logger, const Flig
 void Rocket::init() {
     thrustDirection = glm::vec3(0.0f, 1.0f, 0.0f); // Thrust direction (upward)
 
-    // Rocket triangle vertices (in rendering units: km)
+    // Rocket 3D pyramid vertices (in rendering units: km)
     // Made larger so it's visible at typical camera distances (100-500 km)
-    // Triangle pointing upward: base 20 km wide, 50 km tall
+    // Pyramid with tip pointing in +Y direction (forward)
+    // Center the pyramid so rotation works correctly around origin
+    const float baseSize = 10.0f;  // Base width/depth: 20 km (±10 km)
+    const float height = 50.0f;    // Height: 50 km
+    const float tipY = height * 0.75f;   // Tip at 3/4 height above center
+    const float baseY = -height * 0.25f; // Base at 1/4 height below center
+    
     std::vector<GLfloat> vertices = {
-        0.0f, 0.0f, 0.0f,       // Bottom center
-        0.0f, 50.0f, 0.0f,      // Top (50 km up)
-        10.0f, 0.0f, 0.0f       // Bottom right (10 km to the side)
+        // Tip of the pyramid (forward direction)
+        0.0f, tipY, 0.0f,                 // 0: Tip
+        
+        // Base vertices (square)
+        -baseSize, baseY, -baseSize,      // 1: Back-left
+        baseSize, baseY, -baseSize,       // 2: Back-right
+        baseSize, baseY, baseSize,        // 3: Front-right
+        -baseSize, baseY, baseSize        // 4: Front-left
     };
-    std::vector<GLuint> indices = {0, 1, 2};
+    
+    // Indices for 4 triangular faces + 2 triangles for base
+    std::vector<GLuint> indices = {
+        // Side faces (4 triangles from tip to base edges)
+        0, 4, 3,  // Front face
+        0, 3, 2,  // Right face
+        0, 2, 1,  // Back face
+        0, 1, 4,  // Left face
+        
+        // Base (2 triangles to close the bottom)
+        1, 2, 3,
+        1, 3, 4
+    };
+    
     if(!renderObject)
         renderObject = std::make_unique<RenderObject>(vertices, indices);
 
@@ -77,8 +101,69 @@ void Rocket::update(float deltaTime, const BODY_MAP& bodies) {
 }
 
 void Rocket::render(const Shader& shader) const {
-    // Render the rocket
-    shader.setMat4("model", glm::translate(glm::mat4(1.0f), offsetPosition()));
+    // Calculate rotation matrix to align rocket with velocity direction
+    glm::mat4 model = glm::mat4(1.0f);
+    
+    // Calculate velocity direction in rendering coordinate system
+    // Use numerical differentiation: direction = d(offsetPosition)/dt
+    // which is approximately (offsetPosition(pos + vel*dt) - offsetPosition(pos)) / dt
+    glm::vec3 direction;
+    if (glm::length(velocity) > 0.1f) {
+        // Small time step for numerical derivative
+        const float dt = 0.01f;  // 10ms
+        
+        // Current render position
+        glm::vec3 currentRenderPos = offsetPosition();
+        
+        // Future position in physics coordinates
+        glm::vec3 futurePhysicsPos = position + velocity * dt;
+        
+        // Future render position
+        glm::vec3 futureRenderPos = offsetPosition(futurePhysicsPos);
+        
+        // Velocity direction in render coordinates
+        glm::vec3 renderVelocity = futureRenderPos - currentRenderPos;
+        
+        if (glm::length(renderVelocity) > 0.0001f) {
+            direction = glm::normalize(renderVelocity);
+        } else {
+            direction = glm::vec3(0.0f, 1.0f, 0.0f);  // Default upward
+        }
+    } else {
+        // When stationary, point upward (in rendering Y direction)
+        direction = glm::vec3(0.0f, 1.0f, 0.0f);
+    }
+    
+    // Default forward direction is +Y (the pyramid tip points in +Y)
+    glm::vec3 defaultForward = glm::vec3(0.0f, 1.0f, 0.0f);
+    
+    // Calculate rotation from default forward to actual direction
+    float dotProduct = glm::dot(defaultForward, direction);
+    
+    // Build rotation matrix first
+    glm::mat4 rotation = glm::mat4(1.0f);
+    if (dotProduct < -0.999f) {
+        // Nearly opposite direction: rotate 180 degrees around any perpendicular axis
+        glm::vec3 rotAxis = glm::vec3(1.0f, 0.0f, 0.0f);  // Use X axis
+        rotation = glm::rotate(glm::mat4(1.0f), glm::pi<float>(), rotAxis);
+    } else if (dotProduct < 0.999f) {
+        // General case: calculate rotation axis and angle
+        glm::vec3 rotAxis = glm::cross(defaultForward, direction);
+        float rotAxisLen = glm::length(rotAxis);
+        if (rotAxisLen > 0.0001f) {
+            rotAxis = glm::normalize(rotAxis);
+            float angle = acos(glm::clamp(dotProduct, -1.0f, 1.0f));
+            rotation = glm::rotate(glm::mat4(1.0f), angle, rotAxis);
+        }
+    }
+    // If dotProduct >= 0.999f, no rotation needed (already aligned)
+    
+    // Apply transformations: first rotate (around origin), then translate
+    // This ensures the rocket rotates around its own center before being positioned
+    model = glm::translate(model, offsetPosition());
+    model = model * rotation;
+    
+    shader.setMat4("model", model);
     shader.setVec4("color", glm::vec4(0.8f, 0.8f, 0.8f, 1.0f));
     if (renderObject) 
         renderObject->render();
