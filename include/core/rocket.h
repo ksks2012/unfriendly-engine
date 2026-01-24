@@ -67,6 +67,7 @@ public:
     // Getters
     glm::vec3 getPosition() const;
     glm::vec3 getVelocity() const;
+    glm::vec3 getRenderPosition() const;  // Get position in rendering coordinates
     float getTime() const;
     bool isLaunched() const;
     float getMass() const;

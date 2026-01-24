@@ -17,10 +17,13 @@ Rocket::Rocket(const Config& config, std::shared_ptr<ILogger> logger, const Flig
 void Rocket::init() {
     thrustDirection = glm::vec3(0.0f, 1.0f, 0.0f); // Thrust direction (upward)
 
+    // Rocket triangle vertices (in rendering units: km)
+    // Made larger so it's visible at typical camera distances (100-500 km)
+    // Triangle pointing upward: base 20 km wide, 50 km tall
     std::vector<GLfloat> vertices = {
-        0.0f, 0.0f, 0.0f,
-        0.0f, 1000.0f, 0.0f,
-        200.0f, 0.0f, 0.0f
+        0.0f, 0.0f, 0.0f,       // Bottom center
+        0.0f, 50.0f, 0.0f,      // Top (50 km up)
+        10.0f, 0.0f, 0.0f       // Bottom right (10 km to the side)
     };
     std::vector<GLuint> indices = {0, 1, 2};
     if(!renderObject)
@@ -106,6 +109,11 @@ glm::vec3 Rocket::getPosition() const {
 
 glm::vec3 Rocket::getVelocity() const { 
     return velocity; 
+}
+
+glm::vec3 Rocket::getRenderPosition() const {
+    // Return position in rendering coordinates (same as used for rendering)
+    return offsetPosition();
 }
 
 float Rocket::getTime() const { 

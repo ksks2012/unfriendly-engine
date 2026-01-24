@@ -1,14 +1,14 @@
 #include "rendering/camera.h"
 
 Camera::Camera() : pitch(45.0f), yaw(45.0f), distance(500000.0f), mode(Mode::Free),
-        smoothingFactor(0.1f), lockedOffset(0.0f, 50000.0f, 50000.0f) {
+        smoothingFactor(0.1f), lockedOffset(0.0f, 200.0f, 200.0f) {
     position = glm::vec3(0.0f, 0.0f, distance);
     target = glm::vec3(0.0f, 6371000.0f, 0.0f); // Initially pointing to Earth's surface
     fixedTarget = glm::vec3(0.0f, 0.0f, 0.0f);
 }
 
 Camera::Camera(Config& config) : pitch(config.camera_pitch), yaw(config.camera_yaw), distance(config.camera_distance),
-        mode(Mode::Free), smoothingFactor(0.1f), lockedOffset(0.0f, 50000.0f, 50000.0f) {
+        mode(Mode::Free), smoothingFactor(0.1f), lockedOffset(0.0f, 200.0f, 200.0f) {
     position = config.camera_position;
     target = config.camera_target;
     fixedTarget = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -30,13 +30,35 @@ void Camera::update(const glm::vec3& rocketPosition) {
             break;
         }
         case Mode::Locked: {
-            // Locked mode: automatically follow the rocket, maintaining relative offset
+            // Locked mode: camera follows the rocket directly without smoothing lag
+            // This ensures the rocket is always in view, even at high speeds
+            
+            // Target is always the current rocket position
             target = rocketPosition;
-            glm::vec3 desiredPosition = target + lockedOffset;
-            // Smooth interpolation
-            smoothedPosition = glm::mix(smoothedPosition, desiredPosition, smoothingFactor);
+            
+            // Calculate radial direction (from Earth center through rocket position)
+            glm::vec3 radialDir = glm::normalize(rocketPosition);
+            if (glm::length(rocketPosition) < 0.001f) {
+                // Fallback if rocket is at origin
+                radialDir = glm::vec3(0.0f, 1.0f, 0.0f);
+            }
+            
+            // Create a tangent direction (perpendicular to radial)
+            glm::vec3 refUp = glm::vec3(0.0f, 0.0f, 1.0f);
+            if (std::abs(glm::dot(radialDir, refUp)) > 0.99f) {
+                refUp = glm::vec3(1.0f, 0.0f, 0.0f);
+            }
+            glm::vec3 tangentDir = glm::normalize(glm::cross(radialDir, refUp));
+            
+            // Position camera at an angle: mostly radial (up) with some tangent (side)
+            // This shows the flat rocket triangle from an angle
+            glm::vec3 offsetDir = glm::normalize(radialDir * 0.7f + tangentDir * 0.5f + glm::vec3(0.0f, 0.0f, 0.3f));
+            
+            // NO SMOOTHING - camera follows rocket instantly
+            // This is critical for high-speed flight
+            position = target + offsetDir * distance;
+            smoothedPosition = position;
             smoothedTarget = target;
-            position = smoothedPosition;
             break;
         }
         case Mode::FixedEarth: {

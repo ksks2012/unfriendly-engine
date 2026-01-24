@@ -157,7 +157,9 @@ void Simulation::render(const Shader& shader) const {
     
     // Update camera target based on mode
     if (camera.mode == Camera::Mode::Locked || camera.mode == Camera::Mode::Free) {
-        target = rocket.getPosition() * scale;
+        // Use getRenderPosition() to get the same coordinates used for rocket rendering
+        // This ensures the camera looks at the actual rendered rocket position
+        target = rocket.getRenderPosition();
     } else if (camera.mode == Camera::Mode::FixedEarth) {
         target = glm::vec3(0.0f, 0.0f, 0.0f); // Earth's center
     } else if (camera.mode == Camera::Mode::FixedMoon) {
@@ -178,8 +180,18 @@ void Simulation::render(const Shader& shader) const {
     glm::mat4 view = camera.getViewMatrix();
     
     // Adjust near/far planes based on distance for proper rendering at all zoom levels
-    float nearPlane = std::max(0.1f, camera.distance * 0.001f);
-    float farPlane = camera.distance * 10.0f;
+    // In Locked mode, use smaller near plane to ensure rocket is visible
+    float nearPlane;
+    float farPlane;
+    if (camera.mode == Camera::Mode::Locked) {
+        // For Locked mode: near plane should be small enough to see the rocket
+        // Rocket is about 1 km in size, so near plane should be < 1 km
+        nearPlane = 0.01f;  // 10 meters
+        farPlane = camera.distance * 100.0f;  // Far enough to see Earth
+    } else {
+        nearPlane = std::max(0.1f, camera.distance * 0.001f);
+        farPlane = camera.distance * 10.0f;
+    }
     glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)width / sceneHeight, nearPlane, farPlane);
 
     shader.use();
@@ -266,7 +278,7 @@ void Simulation::adjustCameraMode(Camera::Mode mode) {
             }
             break;
         case Camera::Mode::Locked:
-            camera.distance = 100.0f; // 100 km close follow distance
+            camera.distance = 500.0f; // 500 km follow distance (farther for better view)
             break;
         case Camera::Mode::Free:
             // Keep current settings
