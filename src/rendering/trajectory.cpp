@@ -1,5 +1,6 @@
 #include "rendering/trajectory.h"
 #include <GL/glew.h>
+#include <glm/gtc/matrix_transform.hpp>
 
 Trajectory::Trajectory(const Config& config)
     : config_(config), head_(0), count_(0), sampleTimer_(0.0f) {
@@ -33,6 +34,12 @@ void Trajectory::init() {
 
 void Trajectory::update(const glm::vec3& position, float deltaTime) {
     LOG_DEBUG(logger_, "Trajectory", "update");
+    
+    // Static orbits (pre-calculated) should not be updated dynamically
+    if (config_.isStatic) {
+        return;
+    }
+    
     if (points_.empty()) {
         LOG_ERROR(logger_, "Trajectory", "points_ is empty");
         return;
@@ -61,11 +68,18 @@ void Trajectory::update(const glm::vec3& position, float deltaTime) {
 }
 
 void Trajectory::render(const Shader& shader) const {
+    render(shader, center_);
+}
+
+void Trajectory::render(const Shader& shader, const glm::vec3& center) const {
     LOG_DEBUG(logger_, "Trajectory", "render");
     if (count_ == 0) {
         return;
     }
-    shader.setMat4("model", glm::mat4(1.0f));
+    
+    // Apply translation to orbit center
+    glm::mat4 model = glm::translate(glm::mat4(1.0f), center);
+    shader.setMat4("model", model);
     shader.setVec4("color", config_.color);
     
     if (config_.renderMode == RenderMode::LineLoop) {

@@ -69,25 +69,68 @@ public:
             glm::vec4(0.5f, 0.5f, 0.5f, 0.8f), // gray with slight transparency
             config.simulation_rendering_scale,
             config.physics_earth_radius,
-            Trajectory::RenderMode::LineLoop  // Closed loop for orbit
+            Trajectory::RenderMode::LineLoop,  // Closed loop for orbit
+            true  // isStatic: pre-calculated orbit, don't update dynamically
         };
         
         auto traj = std::make_unique<Trajectory>(trajConfig, logger);
         traj->init();
     
         const float radius = config.physics_moon_distance * config.simulation_rendering_scale;
+        
+        // Lunar orbital inclination relative to the ecliptic (Earth's orbital plane)
+        // The Moon's orbit is inclined about 5.145° from the ecliptic
+        const float lunarInclination = glm::radians(5.145f);
+        
         std::vector<glm::vec3> points(orbitPoints);
         for (size_t i = 0; i < orbitPoints; ++i) {
             float theta = 2.0f * glm::pi<float>() * static_cast<float>(i) / orbitPoints;
-            // Moon orbit is in the X-Y plane
-            points[i] = glm::vec3(
-                radius * std::cos(theta), 
-                radius * std::sin(theta), 
-                0.0f
-            );
+            // Moon orbit in its own plane (X-Z), then rotated by inclination around X-axis
+            // This tilts the orbit relative to the ecliptic (X-Z plane where Y=0)
+            float x = radius * std::cos(theta);
+            float z_local = radius * std::sin(theta);
+            
+            // Apply inclination rotation around X-axis
+            float y = z_local * std::sin(lunarInclination);
+            float z = z_local * std::cos(lunarInclination);
+            
+            points[i] = glm::vec3(x, y, z);
         }
         traj->setPoints(points);
     
+        return traj;
+    }
+    
+    static std::unique_ptr<Trajectory> createEarthTrajectory(const Config& config, std::shared_ptr<ILogger> logger) {
+        // Earth orbit around the Sun (1 AU radius)
+        const size_t orbitPoints = 360;
+        
+        Trajectory::Config trajConfig{
+            orbitPoints,
+            0.1f,
+            glm::vec4(0.0f, 0.5f, 1.0f, 0.8f), // light blue
+            config.simulation_rendering_scale,
+            config.physics_earth_radius,
+            Trajectory::RenderMode::LineLoop,  // Closed loop for orbit
+            true  // isStatic: pre-calculated orbit, don't update dynamically
+        };
+        
+        auto traj = std::make_unique<Trajectory>(trajConfig, logger);
+        traj->init();
+        
+        const float radius = config.physics_earth_orbit_radius * config.simulation_rendering_scale;
+        std::vector<glm::vec3> points(orbitPoints);
+        for (size_t i = 0; i < orbitPoints; ++i) {
+            float theta = 2.0f * glm::pi<float>() * static_cast<float>(i) / orbitPoints;
+            // Earth orbit is in the X-Z plane (around the Sun at origin)
+            points[i] = glm::vec3(
+                radius * std::cos(theta),
+                0.0f,
+                radius * std::sin(theta)
+            );
+        }
+        traj->setPoints(points);
+        
         return traj;
     }
 };
