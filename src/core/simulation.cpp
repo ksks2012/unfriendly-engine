@@ -34,11 +34,28 @@ void Simulation::init() {
     glm::vec3 earthVel = glm::vec3(0.0f, 0.0f, config.physics_earth_orbital_velocity); // Perpendicular to position
     bodies["earth"] = std::make_unique<Body>(config, logger_, "earth", config.physics_earth_mass, earthPos, earthVel);
     
-    // Moon orbiting Earth
-    glm::vec3 moonPos = earthPos + glm::vec3(0.0f, config.physics_moon_distance, 0.0f);
-    glm::vec3 moonVel = earthVel + glm::vec3(-1022.0f, 0.0f, 0.0f); // Moon's orbital velocity relative to Earth
+    // Moon orbiting Earth with ~5.145° orbital inclination relative to the ecliptic
+    // The lunar orbital plane is tilted from the ecliptic plane
+    const float lunarInclination = glm::radians(5.145f);
+    
+    // Moon position: in the inclined orbital plane
+    // Start with position in the ecliptic (X-Z plane), then apply inclination
+    float moonDistLocal_z = config.physics_moon_distance; // Moon along +Z in local orbital plane
+    float moonPosY = moonDistLocal_z * std::sin(lunarInclination);
+    float moonPosZ = moonDistLocal_z * std::cos(lunarInclination);
+    glm::vec3 moonPos = earthPos + glm::vec3(0.0f, moonPosY, moonPosZ);
+    
+    // Moon velocity: orbital velocity (~1022 m/s) perpendicular to position in the inclined plane
+    // In the inclined plane, velocity is along -X when position is along +Z
+    const float moonOrbitalSpeed = 1022.0f;
+    glm::vec3 moonVelRelative = glm::vec3(-moonOrbitalSpeed, 0.0f, 0.0f);
+    glm::vec3 moonVel = earthVel + moonVelRelative;
+    
     bodies["moon"] = std::make_unique<Body>(config, logger_, "moon", config.physics_moon_mass, moonPos, moonVel);
     bodies["moon"]->setTrajectory(TrajectoryFactory::createMoonTrajectory(config, logger_));
+    
+    // Set Earth's trajectory to show its orbit around the Sun
+    bodies["earth"]->setTrajectory(TrajectoryFactory::createEarthTrajectory(config, logger_));
 
     if (!bodies["sun"] || !bodies["earth"] || !bodies["moon"]) {
         LOG_ERROR(logger_, "Simulation", "Failed to initialize celestial bodies!");
@@ -166,6 +183,9 @@ void Simulation::update(float deltaTime) {
             LOG_ERROR(logger_, "Simulation", "NaN detected in " + name + ": Pos=" + 
                       glm::to_string(body->position) + ", Vel=" + glm::to_string(body->velocity));
         }
+        
+        // Update trajectory for bodies that have one (scale position for rendering)
+        body->update(dt);
     }
     
     rocket.update(dt, bodies);
@@ -187,6 +207,11 @@ void Simulation::render(const Shader& shader) const {
     // Scale factor (physical unit meters to rendering unit kilometers)
     const float scale = 0.001f; // 1 meter = 0.001 rendering units (i.e., 1 km = 1 unit)
     glm::vec3 target = glm::vec3(0.0f);
+    
+    // Update Earth position for camera (used in Locked mode to calculate radial direction)
+    if (bodies.find("earth") != bodies.end()) {
+        camera.setEarthPosition(bodies.at("earth")->position * scale);
+    }
     
     // Update camera target based on mode
     if (camera.mode == Camera::Mode::Locked || camera.mode == Camera::Mode::Free) {
@@ -238,13 +263,18 @@ void Simulation::render(const Shader& shader) const {
     shader.setMat4("view", view);
     shader.setMat4("projection", projection);
     
-    // Render the Sun (yellow)
+    // Render the Sun (orange)
     if (bodies.find("sun") != bodies.end() && bodies.at("sun")->renderObject) {
         glm::mat4 sunModel = glm::translate(glm::mat4(1.0f), bodies.at("sun")->position * scale);
         sunModel = glm::scale(sunModel, glm::vec3(scale, scale, scale));
         shader.setMat4("model", sunModel);
-        shader.setVec4("color", glm::vec4(1.0f, 0.9f, 0.0f, 1.0f)); // Yellow
+        shader.setVec4("color", glm::vec4(1.0f, 0.5f, 0.0f, 1.0f)); // Orange
         bodies.at("sun")->renderObject->render();
+    }
+    
+    // Render Earth's orbit (only visible in solar system view)
+    if (bodies.find("earth") != bodies.end()) {
+        bodies.at("earth")->render(shader);
     }
 
     // Render the Earth (blue)
@@ -267,7 +297,10 @@ void Simulation::render(const Shader& shader) const {
         shader.setMat4("model", moonModel);
         shader.setVec4("color", glm::vec4(0.7f, 0.7f, 0.7f, 1.0f)); // Gray
         bodies.at("moon")->renderObject->render();
-        bodies.at("moon")->render(shader);
+        
+        // Render Moon's orbit centered on Earth's position
+        glm::vec3 earthCenter = bodies.at("earth")->position * scale;
+        bodies.at("moon")->render(shader, earthCenter);
     } else {
         LOG_ERROR(logger_, "Simulation", "Moon is null or has no renderObject!");
     }
