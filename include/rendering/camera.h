@@ -37,6 +37,7 @@ public:
 
     void setMode(Mode newMode);
     void setFixedTarget(const glm::vec3& fixedTarget);
+    void setEarthPosition(const glm::vec3& earthPos); // Set Earth position for Locked mode
     const char* getModeName() const; // Get current mode name for display
 
 private:
@@ -44,6 +45,7 @@ private:
     glm::vec3 smoothedTarget;   // Smoothed target position
     float smoothingFactor;      // Smoothing factor (0.0 to 1.0)
     glm::vec3 lockedOffset;     // Relative offset in Locked mode
+    glm::vec3 earthPosition;    // Earth position (for calculating radial direction in Locked mode)
 };
 
 #endif // CAMERA_H
