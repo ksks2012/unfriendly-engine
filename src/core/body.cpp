@@ -23,13 +23,20 @@ Body::Body(const Body& other)
 }
 
 void Body::update(float deltaTime) {
-    trajectory_->update(position, deltaTime);
+    if (trajectory_) {
+        // Scale position from meters to km for rendering
+        glm::vec3 scaledPos = position * config_.simulation_rendering_scale;
+        trajectory_->update(scaledPos, deltaTime);
+    }
 }
 
 void Body::render(const Shader& shader) const {
-    // TODO: Ensure position is in the correct coordinate system
+    render(shader, glm::vec3(0.0f));
+}
+
+void Body::render(const Shader& shader, const glm::vec3& orbitCenter) const {
     if(trajectory_) {
-        trajectory_->render(shader);
+        trajectory_->render(shader, orbitCenter);
     }
 }
 
