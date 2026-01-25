@@ -26,15 +26,28 @@ Simulation::~Simulation() = default;
 void Simulation::init() {
     LOG_DEBUG(logger_, "Simulation", "Initializing simulation...");
     
-    bodies["earth"] = std::make_unique<Body>(config, logger_, "earth", config.physics_earth_mass, glm::vec3(0.0f), glm::vec3(0.0f));
-    // Moon
-    bodies["moon"] = std::make_unique<Body>(config, logger_, "moon", config.physics_moon_mass, moonPos, glm::vec3(-1022.0f, 0.0f, 0.0f));
+    // Sun at origin (heliocentric coordinate system)
+    bodies["sun"] = std::make_unique<Body>(config, logger_, "sun", config.physics_sun_mass, glm::vec3(0.0f), glm::vec3(0.0f));
+    
+    // Earth orbiting the Sun (1 AU distance, orbital velocity ~29.78 km/s)
+    glm::vec3 earthPos = glm::vec3(config.physics_earth_orbit_radius, 0.0f, 0.0f);
+    glm::vec3 earthVel = glm::vec3(0.0f, 0.0f, config.physics_earth_orbital_velocity); // Perpendicular to position
+    bodies["earth"] = std::make_unique<Body>(config, logger_, "earth", config.physics_earth_mass, earthPos, earthVel);
+    
+    // Moon orbiting Earth
+    glm::vec3 moonPos = earthPos + glm::vec3(0.0f, config.physics_moon_distance, 0.0f);
+    glm::vec3 moonVel = earthVel + glm::vec3(-1022.0f, 0.0f, 0.0f); // Moon's orbital velocity relative to Earth
+    bodies["moon"] = std::make_unique<Body>(config, logger_, "moon", config.physics_moon_mass, moonPos, moonVel);
     bodies["moon"]->setTrajectory(TrajectoryFactory::createMoonTrajectory(config, logger_));
 
-    if (!bodies["earth"] || !bodies["moon"]) {
-        LOG_ERROR(logger_, "Simulation", "Failed to initialize earth or moon!");
+    if (!bodies["sun"] || !bodies["earth"] || !bodies["moon"]) {
+        LOG_ERROR(logger_, "Simulation", "Failed to initialize celestial bodies!");
         return;
     }
+    
+    // Update rocket initial position relative to Earth
+    rocket.setPosition(earthPos + glm::vec3(0.0f, config.physics_earth_radius, 0.0f));
+    rocket.setVelocity(earthVel); // Rocket starts with Earth's orbital velocity
 
     rocket.init();
 
@@ -102,6 +115,26 @@ void Simulation::init() {
         LOG_ERROR(logger_, "Simulation", "Error creating moon renderObject: " + std::string(e.what()));
         return;
     }
+    
+    // Sun (scaled down for rendering - actual sun is much larger)
+    std::vector<GLfloat> sunVertices;
+    float sunScale = config.physics_sun_radius / config.physics_earth_radius;
+    for (size_t i = 0; i < earthVertices.size(); i += 3) {
+        sunVertices.push_back(earthVertices[i] * sunScale);
+        sunVertices.push_back(earthVertices[i + 1] * sunScale);
+        sunVertices.push_back(earthVertices[i + 2] * sunScale);
+    }
+    
+    try {
+        bodies["sun"]->renderObject = std::make_unique<RenderObject>(sunVertices, earthIndices);
+        LOG_INFO(logger_, "Simulation", "Sun renderObject created: vertices=" + 
+                 std::to_string(sunVertices.size()) + ", indices=" + std::to_string(earthIndices.size()));
+    } catch (const std::exception& e) {
+        LOG_ERROR(logger_, "Simulation", "Error creating sun renderObject: " + std::string(e.what()));
+        return;
+    }
+    
+    LOG_INFO(logger_, "Simulation", "Sun initialized: " + std::string(bodies.find("sun") != bodies.end() ? "valid" : "null"));
     LOG_INFO(logger_, "Simulation", "Earth initialized: " + std::string(bodies.find("earth") != bodies.end() ? "valid" : "null"));
     LOG_INFO(logger_, "Simulation", "Moon initialized: " + std::string(bodies.find("moon") != bodies.end() ? "valid" : "null"));
     LOG_INFO(logger_, "Simulation", "Map objects initialized");
@@ -153,41 +186,48 @@ void Simulation::render(const Shader& shader) const {
 
     // Scale factor (physical unit meters to rendering unit kilometers)
     const float scale = 0.001f; // 1 meter = 0.001 rendering units (i.e., 1 km = 1 unit)
-    glm::vec3 target = glm::vec3(0.0f, 384400000.0f * scale / 2, 0.0f); // middle of the Earth and Moon
+    glm::vec3 target = glm::vec3(0.0f);
     
     // Update camera target based on mode
     if (camera.mode == Camera::Mode::Locked || camera.mode == Camera::Mode::Free) {
         // Use getRenderPosition() to get the same coordinates used for rocket rendering
-        // This ensures the camera looks at the actual rendered rocket position
         target = rocket.getRenderPosition();
     } else if (camera.mode == Camera::Mode::FixedEarth) {
-        target = glm::vec3(0.0f, 0.0f, 0.0f); // Earth's center
+        // Earth center in heliocentric coordinates
+        if (bodies.find("earth") != bodies.end()) {
+            target = bodies.at("earth")->position * scale;
+            camera.setFixedTarget(target);
+        }
     } else if (camera.mode == Camera::Mode::FixedMoon) {
         if (bodies.find("moon") != bodies.end()) {
             target = bodies.at("moon")->position * scale;
-            // Update fixed target for moon (since moon moves)
             camera.setFixedTarget(target);
         }
     } else if (camera.mode == Camera::Mode::Overview) {
-        if (bodies.find("moon") != bodies.end()) {
-            target = bodies.at("moon")->position * scale * 0.5f; // Midpoint
+        // Midpoint between Earth and Moon
+        if (bodies.find("earth") != bodies.end() && bodies.find("moon") != bodies.end()) {
+            target = (bodies.at("earth")->position + bodies.at("moon")->position) * scale * 0.5f;
             camera.setFixedTarget(target);
         }
+    } else if (camera.mode == Camera::Mode::SolarSystem) {
+        // Sun center (origin in heliocentric coords)
+        target = glm::vec3(0.0f);
+        camera.setFixedTarget(target);
     }
 
-    // TODO: move to camera class
     camera.update(target);
     glm::mat4 view = camera.getViewMatrix();
     
-    // Adjust near/far planes based on distance for proper rendering at all zoom levels
-    // In Locked mode, use smaller near plane to ensure rocket is visible
+    // Adjust near/far planes based on mode for proper rendering
     float nearPlane;
     float farPlane;
     if (camera.mode == Camera::Mode::Locked) {
-        // For Locked mode: near plane should be small enough to see the rocket
-        // Rocket is about 1 km in size, so near plane should be < 1 km
         nearPlane = 0.01f;  // 10 meters
-        farPlane = camera.distance * 100.0f;  // Far enough to see Earth
+        farPlane = camera.distance * 100.0f;
+    } else if (camera.mode == Camera::Mode::SolarSystem) {
+        // Solar system scale: need very large far plane
+        nearPlane = std::max(1000.0f, camera.distance * 0.0001f);
+        farPlane = camera.distance * 10.0f;
     } else {
         nearPlane = std::max(0.1f, camera.distance * 0.001f);
         farPlane = camera.distance * 10.0f;
@@ -197,13 +237,22 @@ void Simulation::render(const Shader& shader) const {
     shader.use();
     shader.setMat4("view", view);
     shader.setMat4("projection", projection);
+    
+    // Render the Sun (yellow)
+    if (bodies.find("sun") != bodies.end() && bodies.at("sun")->renderObject) {
+        glm::mat4 sunModel = glm::translate(glm::mat4(1.0f), bodies.at("sun")->position * scale);
+        sunModel = glm::scale(sunModel, glm::vec3(scale, scale, scale));
+        shader.setMat4("model", sunModel);
+        shader.setVec4("color", glm::vec4(1.0f, 0.9f, 0.0f, 1.0f)); // Yellow
+        bodies.at("sun")->renderObject->render();
+    }
 
-    // Render the Earth (scaled)
-    glm::mat4 earthModel = glm::translate(glm::mat4(1.0f), bodies.at("earth")->position * scale);
-    earthModel = glm::scale(earthModel, glm::vec3(scale, scale, scale));
-    shader.setMat4("model", earthModel);
-    shader.setVec4("color", glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
+    // Render the Earth (blue)
     if (bodies.find("earth") != bodies.end() && bodies.at("earth")->renderObject) {
+        glm::mat4 earthModel = glm::translate(glm::mat4(1.0f), bodies.at("earth")->position * scale);
+        earthModel = glm::scale(earthModel, glm::vec3(scale, scale, scale));
+        shader.setMat4("model", earthModel);
+        shader.setVec4("color", glm::vec4(0.0f, 0.0f, 1.0f, 1.0f)); // Blue
         bodies.at("earth")->renderObject->render();
     } else {
         LOG_ERROR(logger_, "Simulation", "Earth is null or has no renderObject!");
@@ -211,16 +260,16 @@ void Simulation::render(const Shader& shader) const {
 
     rocket.render(shader);
 
-    
+    // Render the Moon (gray)
     if (bodies.find("moon") != bodies.end() && bodies.at("moon")->renderObject) {
         glm::mat4 moonModel = glm::translate(glm::mat4(1.0f), bodies.at("moon")->position * scale);
         moonModel = glm::scale(moonModel, glm::vec3(scale, scale, scale));
         shader.setMat4("model", moonModel);
-        shader.setVec4("color", glm::vec4(0.7f, 0.7f, 0.7f, 1.0f));
+        shader.setVec4("color", glm::vec4(0.7f, 0.7f, 0.7f, 1.0f)); // Gray
         bodies.at("moon")->renderObject->render();
         bodies.at("moon")->render(shader);
     } else {
-        LOG_ERROR(logger_, "Simulation", "Earth is null or has no renderObject!");
+        LOG_ERROR(logger_, "Simulation", "Moon is null or has no renderObject!");
     }
 
     GLenum err = glGetError();
@@ -260,25 +309,32 @@ void Simulation::adjustCameraMode(Camera::Mode mode) {
     // Note: distance is in rendering units (km), not meters
     switch (mode) {
         case Camera::Mode::FixedEarth:
-            camera.setFixedTarget(glm::vec3(0.0f)); // Earth center (in rendering coords)
+            if (bodies.find("earth") != bodies.end()) {
+                camera.setFixedTarget(bodies.at("earth")->position * scale);
+            }
             camera.distance = 20000.0f; // 20,000 km view distance
             break;
         case Camera::Mode::FixedMoon:
             if (bodies.find("moon") != bodies.end()) {
-                camera.setFixedTarget(bodies["moon"]->position * scale);
+                camera.setFixedTarget(bodies.at("moon")->position * scale);
                 camera.distance = 10000.0f; // 10,000 km view distance
             }
             break;
         case Camera::Mode::Overview:
             // Midpoint between Earth and Moon
-            if (bodies.find("moon") != bodies.end()) {
-                glm::vec3 midpoint = bodies["moon"]->position * scale * 0.5f;
+            if (bodies.find("earth") != bodies.end() && bodies.find("moon") != bodies.end()) {
+                glm::vec3 midpoint = (bodies.at("earth")->position + bodies.at("moon")->position) * scale * 0.5f;
                 camera.setFixedTarget(midpoint);
                 camera.distance = 500000.0f; // 500,000 km to see both
             }
             break;
+        case Camera::Mode::SolarSystem:
+            // Sun at origin, view entire inner solar system
+            camera.setFixedTarget(glm::vec3(0.0f));
+            camera.distance = 300000000.0f; // 300 million km (~2 AU) to see Earth orbit
+            break;
         case Camera::Mode::Locked:
-            camera.distance = 500.0f; // 500 km follow distance (farther for better view)
+            camera.distance = 500.0f; // 500 km follow distance
             break;
         case Camera::Mode::Free:
             // Keep current settings

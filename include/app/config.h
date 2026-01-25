@@ -30,6 +30,12 @@ public:
 
     // Physics parameters
     // TODO: setting structure of stars
+    // Sun parameters
+    float physics_sun_radius = 696340000.0f;           // 696,340 km
+    float physics_sun_mass = 1.989e30f;                // kg
+    float physics_earth_orbit_radius = 149597870700.0f; // 1 AU in meters
+    float physics_earth_orbital_velocity = 29780.0f;   // m/s
+    
     // Earth parameters
     float physics_earth_radius = 6371000.0f;
     float physics_gravity_constant = 6.674e-11f;

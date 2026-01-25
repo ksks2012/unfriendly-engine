@@ -98,6 +98,18 @@ void Camera::update(const glm::vec3& rocketPosition) {
             smoothedTarget = target;
             break;
         }
+        case Mode::SolarSystem: {
+            // Solar system view: centered on Sun, view the entire solar system
+            target = fixedTarget; // Should be set to Sun center (origin in heliocentric coords)
+            float radPitch = glm::radians(pitch);
+            float radYaw = glm::radians(yaw);
+            position.x = target.x + distance * cos(radPitch) * sin(radYaw);
+            position.y = target.y + distance * sin(radPitch);
+            position.z = target.z + distance * cos(radPitch) * cos(radYaw);
+            smoothedPosition = position;
+            smoothedTarget = target;
+            break;
+        }
     }
 }
 
@@ -155,6 +167,7 @@ const char* Camera::getModeName() const {
         case Mode::FixedEarth: return "Earth View";
         case Mode::FixedMoon: return "Moon View";
         case Mode::Overview: return "System Overview";
+        case Mode::SolarSystem: return "Solar System View";
         default: return "Unknown";
     }
 }

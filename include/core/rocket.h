@@ -78,6 +78,8 @@ public:
 
     // Setter
     void setThrustDirection(const glm::vec3&);
+    void setPosition(const glm::vec3& pos) { position = pos; }
+    void setVelocity(const glm::vec3& vel) { velocity = vel; }
 
     // Prediction
     void predictTrajectory(float, float);
