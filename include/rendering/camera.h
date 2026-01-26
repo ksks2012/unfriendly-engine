@@ -9,12 +9,13 @@
 class Camera {
 public:
     enum class Mode {
-        Free,         // Free view, manually controlled
-        Locked,       // Locked on the rocket, automatically follows
-        FixedEarth,   // Fixed on Earth center
-        FixedMoon,    // Fixed on Moon center
-        Overview,     // Overview of Earth-Moon system
-        SolarSystem   // Solar system view (centered on Sun)
+        Free,           // Free view, manually controlled
+        Locked,         // Locked on the rocket, automatically follows
+        FixedEarth,     // Fixed on Earth center
+        FixedMoon,      // Fixed on Moon center
+        Overview,       // Overview of Earth-Moon system
+        SolarSystem,    // Solar system view (inner planets)
+        FullSolarSystem // Full solar system view (all 8 planets including Neptune)
     };
 
     glm::vec3 position;    // Camera position

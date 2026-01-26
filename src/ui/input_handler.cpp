@@ -96,9 +96,13 @@ void InputHandler::process(Simulation& sim) {
     if (isKeyPressedWithCooldown(GLFW_KEY_3, 0.2)) {
         sim.adjustCameraMode(Camera::Mode::Overview);
     }
-    // 4 - Solar System view
+    // 4 - Solar System view (inner planets)
     if (isKeyPressedWithCooldown(GLFW_KEY_4, 0.2)) {
         sim.adjustCameraMode(Camera::Mode::SolarSystem);
+    }
+    // 5 - Full Solar System view (all 8 planets)
+    if (isKeyPressedWithCooldown(GLFW_KEY_5, 0.2)) {
+        sim.adjustCameraMode(Camera::Mode::FullSolarSystem);
     }
 }
 

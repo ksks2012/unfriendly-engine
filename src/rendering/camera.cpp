@@ -101,8 +101,20 @@ void Camera::update(const glm::vec3& rocketPosition) {
             break;
         }
         case Mode::SolarSystem: {
-            // Solar system view: centered on Sun, view the entire solar system
+            // Solar system view: centered on Sun, view the inner solar system
             target = fixedTarget; // Should be set to Sun center (origin in heliocentric coords)
+            float radPitch = glm::radians(pitch);
+            float radYaw = glm::radians(yaw);
+            position.x = target.x + distance * cos(radPitch) * sin(radYaw);
+            position.y = target.y + distance * sin(radPitch);
+            position.z = target.z + distance * cos(radPitch) * cos(radYaw);
+            smoothedPosition = position;
+            smoothedTarget = target;
+            break;
+        }
+        case Mode::FullSolarSystem: {
+            // Full solar system view: see all 8 planets including Neptune (~30 AU)
+            target = fixedTarget; // Sun center
             float radPitch = glm::radians(pitch);
             float radYaw = glm::radians(yaw);
             position.x = target.x + distance * cos(radPitch) * sin(radYaw);
@@ -172,8 +184,9 @@ const char* Camera::getModeName() const {
         case Mode::Locked: return "Locked on Rocket";
         case Mode::FixedEarth: return "Earth View";
         case Mode::FixedMoon: return "Moon View";
-        case Mode::Overview: return "System Overview";
-        case Mode::SolarSystem: return "Solar System View";
+        case Mode::Overview: return "Earth-Moon Overview";
+        case Mode::SolarSystem: return "Inner Solar System";
+        case Mode::FullSolarSystem: return "Full Solar System (8 Planets)";
         default: return "Unknown";
     }
 }
