@@ -133,6 +133,51 @@ public:
         
         return traj;
     }
+    
+    // Generic planet orbit factory function
+    // orbitRadius: orbital radius in meters
+    // color: orbit line color
+    // inclination: orbital inclination in radians (relative to ecliptic, default 0)
+    static std::unique_ptr<Trajectory> createPlanetOrbit(
+        const Config& config, 
+        std::shared_ptr<ILogger> logger,
+        float orbitRadius,
+        glm::vec4 color,
+        float inclination = 0.0f
+    ) {
+        const size_t orbitPoints = 360;
+        
+        Trajectory::Config trajConfig{
+            orbitPoints,
+            0.1f,
+            color,
+            config.simulation_rendering_scale,
+            config.physics_earth_radius,
+            Trajectory::RenderMode::LineLoop,
+            true  // isStatic
+        };
+        
+        auto traj = std::make_unique<Trajectory>(trajConfig, logger);
+        traj->init();
+        
+        const float radius = orbitRadius * config.simulation_rendering_scale;
+        std::vector<glm::vec3> points(orbitPoints);
+        for (size_t i = 0; i < orbitPoints; ++i) {
+            float theta = 2.0f * glm::pi<float>() * static_cast<float>(i) / orbitPoints;
+            // Base orbit in X-Z plane, then apply inclination
+            float x = radius * std::cos(theta);
+            float z_local = radius * std::sin(theta);
+            
+            // Apply inclination rotation around X-axis
+            float y = z_local * std::sin(inclination);
+            float z = z_local * std::cos(inclination);
+            
+            points[i] = glm::vec3(x, y, z);
+        }
+        traj->setPoints(points);
+        
+        return traj;
+    }
 };
 
 #endif

@@ -29,6 +29,32 @@ void Simulation::init() {
     // Sun at origin (heliocentric coordinate system)
     bodies["sun"] = std::make_unique<Body>(config, logger_, "sun", config.physics_sun_mass, glm::vec3(0.0f), glm::vec3(0.0f));
     
+    // Mercury - innermost planet
+    // Orbital inclination: 7.005° to ecliptic
+    {
+        glm::vec3 pos = glm::vec3(config.physics_mercury_orbit_radius, 0.0f, 0.0f);
+        glm::vec3 vel = glm::vec3(0.0f, 0.0f, config.physics_mercury_orbital_velocity);
+        bodies["mercury"] = std::make_unique<Body>(config, logger_, "mercury", config.physics_mercury_mass, pos, vel);
+        bodies["mercury"]->setTrajectory(TrajectoryFactory::createPlanetOrbit(
+            config, logger_, config.physics_mercury_orbit_radius,
+            glm::vec4(0.7f, 0.7f, 0.7f, 0.8f),  // Gray
+            glm::radians(7.005f)
+        ));
+    }
+    
+    // Venus - second planet
+    // Orbital inclination: 3.395° to ecliptic
+    {
+        glm::vec3 pos = glm::vec3(config.physics_venus_orbit_radius, 0.0f, 0.0f);
+        glm::vec3 vel = glm::vec3(0.0f, 0.0f, config.physics_venus_orbital_velocity);
+        bodies["venus"] = std::make_unique<Body>(config, logger_, "venus", config.physics_venus_mass, pos, vel);
+        bodies["venus"]->setTrajectory(TrajectoryFactory::createPlanetOrbit(
+            config, logger_, config.physics_venus_orbit_radius,
+            glm::vec4(0.9f, 0.7f, 0.5f, 0.8f),  // Orange-ish
+            glm::radians(3.395f)
+        ));
+    }
+    
     // Earth orbiting the Sun (1 AU distance, orbital velocity ~29.78 km/s)
     glm::vec3 earthPos = glm::vec3(config.physics_earth_orbit_radius, 0.0f, 0.0f);
     glm::vec3 earthVel = glm::vec3(0.0f, 0.0f, config.physics_earth_orbital_velocity); // Perpendicular to position
@@ -56,6 +82,71 @@ void Simulation::init() {
     
     // Set Earth's trajectory to show its orbit around the Sun
     bodies["earth"]->setTrajectory(TrajectoryFactory::createEarthTrajectory(config, logger_));
+    
+    // Mars - fourth planet
+    // Orbital inclination: 1.850° to ecliptic
+    {
+        glm::vec3 pos = glm::vec3(config.physics_mars_orbit_radius, 0.0f, 0.0f);
+        glm::vec3 vel = glm::vec3(0.0f, 0.0f, config.physics_mars_orbital_velocity);
+        bodies["mars"] = std::make_unique<Body>(config, logger_, "mars", config.physics_mars_mass, pos, vel);
+        bodies["mars"]->setTrajectory(TrajectoryFactory::createPlanetOrbit(
+            config, logger_, config.physics_mars_orbit_radius,
+            glm::vec4(0.8f, 0.3f, 0.2f, 0.8f),  // Reddish
+            glm::radians(1.850f)
+        ));
+    }
+    
+    // Jupiter - fifth planet (gas giant)
+    // Orbital inclination: 1.303° to ecliptic
+    {
+        glm::vec3 pos = glm::vec3(config.physics_jupiter_orbit_radius, 0.0f, 0.0f);
+        glm::vec3 vel = glm::vec3(0.0f, 0.0f, config.physics_jupiter_orbital_velocity);
+        bodies["jupiter"] = std::make_unique<Body>(config, logger_, "jupiter", config.physics_jupiter_mass, pos, vel);
+        bodies["jupiter"]->setTrajectory(TrajectoryFactory::createPlanetOrbit(
+            config, logger_, config.physics_jupiter_orbit_radius,
+            glm::vec4(0.8f, 0.7f, 0.5f, 0.8f),  // Tan/beige
+            glm::radians(1.303f)
+        ));
+    }
+    
+    // Saturn - sixth planet (gas giant with rings)
+    // Orbital inclination: 2.485° to ecliptic
+    {
+        glm::vec3 pos = glm::vec3(config.physics_saturn_orbit_radius, 0.0f, 0.0f);
+        glm::vec3 vel = glm::vec3(0.0f, 0.0f, config.physics_saturn_orbital_velocity);
+        bodies["saturn"] = std::make_unique<Body>(config, logger_, "saturn", config.physics_saturn_mass, pos, vel);
+        bodies["saturn"]->setTrajectory(TrajectoryFactory::createPlanetOrbit(
+            config, logger_, config.physics_saturn_orbit_radius,
+            glm::vec4(0.9f, 0.8f, 0.5f, 0.8f),  // Pale yellow
+            glm::radians(2.485f)
+        ));
+    }
+    
+    // Uranus - seventh planet (ice giant)
+    // Orbital inclination: 0.773° to ecliptic
+    {
+        glm::vec3 pos = glm::vec3(config.physics_uranus_orbit_radius, 0.0f, 0.0f);
+        glm::vec3 vel = glm::vec3(0.0f, 0.0f, config.physics_uranus_orbital_velocity);
+        bodies["uranus"] = std::make_unique<Body>(config, logger_, "uranus", config.physics_uranus_mass, pos, vel);
+        bodies["uranus"]->setTrajectory(TrajectoryFactory::createPlanetOrbit(
+            config, logger_, config.physics_uranus_orbit_radius,
+            glm::vec4(0.6f, 0.8f, 0.9f, 0.8f),  // Cyan/light blue
+            glm::radians(0.773f)
+        ));
+    }
+    
+    // Neptune - eighth planet (ice giant)
+    // Orbital inclination: 1.770° to ecliptic
+    {
+        glm::vec3 pos = glm::vec3(config.physics_neptune_orbit_radius, 0.0f, 0.0f);
+        glm::vec3 vel = glm::vec3(0.0f, 0.0f, config.physics_neptune_orbital_velocity);
+        bodies["neptune"] = std::make_unique<Body>(config, logger_, "neptune", config.physics_neptune_mass, pos, vel);
+        bodies["neptune"]->setTrajectory(TrajectoryFactory::createPlanetOrbit(
+            config, logger_, config.physics_neptune_orbit_radius,
+            glm::vec4(0.2f, 0.3f, 0.8f, 0.8f),  // Deep blue
+            glm::radians(1.770f)
+        ));
+    }
 
     if (!bodies["sun"] || !bodies["earth"] || !bodies["moon"]) {
         LOG_ERROR(logger_, "Simulation", "Failed to initialize celestial bodies!");
@@ -151,9 +242,36 @@ void Simulation::init() {
         return;
     }
     
+    // Helper lambda to create scaled planet render objects
+    auto createPlanetRenderObject = [&](const std::string& name, float radius) {
+        std::vector<GLfloat> vertices;
+        float scale = radius / config.physics_earth_radius;
+        for (size_t i = 0; i < earthVertices.size(); i += 3) {
+            vertices.push_back(earthVertices[i] * scale);
+            vertices.push_back(earthVertices[i + 1] * scale);
+            vertices.push_back(earthVertices[i + 2] * scale);
+        }
+        try {
+            bodies[name]->renderObject = std::make_unique<RenderObject>(vertices, earthIndices);
+            LOG_INFO(logger_, "Simulation", name + " renderObject created");
+        } catch (const std::exception& e) {
+            LOG_ERROR(logger_, "Simulation", "Error creating " + name + " renderObject: " + std::string(e.what()));
+        }
+    };
+    
+    // Create render objects for all planets
+    createPlanetRenderObject("mercury", config.physics_mercury_radius);
+    createPlanetRenderObject("venus", config.physics_venus_radius);
+    createPlanetRenderObject("mars", config.physics_mars_radius);
+    createPlanetRenderObject("jupiter", config.physics_jupiter_radius);
+    createPlanetRenderObject("saturn", config.physics_saturn_radius);
+    createPlanetRenderObject("uranus", config.physics_uranus_radius);
+    createPlanetRenderObject("neptune", config.physics_neptune_radius);
+    
     LOG_INFO(logger_, "Simulation", "Sun initialized: " + std::string(bodies.find("sun") != bodies.end() ? "valid" : "null"));
     LOG_INFO(logger_, "Simulation", "Earth initialized: " + std::string(bodies.find("earth") != bodies.end() ? "valid" : "null"));
     LOG_INFO(logger_, "Simulation", "Moon initialized: " + std::string(bodies.find("moon") != bodies.end() ? "valid" : "null"));
+    LOG_INFO(logger_, "Simulation", "All 8 planets initialized (Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, Neptune)");
     LOG_INFO(logger_, "Simulation", "Map objects initialized");
 }
 
@@ -238,6 +356,10 @@ void Simulation::render(const Shader& shader) const {
         // Sun center (origin in heliocentric coords)
         target = glm::vec3(0.0f);
         camera.setFixedTarget(target);
+    } else if (camera.mode == Camera::Mode::FullSolarSystem) {
+        // Sun center for full solar system view
+        target = glm::vec3(0.0f);
+        camera.setFixedTarget(target);
     }
 
     camera.update(target);
@@ -249,7 +371,7 @@ void Simulation::render(const Shader& shader) const {
     if (camera.mode == Camera::Mode::Locked) {
         nearPlane = 0.01f;  // 10 meters
         farPlane = camera.distance * 100.0f;
-    } else if (camera.mode == Camera::Mode::SolarSystem) {
+    } else if (camera.mode == Camera::Mode::SolarSystem || camera.mode == Camera::Mode::FullSolarSystem) {
         // Solar system scale: need very large far plane
         nearPlane = std::max(1000.0f, camera.distance * 0.0001f);
         farPlane = camera.distance * 10.0f;
@@ -304,6 +426,32 @@ void Simulation::render(const Shader& shader) const {
     } else {
         LOG_ERROR(logger_, "Simulation", "Moon is null or has no renderObject!");
     }
+    
+    // Helper lambda to render a planet with its orbit
+    auto renderPlanet = [&](const std::string& name, const glm::vec4& color) {
+        if (bodies.find(name) != bodies.end()) {
+            auto& body = bodies.at(name);
+            // Render orbit
+            body->render(shader);
+            // Render planet sphere
+            if (body->renderObject) {
+                glm::mat4 model = glm::translate(glm::mat4(1.0f), body->position * scale);
+                model = glm::scale(model, glm::vec3(scale, scale, scale));
+                shader.setMat4("model", model);
+                shader.setVec4("color", color);
+                body->renderObject->render();
+            }
+        }
+    };
+    
+    // Render other planets
+    renderPlanet("mercury", glm::vec4(0.7f, 0.7f, 0.7f, 1.0f));    // Gray
+    renderPlanet("venus", glm::vec4(0.9f, 0.7f, 0.5f, 1.0f));      // Orange-ish
+    renderPlanet("mars", glm::vec4(0.8f, 0.3f, 0.2f, 1.0f));       // Reddish
+    renderPlanet("jupiter", glm::vec4(0.8f, 0.7f, 0.5f, 1.0f));    // Tan/beige
+    renderPlanet("saturn", glm::vec4(0.9f, 0.8f, 0.5f, 1.0f));     // Pale yellow
+    renderPlanet("uranus", glm::vec4(0.6f, 0.8f, 0.9f, 1.0f));     // Cyan/light blue
+    renderPlanet("neptune", glm::vec4(0.2f, 0.3f, 0.8f, 1.0f));    // Deep blue
 
     GLenum err = glGetError();
     if (err != GL_NO_ERROR) {
@@ -380,9 +528,14 @@ void Simulation::adjustCameraMode(Camera::Mode mode) {
             }
             break;
         case Camera::Mode::SolarSystem:
-            // Sun at origin, view entire inner solar system
+            // Sun at origin, view inner solar system (up to Mars)
             camera.setFixedTarget(glm::vec3(0.0f));
-            camera.distance = 300000000.0f; // 300 million km (~2 AU) to see Earth orbit
+            camera.distance = 300000000.0f; // 300 million km (~2 AU) to see inner planets
+            break;
+        case Camera::Mode::FullSolarSystem:
+            // Sun at origin, view entire solar system including Neptune (~30 AU)
+            camera.setFixedTarget(glm::vec3(0.0f));
+            camera.distance = 5000000000.0f; // 5 billion km (~33 AU) to see all 8 planets
             break;
         case Camera::Mode::Locked:
             camera.distance = 500.0f; // 500 km follow distance
