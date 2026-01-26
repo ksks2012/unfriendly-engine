@@ -288,15 +288,14 @@ glm::vec3 Rocket::computeAccelerationRK4(float currentMass, const BODY_MAP& bodi
 }
 
 glm::vec3 Rocket::offsetPosition() const {
-    // Offset position for rendering
-    float altitude = glm::length(position) - config_.physics_earth_radius;
-    return glm::vec3(position.x * config_.simulation_rendering_scale, altitude * config_.simulation_rendering_scale + (config_.physics_earth_radius * config_.simulation_rendering_scale), position.z * config_.simulation_rendering_scale);
+    // In heliocentric coordinate system, just scale the position
+    // The position is already in meters, convert to km for rendering
+    return position * config_.simulation_rendering_scale;
 }
 
 glm::vec3 Rocket::offsetPosition(glm::vec3 inputPosition) const {
-    // Offset position for rendering
-    float altitude = glm::length(inputPosition) - config_.physics_earth_radius;
-    return glm::vec3(inputPosition.x * config_.simulation_rendering_scale, altitude * config_.simulation_rendering_scale + (config_.physics_earth_radius * config_.simulation_rendering_scale), inputPosition.z * config_.simulation_rendering_scale);
+    // In heliocentric coordinate system, just scale the position
+    return inputPosition * config_.simulation_rendering_scale;
 }
 
 void Rocket::predictTrajectory(float duration, float step) {

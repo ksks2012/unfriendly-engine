@@ -18,3 +18,5 @@
 **/**.log
 
 loguru_logger.h
+
+summary/**

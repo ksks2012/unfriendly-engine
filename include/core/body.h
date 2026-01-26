@@ -34,6 +34,7 @@ public:
 
     virtual void update(float deltaTime);
     virtual void render(const Shader& shader) const;
+    virtual void render(const Shader& shader, const glm::vec3& orbitCenter) const;  // Render orbit with center offset
 
     // Getters
     std::string getName() const { return name; }

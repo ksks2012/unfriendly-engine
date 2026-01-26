@@ -25,6 +25,7 @@ public:
         float scale;             // Rendering scale factor
         float earthRadius;       // Earth's radius (meters)
         RenderMode renderMode = RenderMode::LineStrip; // Render mode
+        bool isStatic = false;   // If true, orbit is pre-calculated and won't be updated dynamically
     };
 
     Trajectory(const Config& config);
@@ -34,8 +35,11 @@ public:
     void init();
     void update(const glm::vec3& position, float deltaTime);
     void render(const Shader& shader) const;
+    void render(const Shader& shader, const glm::vec3& center) const;  // Render with center offset
     void reset();
     void updateRenderObject();
+    
+    void setCenter(const glm::vec3& center) { center_ = center; }  // Set orbit center
 
     std::vector<glm::vec3> getPoints() const;
     float getSampleTimer() const;
@@ -56,6 +60,7 @@ private:
     size_t head_;
     size_t count_;
     float sampleTimer_;
+    glm::vec3 center_ = glm::vec3(0.0f);  // Orbit center point
 
     // Convert simulation coordinates to rendering coordinates
     glm::vec3 offsetPosition(const glm::vec3& position) const;

@@ -1,14 +1,14 @@
 #include "rendering/camera.h"
 
 Camera::Camera() : pitch(45.0f), yaw(45.0f), distance(500000.0f), mode(Mode::Free),
-        smoothingFactor(0.1f), lockedOffset(0.0f, 200.0f, 200.0f) {
+        smoothingFactor(0.1f), lockedOffset(0.0f, 200.0f, 200.0f), earthPosition(0.0f) {
     position = glm::vec3(0.0f, 0.0f, distance);
     target = glm::vec3(0.0f, 6371000.0f, 0.0f); // Initially pointing to Earth's surface
     fixedTarget = glm::vec3(0.0f, 0.0f, 0.0f);
 }
 
 Camera::Camera(Config& config) : pitch(config.camera_pitch), yaw(config.camera_yaw), distance(config.camera_distance),
-        mode(Mode::Free), smoothingFactor(0.1f), lockedOffset(0.0f, 200.0f, 200.0f) {
+        mode(Mode::Free), smoothingFactor(0.1f), lockedOffset(0.0f, 200.0f, 200.0f), earthPosition(0.0f) {
     position = config.camera_position;
     target = config.camera_target;
     fixedTarget = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -37,9 +37,11 @@ void Camera::update(const glm::vec3& rocketPosition) {
             target = rocketPosition;
             
             // Calculate radial direction (from Earth center through rocket position)
-            glm::vec3 radialDir = glm::normalize(rocketPosition);
-            if (glm::length(rocketPosition) < 0.001f) {
-                // Fallback if rocket is at origin
+            // In heliocentric coordinates, we need the direction relative to Earth, not the Sun
+            glm::vec3 relativeToEarth = rocketPosition - earthPosition;
+            glm::vec3 radialDir = glm::normalize(relativeToEarth);
+            if (glm::length(relativeToEarth) < 0.001f) {
+                // Fallback if rocket is at Earth center
                 radialDir = glm::vec3(0.0f, 1.0f, 0.0f);
             }
             
@@ -89,6 +91,18 @@ void Camera::update(const glm::vec3& rocketPosition) {
             // Overview mode: view the entire Earth-Moon system
             // Target is the midpoint between Earth and Moon
             target = fixedTarget; // Should be set to midpoint in simulation
+            float radPitch = glm::radians(pitch);
+            float radYaw = glm::radians(yaw);
+            position.x = target.x + distance * cos(radPitch) * sin(radYaw);
+            position.y = target.y + distance * sin(radPitch);
+            position.z = target.z + distance * cos(radPitch) * cos(radYaw);
+            smoothedPosition = position;
+            smoothedTarget = target;
+            break;
+        }
+        case Mode::SolarSystem: {
+            // Solar system view: centered on Sun, view the entire solar system
+            target = fixedTarget; // Should be set to Sun center (origin in heliocentric coords)
             float radPitch = glm::radians(pitch);
             float radYaw = glm::radians(yaw);
             position.x = target.x + distance * cos(radPitch) * sin(radYaw);
@@ -148,6 +162,10 @@ void Camera::setFixedTarget(const glm::vec3& newTarget) {
     smoothedTarget = newTarget;
 }
 
+void Camera::setEarthPosition(const glm::vec3& earthPos) {
+    earthPosition = earthPos;
+}
+
 const char* Camera::getModeName() const {
     switch (mode) {
         case Mode::Free: return "Free View";
@@ -155,6 +173,7 @@ const char* Camera::getModeName() const {
         case Mode::FixedEarth: return "Earth View";
         case Mode::FixedMoon: return "Moon View";
         case Mode::Overview: return "System Overview";
+        case Mode::SolarSystem: return "Solar System View";
         default: return "Unknown";
     }
 }

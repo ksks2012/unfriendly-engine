@@ -9,11 +9,12 @@
 class Camera {
 public:
     enum class Mode {
-        Free,       // Free view, manually controlled
-        Locked,     // Locked on the rocket, automatically follows
-        FixedEarth, // Fixed on Earth center
-        FixedMoon,  // Fixed on Moon center
-        Overview    // Overview of Earth-Moon system
+        Free,         // Free view, manually controlled
+        Locked,       // Locked on the rocket, automatically follows
+        FixedEarth,   // Fixed on Earth center
+        FixedMoon,    // Fixed on Moon center
+        Overview,     // Overview of Earth-Moon system
+        SolarSystem   // Solar system view (centered on Sun)
     };
 
     glm::vec3 position;    // Camera position
@@ -36,6 +37,7 @@ public:
 
     void setMode(Mode newMode);
     void setFixedTarget(const glm::vec3& fixedTarget);
+    void setEarthPosition(const glm::vec3& earthPos); // Set Earth position for Locked mode
     const char* getModeName() const; // Get current mode name for display
 
 private:
@@ -43,6 +45,7 @@ private:
     glm::vec3 smoothedTarget;   // Smoothed target position
     float smoothingFactor;      // Smoothing factor (0.0 to 1.0)
     glm::vec3 lockedOffset;     // Relative offset in Locked mode
+    glm::vec3 earthPosition;    // Earth position (for calculating radial direction in Locked mode)
 };
 
 #endif // CAMERA_H
