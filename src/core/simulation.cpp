@@ -317,7 +317,25 @@ void Simulation::setTimeScale(float ts) {
 }
 
 void Simulation::adjustTimeScale(float delta) { 
-    timeScale = std::max(0.1f, std::min(timeScale + delta, 100.0f)); 
+    // Support much higher time scales for testing orbital mechanics
+    // Use multiplicative scaling for large values
+    if (delta > 0) {
+        // Increasing: multiply by 1.5 when above 100, otherwise add delta
+        if (timeScale >= 100.0f) {
+            timeScale *= 1.5f;
+        } else {
+            timeScale += delta;
+        }
+    } else {
+        // Decreasing: divide by 1.5 when above 100, otherwise subtract delta
+        if (timeScale > 100.0f) {
+            timeScale /= 1.5f;
+        } else {
+            timeScale += delta;
+        }
+    }
+    // Clamp to reasonable range: 0.1x to 1,000,000x (for testing year-long orbits)
+    timeScale = std::max(0.1f, std::min(timeScale, 1000000.0f));
     LOG_INFO(logger_, "Simulation", "Time scale adjusted to " + std::to_string(timeScale));
 }
 

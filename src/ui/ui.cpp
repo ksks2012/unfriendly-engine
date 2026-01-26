@@ -20,7 +20,19 @@ void UI::render(float timeScale, const Rocket& rocket, const Camera& camera, int
     ImGui::SetNextWindowPos(ImVec2(10, sceneHeight + 10));
     ImGui::SetNextWindowSize(ImVec2(width - 20, height * 0.2f - 20));
     ImGui::Begin("Simulation Info", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
-    ImGui::Text("Time Scale: %.1f", timeScale);
+    
+    // Format time scale with appropriate suffix for large values
+    if (timeScale >= 86400.0f) {
+        ImGui::Text("Time Scale: %.1f days/s", timeScale / 86400.0f);
+    } else if (timeScale >= 3600.0f) {
+        ImGui::Text("Time Scale: %.1f hours/s", timeScale / 3600.0f);
+    } else if (timeScale >= 60.0f) {
+        ImGui::Text("Time Scale: %.1f min/s", timeScale / 60.0f);
+    } else {
+        ImGui::Text("Time Scale: %.1fx", timeScale);
+    }
+    ImGui::SameLine();
+    ImGui::TextDisabled("(Q/E: adjust, Shift+Q/E: fast, R: reset)");
     ImGui::Text("Mass: %.1f kg", rocket.getMass());
     ImGui::Text("Fuel Mass: %.1f kg", rocket.getFuelMass());
     ImGui::Text("Thrust: %.1f N", rocket.getThrust());

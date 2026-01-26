@@ -29,11 +29,18 @@ void InputHandler::process(Simulation& sim) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, true);
     }
+    // Time scale controls: Q/E for fine adjustment, Shift+Q/E for coarse adjustment
+    bool shiftPressed = (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS || 
+                         glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS);
     if (isKeyPressedWithCooldown(GLFW_KEY_Q, 0.05)) {
-        sim.adjustTimeScale(0.1f);
+        sim.adjustTimeScale(shiftPressed ? 10.0f : 0.1f);  // Coarse or fine adjustment
     }
     if (isKeyPressedWithCooldown(GLFW_KEY_E, 0.05)) {
-        sim.adjustTimeScale(-0.1f);
+        sim.adjustTimeScale(shiftPressed ? -10.0f : -0.1f);  // Coarse or fine adjustment
+    }
+    // R - Reset time scale to 1.0
+    if (isKeyPressedWithCooldown(GLFW_KEY_R, 0.2)) {
+        sim.setTimeScale(1.0f);
     }
     if (isKeyPressedWithCooldown(GLFW_KEY_W, 0.01)) {
         sim.adjustCameraDistance(-100.0f);
