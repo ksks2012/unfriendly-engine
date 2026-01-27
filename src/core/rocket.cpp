@@ -64,13 +64,26 @@ void Rocket::init() {
 }
 
 void Rocket::update(float deltaTime, const BODY_MAP& bodies) {
-    if (!launched) return;
-    time += deltaTime;
-    
     // Update Earth position for altitude calculations
+    glm::vec3 previousEarthPosition = earthPosition_;
     if (bodies.find("earth") != bodies.end()) {
         earthPosition_ = bodies.at("earth")->position;
     }
+    
+    if (!launched) {
+        // When not launched, rocket should follow Earth's movement
+        // Calculate how much Earth has moved and apply the same delta to rocket
+        glm::vec3 earthDelta = earthPosition_ - previousEarthPosition;
+        position += earthDelta;
+        
+        // Also update velocity to match Earth's orbital velocity
+        if (bodies.find("earth") != bodies.end()) {
+            velocity = bodies.at("earth")->velocity;
+        }
+        return;
+    }
+    
+    time += deltaTime;
     
     if (trajectory_ && deltaTime > 0.0f) {
         LOG_DEBUG(logger_, "Rocket", "Trajectory trajectory_ update");
