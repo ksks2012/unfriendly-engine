@@ -32,6 +32,7 @@ private:
     float time;                // Time (s)
     glm::vec3 thrustDirection; // Thrust direction
     bool launched;             // Whether the rocket is launched
+    glm::vec3 earthPosition_;  // Earth position for altitude calculations in heliocentric coordinates
     
     FlightPlan flightPlan;
 
@@ -49,6 +50,7 @@ private:
     // Private functions
     // Runge-Kutta 4th order method
     glm::vec3 computeAccelerationRK4(float currentMass, const BODY_MAP& bodies) const;
+    glm::vec3 computeAccelerationAt(const glm::vec3& pos, const glm::vec3& vel, float currentMass, const BODY_MAP& bodies) const;
     void updateTrajectory();
     glm::vec3 offsetPosition() const;
     glm::vec3 offsetPosition(glm::vec3) const;
@@ -80,9 +82,10 @@ public:
     void setThrustDirection(const glm::vec3&);
     void setPosition(const glm::vec3& pos) { position = pos; }
     void setVelocity(const glm::vec3& vel) { velocity = vel; }
+    void setEarthPosition(const glm::vec3& pos) { earthPosition_ = pos; }
 
     // Prediction
-    void predictTrajectory(float, float);
+    void predictTrajectory(float, float, const BODY_MAP&);
 };
 
 #endif

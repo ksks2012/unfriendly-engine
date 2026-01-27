@@ -156,6 +156,7 @@ void Simulation::init() {
     // Update rocket initial position relative to Earth
     rocket.setPosition(earthPos + glm::vec3(0.0f, config.physics_earth_radius, 0.0f));
     rocket.setVelocity(earthVel); // Rocket starts with Earth's orbital velocity
+    rocket.setEarthPosition(earthPos);  // Set Earth position for altitude calculations
 
     rocket.init();
 
