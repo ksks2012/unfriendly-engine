@@ -65,8 +65,12 @@ void Camera::update(const glm::vec3& rocketPosition) {
             
             // Apply lockedOffset for user-controlled rotation
             // The offset is in local coordinates (radial, tangent, binormal)
+            // For initial view: place camera above and slightly behind rocket
+            // radialDir (y=0.7): above the rocket (away from Earth)
+            // tangentDir (x=0.5): slightly to the side
+            // binormalDir (z=0.3): slightly behind
             glm::vec3 offsetDir = glm::normalize(
-                radialDir * lockedOffset.y +      // Up/down (radial)
+                radialDir * lockedOffset.y +      // Up/down (radial) - dominant
                 tangentDir * lockedOffset.x +     // Left/right
                 binormalDir * lockedOffset.z      // Forward/back
             );
@@ -75,16 +79,20 @@ void Camera::update(const glm::vec3& rocketPosition) {
             float rocketAltitude = std::max(0.0f, distFromEarth - earthRadiusKm);
             
             // Calculate effective camera distance for locked mode
-            // Scale distance based on altitude to keep rocket visible
-            float effectiveDistance = distance;
-            
-            // For low altitude flight, limit distance to maintain visibility
-            if (rocketAltitude < 1000.0f) {
-                // Near surface: use smaller distance proportional to altitude
-                effectiveDistance = std::min(effectiveDistance, std::max(50.0f, rocketAltitude * 3.0f));
-            } else if (effectiveDistance > rocketAltitude * 5.0f) {
-                // High altitude but distance too large - limit it
-                effectiveDistance = rocketAltitude * 2.0f;
+            // Use a reasonable distance based on altitude
+            float effectiveDistance;
+            if (rocketAltitude < 10.0f) {
+                // On or very near surface: use fixed reasonable distance
+                effectiveDistance = 100.0f;  // 100 km - can see rocket and Earth
+            } else if (rocketAltitude < 1000.0f) {
+                // Low altitude: scale with altitude
+                effectiveDistance = std::max(100.0f, rocketAltitude * 2.0f);
+            } else if (rocketAltitude < 10000.0f) {
+                // Medium altitude
+                effectiveDistance = rocketAltitude * 0.5f;
+            } else {
+                // High altitude: use user distance but cap it
+                effectiveDistance = std::min(distance, rocketAltitude * 2.0f);
             }
             
             // Ensure minimum distance for visibility
