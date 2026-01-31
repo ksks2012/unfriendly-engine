@@ -80,6 +80,16 @@ void Rocket::update(float deltaTime, const BODY_MAP& bodies) {
         if (bodies.find("earth") != bodies.end()) {
             velocity = bodies.at("earth")->velocity;
         }
+        
+        // Still update prediction trajectory even when not launched
+        // This allows user to see predicted path before launch
+        if (prediction_ && deltaTime > 0.0f) {
+            predictionTimer_ += deltaTime;
+            if (predictionTimer_ >= predictionUpdateInterval_) {
+                predictTrajectory(config_.simulation_prediction_duration, config_.simulation_prediction_step, bodies);
+                predictionTimer_ = 0.0f;
+            }
+        }
         return;
     }
     
@@ -342,10 +352,26 @@ void Rocket::predictTrajectory(float duration, float step, const BODY_MAP& bodie
     float predFuel = fuel_mass;
     float predTime = 0.0f;
     
+    // Adaptive step control parameters
+    const int maxPoints = 500;  // Limit total points for performance
+    int pointCount = 0;
+    
+    // Skip factor: only add every Nth point to trajectory for rendering
+    // This allows fine physics simulation while keeping render points low
+    const float renderInterval = std::max(step, duration / maxPoints);
+    float timeSinceLastRender = 0.0f;
+    
     // Calculate prediction points
-    while (predTime < duration) {
-        glm::vec3 scaledPos = offsetPosition(state.position);
-        prediction_->update(scaledPos, step);
+    while (predTime < duration && pointCount < maxPoints) {
+        // Only add point at render intervals
+        if (timeSinceLastRender >= renderInterval || predTime == 0.0f) {
+            glm::vec3 scaledPos = offsetPosition(state.position);
+            // Pass renderInterval as deltaTime to ensure point is added
+            // (must be >= sampleInterval in Trajectory config)
+            prediction_->update(scaledPos, renderInterval);
+            pointCount++;
+            timeSinceLastRender = 0.0f;
+        }
         
         // Calculate altitude relative to Earth (not Sun) in heliocentric coordinates
         glm::vec3 relativeToEarth = state.position - earthPosition_;
@@ -357,9 +383,22 @@ void Rocket::predictTrajectory(float duration, float step, const BODY_MAP& bodie
             break;
         }
         
+        // Adaptive step size based on altitude
+        // Use larger steps at higher altitudes where dynamics change slowly
+        float adaptiveStep = step;
+        if (altitude > 100000.0f) {
+            // Above 100 km: can use larger steps
+            adaptiveStep = step * 2.0f;
+        }
+        if (altitude > 1000000.0f) {
+            // Above 1000 km: use even larger steps
+            adaptiveStep = step * 5.0f;
+        }
+        
         // Use actual bodies for gravity calculation in prediction
-        state = updateStateRK4(state, step, predMass, predFuel, bodies);
-        predTime += step;
+        state = updateStateRK4(state, adaptiveStep, predMass, predFuel, bodies);
+        predTime += adaptiveStep;
+        timeSinceLastRender += adaptiveStep;
     }
 }
 
