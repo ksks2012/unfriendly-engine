@@ -136,10 +136,10 @@ void UI::renderCameraMode(const Camera& camera, int width, int height) {
 }
 
 void UI::renderBodySelector(const Camera& camera, int width, int height) {
-    // Position on the right side of the screen
+    // Position on the right side of the screen, below FPS display
     float panelWidth = 180.0f;
     float panelHeight = 350.0f;  // Increased height for reorganized layout
-    ImGui::SetNextWindowPos(ImVec2(width - panelWidth - 10.0f, 10.0f), ImGuiCond_Always);
+    ImGui::SetNextWindowPos(ImVec2(width - panelWidth - 10.0f, 45.0f), ImGuiCond_Always);
     ImGui::SetNextWindowSize(ImVec2(panelWidth, panelHeight), ImGuiCond_Always);
 
     ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
