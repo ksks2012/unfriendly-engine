@@ -110,6 +110,12 @@ void InputHandler::process(Simulation& sim) {
             togglePlanetLabelsCallback_();
         }
     }
+    // N - Toggle NavBall
+    if (isKeyPressedWithCooldown(GLFW_KEY_N, 0.2)) {
+        if (toggleNavBallCallback_) {
+            toggleNavBallCallback_();
+        }
+    }
 }
 
 void InputHandler::mouseCallback(double xpos, double ypos) {

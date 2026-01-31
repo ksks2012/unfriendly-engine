@@ -11,7 +11,7 @@
 class InputHandler {
 public:
     // Callback types for UI actions
-    using TogglePlanetLabelsCallback = std::function<void()>;
+    using ToggleCallback = std::function<void()>;
 
     InputHandler(GLFWwindow* win, Simulation& sim, const Config& config);
     void process(Simulation& sim);
@@ -19,9 +19,12 @@ public:
     void mouseCallback(double xpos, double ypos);
     void scrollCallback(double yoffset);
     
-    // Set callback for toggling planet labels
-    void setTogglePlanetLabelsCallback(TogglePlanetLabelsCallback callback) { 
+    // Set callbacks for UI toggles
+    void setTogglePlanetLabelsCallback(ToggleCallback callback) { 
         togglePlanetLabelsCallback_ = callback; 
+    }
+    void setToggleNavBallCallback(ToggleCallback callback) {
+        toggleNavBallCallback_ = callback;
     }
 
 private:
@@ -35,7 +38,8 @@ private:
     bool firstMouse;
     float mouseSensitivity;
     
-    TogglePlanetLabelsCallback togglePlanetLabelsCallback_;
+    ToggleCallback togglePlanetLabelsCallback_;
+    ToggleCallback toggleNavBallCallback_;
 };
 
 #endif

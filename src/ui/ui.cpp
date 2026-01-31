@@ -56,6 +56,23 @@ void UI::render(float timeScale, const Rocket& rocket, const Camera& camera, int
     renderCameraMode(camera, width, height);
     renderBodySelector(camera, width, height);
     
+    // Render NavBall HUD (positioned at bottom-right of scene area)
+    if (showNavBall_) {
+        float sceneHeight = height * 0.8f;
+        float navBallSize = 150.0f;
+        float navBallX = width - navBallSize - 80;
+        float navBallY = sceneHeight - navBallSize - 160;
+        
+        // Get Earth position for reference frame
+        const auto& bodies = simulation_.getBodies();
+        glm::vec3 earthPos(0.0f);
+        if (bodies.find("earth") != bodies.end()) {
+            earthPos = bodies.at("earth")->position;
+        }
+        
+        navBall_.render(rocket, earthPos, navBallX, navBallY, navBallSize);
+    }
+    
     // Render planet labels (must be called after NewFrame and before Render)
     if (hasPendingLabelRender_) {
         renderPlanetLabelsInternal(camera, pendingProjection_, pendingView_, 
@@ -110,10 +127,11 @@ void UI::renderCameraMode(const Camera& camera, int width, int height) {
     ImGui::Text("4 - Inner Solar System");
     ImGui::Text("5 - Full Solar System");
     ImGui::Text("P - Toggle Planet Labels");
+    ImGui::Text("N - Toggle NavBall");
     
     ImGui::Separator();
     ImGui::TextColored(ImVec4(0.7f, 0.9f, 0.7f, 1.0f), "Tips:");
-    ImGui::TextWrapped("In Solar System views, planets are marked with colored labels.");
+    ImGui::TextWrapped("NavBall shows orbital markers and alignment.");
     ImGui::End();
 }
 

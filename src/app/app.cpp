@@ -40,6 +40,11 @@ App::App(const std::string& title, int width, int height, Config& config, std::s
         ui->togglePlanetLabels();
     });
     
+    // Set up callback for toggling NavBall
+    inputHandler->setToggleNavBallCallback([this]() {
+        ui->toggleNavBall();
+    });
+    
     glEnable(GL_DEPTH_TEST);
 }
 

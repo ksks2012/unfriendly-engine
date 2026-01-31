@@ -5,6 +5,7 @@
 #include "core/rocket.h"
 #include "rendering/camera.h"
 #include "ui/fps_counter.h"
+#include "ui/navball.h"
 
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
@@ -40,6 +41,10 @@ public:
     // Toggle planet labels visibility
     void togglePlanetLabels() { showPlanetLabels_ = !showPlanetLabels_; }
     bool arePlanetLabelsVisible() const { return showPlanetLabels_; }
+    
+    // Toggle NavBall visibility
+    void toggleNavBall() { showNavBall_ = !showNavBall_; }
+    bool isNavBallVisible() const { return showNavBall_; }
 
 private:
     GLFWwindow* window_;
@@ -50,6 +55,8 @@ private:
     std::string selectedBody_;  // Currently selected body
     BodySelectCallback bodySelectCallback_;
     bool showPlanetLabels_ = true;  // Show planet labels in solar system view
+    bool showNavBall_ = true;       // Show NavBall HUD
+    NavBall navBall_;               // NavBall instance
     
     // Pending planet label render data
     bool hasPendingLabelRender_ = false;
