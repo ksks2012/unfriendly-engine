@@ -73,6 +73,12 @@ void UI::render(float timeScale, const Rocket& rocket, const Camera& camera, int
         navBall_.render(rocket, earthPos, navBallX, navBallY, navBallSize);
     }
     
+    // Render Orbital Info panel (positioned below Camera Control)
+    if (showOrbitalInfo_) {
+        const auto& bodies = simulation_.getBodies();
+        orbitalInfo_.render(rocket, bodies, 10.0f, 460.0f);
+    }
+    
     // Render planet labels (must be called after NewFrame and before Render)
     if (hasPendingLabelRender_) {
         renderPlanetLabelsInternal(camera, pendingProjection_, pendingView_, 
@@ -126,12 +132,11 @@ void UI::renderCameraMode(const Camera& camera, int width, int height) {
     ImGui::Text("3 - Earth-Moon Overview");
     ImGui::Text("4 - Inner Solar System");
     ImGui::Text("5 - Full Solar System");
-    ImGui::Text("P - Toggle Planet Labels");
-    ImGui::Text("N - Toggle NavBall");
-    
     ImGui::Separator();
-    ImGui::TextColored(ImVec4(0.7f, 0.9f, 0.7f, 1.0f), "Tips:");
-    ImGui::TextWrapped("NavBall shows orbital markers and alignment.");
+    ImGui::Text("HUD Toggles:");
+    ImGui::Text("P - Planet Labels");
+    ImGui::Text("N - NavBall");
+    ImGui::Text("O - Orbital Info");
     ImGui::End();
 }
 

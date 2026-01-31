@@ -116,6 +116,12 @@ void InputHandler::process(Simulation& sim) {
             toggleNavBallCallback_();
         }
     }
+    // O - Toggle Orbital Info
+    if (isKeyPressedWithCooldown(GLFW_KEY_O, 0.2)) {
+        if (toggleOrbitalInfoCallback_) {
+            toggleOrbitalInfoCallback_();
+        }
+    }
 }
 
 void InputHandler::mouseCallback(double xpos, double ypos) {

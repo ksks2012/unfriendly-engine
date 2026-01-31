@@ -6,6 +6,7 @@
 #include "rendering/camera.h"
 #include "ui/fps_counter.h"
 #include "ui/navball.h"
+#include "ui/orbital_info.h"
 
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
@@ -45,6 +46,10 @@ public:
     // Toggle NavBall visibility
     void toggleNavBall() { showNavBall_ = !showNavBall_; }
     bool isNavBallVisible() const { return showNavBall_; }
+    
+    // Toggle Orbital Info visibility
+    void toggleOrbitalInfo() { showOrbitalInfo_ = !showOrbitalInfo_; }
+    bool isOrbitalInfoVisible() const { return showOrbitalInfo_; }
 
 private:
     GLFWwindow* window_;
@@ -56,7 +61,9 @@ private:
     BodySelectCallback bodySelectCallback_;
     bool showPlanetLabels_ = true;  // Show planet labels in solar system view
     bool showNavBall_ = true;       // Show NavBall HUD
+    bool showOrbitalInfo_ = true;   // Show Orbital Info panel
     NavBall navBall_;               // NavBall instance
+    OrbitalInfo orbitalInfo_;       // Orbital Info instance
     
     // Pending planet label render data
     bool hasPendingLabelRender_ = false;

@@ -45,6 +45,11 @@ App::App(const std::string& title, int width, int height, Config& config, std::s
         ui->toggleNavBall();
     });
     
+    // Set up callback for toggling Orbital Info
+    inputHandler->setToggleOrbitalInfoCallback([this]() {
+        ui->toggleOrbitalInfo();
+    });
+    
     glEnable(GL_DEPTH_TEST);
 }
 

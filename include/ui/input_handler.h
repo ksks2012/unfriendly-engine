@@ -26,6 +26,9 @@ public:
     void setToggleNavBallCallback(ToggleCallback callback) {
         toggleNavBallCallback_ = callback;
     }
+    void setToggleOrbitalInfoCallback(ToggleCallback callback) {
+        toggleOrbitalInfoCallback_ = callback;
+    }
 
 private:
     GLFWwindow* window;
@@ -40,6 +43,7 @@ private:
     
     ToggleCallback togglePlanetLabelsCallback_;
     ToggleCallback toggleNavBallCallback_;
+    ToggleCallback toggleOrbitalInfoCallback_;
 };
 
 #endif
