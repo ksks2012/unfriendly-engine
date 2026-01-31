@@ -333,7 +333,7 @@ void Simulation::render(const Shader& shader) const {
     float sceneHeight = height * 0.8f;
 
     // Scale factor (physical unit meters to rendering unit kilometers)
-    const float scale = 0.001f; // 1 meter = 0.001 rendering units (i.e., 1 km = 1 unit)
+    const float scale = config.simulation_rendering_scale;
     glm::vec3 target = glm::vec3(0.0f);
     
     // Update Earth position for camera (used in Locked mode to calculate radial direction)
@@ -519,21 +519,21 @@ void Simulation::adjustCameraMode(Camera::Mode mode) {
     camera.setMode(mode);
     
     // Scale factor for rendering (meters to km)
-    const float scale = 0.001f;
+    const float scale = config.simulation_rendering_scale;
     
     // Set appropriate target and distance based on mode
-    // Note: distance is in rendering units (km), not meters
+    // Distances are loaded from config for easy customization
     switch (mode) {
         case Camera::Mode::FixedEarth:
             if (bodies.find("earth") != bodies.end()) {
                 camera.setFixedTarget(bodies.at("earth")->position * scale);
             }
-            camera.distance = 20000.0f; // 20,000 km view distance
+            camera.distance = config.camera_distance_earth;
             break;
         case Camera::Mode::FixedMoon:
             if (bodies.find("moon") != bodies.end()) {
                 camera.setFixedTarget(bodies.at("moon")->position * scale);
-                camera.distance = 10000.0f; // 10,000 km view distance
+                camera.distance = config.camera_distance_moon;
             }
             break;
         case Camera::Mode::Overview:
@@ -541,23 +541,24 @@ void Simulation::adjustCameraMode(Camera::Mode mode) {
             if (bodies.find("earth") != bodies.end() && bodies.find("moon") != bodies.end()) {
                 glm::vec3 midpoint = (bodies.at("earth")->position + bodies.at("moon")->position) * scale * 0.5f;
                 camera.setFixedTarget(midpoint);
-                camera.distance = 500000.0f; // 500,000 km to see both
+                camera.distance = config.camera_distance_overview;
             }
             break;
         case Camera::Mode::SolarSystem:
             // Sun at origin, view inner solar system (up to Mars)
             camera.setFixedTarget(glm::vec3(0.0f));
-            camera.distance = 300000000.0f; // 300 million km (~2 AU) to see inner planets
+            camera.distance = config.camera_distance_solar_system;
             break;
         case Camera::Mode::FullSolarSystem:
             // Sun at origin, view entire solar system including Neptune (~30 AU)
             camera.setFixedTarget(glm::vec3(0.0f));
-            camera.distance = 5000000000.0f; // 5 billion km (~33 AU) to see all 8 planets
+            camera.distance = config.camera_distance_full_solar;
             break;
         case Camera::Mode::Locked:
-            camera.distance = 500.0f; // 500 km follow distance
+            camera.distance = config.camera_distance_locked;
             break;
         case Camera::Mode::Free:
+        case Camera::Mode::FocusBody:
             // Keep current settings
             break;
     }
@@ -572,7 +573,7 @@ void Simulation::adjustCameraTarget(const glm::vec3& target) {
 }
 
 void Simulation::focusOnBody(const std::string& bodyName) {
-    const float scale = 0.001f;  // Rendering scale (meters to km)
+    const float scale = config.simulation_rendering_scale;
     
     if (bodyName == "rocket") {
         // Switch to Locked mode for rocket
@@ -626,16 +627,16 @@ void Simulation::focusOnBody(const std::string& bodyName) {
         bodyRadiusKm = config.physics_moon_radius * scale;
         viewMultiplier = 10.0f;  // Moon is small
     } else {
-        bodyRadiusKm = 1000.0f;  // Default 1000 km
+        bodyRadiusKm = config.physics_earth_radius * scale;  // Default to Earth radius
     }
     
     // Calculate view distance based on body radius and multiplier
     float viewDistance = bodyRadiusKm * viewMultiplier;
     
-    // Ensure minimum distance for very small bodies
-    float minDistance = 5000.0f;  // At least 5000 km
+    // Ensure minimum distance for very small bodies (from config)
+    float minDistance = config.camera_min_focus_distance;
     if (bodyName == "moon" || bodyName == "mercury" || bodyName == "mars") {
-        minDistance = 10000.0f;  // Small bodies need more relative distance
+        minDistance = config.camera_distance_moon;  // Small bodies need more relative distance
     }
     viewDistance = std::max(viewDistance, minDistance);
     

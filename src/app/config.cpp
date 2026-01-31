@@ -49,10 +49,18 @@ void Config::setDefaults() {
     physics_moon_rotation_period = 27.3f * 24.0f * 3600.0f; // seconds (27.3 days)
 
     // Simulation parameters
-    simulation_trajectory_sample_time = 0.1f;
+    simulation_trajectory_sample_time = 0.5f;
+    simulation_trajectory_max_points = 5000;
+    simulation_prediction_max_points = 500;
     simulation_prediction_duration = 30.0f;
     simulation_prediction_step = 0.1f;
     simulation_rendering_scale = 0.001f;
+    
+    // Trajectory colors
+    trajectory_rocket_color = {1.0f, 0.0f, 0.0f, 1.0f};
+    trajectory_prediction_color = {0.0f, 1.0f, 0.0f, 0.7f};
+    trajectory_moon_color = {0.5f, 0.5f, 0.5f, 0.8f};
+    trajectory_earth_color = {0.0f, 0.5f, 1.0f, 0.8f};
 
     // Logger settings
     logger_level = 3; // 0: DEBUG, 1: INFO, 2: WARN, 3: ERROR
@@ -63,6 +71,15 @@ void Config::setDefaults() {
     camera_distance = 500000.0f;
     camera_position = {0.0f, 6371000.0f, 0.0f};
     camera_target = {0.0f, 6371000.0f, 0.0f};
+    
+    // Camera mode distances
+    camera_distance_locked = 500.0f;
+    camera_distance_earth = 20000.0f;
+    camera_distance_moon = 10000.0f;
+    camera_distance_overview = 500000.0f;
+    camera_distance_solar_system = 300000000.0f;
+    camera_distance_full_solar = 5000000000.0f;
+    camera_min_focus_distance = 5000.0f;
 }
 
 void Config::parseConfig(const json& config) {
@@ -117,9 +134,35 @@ void Config::parseConfig(const json& config) {
     if (config.contains("simulation")) {
         const auto& simulation = config["simulation"];
         simulation_trajectory_sample_time = simulation.value("trajectory_sample_time", simulation_trajectory_sample_time);
+        simulation_trajectory_max_points = simulation.value("trajectory_max_points", simulation_trajectory_max_points);
+        simulation_prediction_max_points = simulation.value("prediction_max_points", simulation_prediction_max_points);
         simulation_prediction_duration = simulation.value("prediction_duration", simulation_prediction_duration);
         simulation_prediction_step = simulation.value("prediction_step", simulation_prediction_step);
         simulation_rendering_scale = simulation.value("rendering_scale", simulation_rendering_scale);
+    }
+    
+    // Trajectory colors
+    if (config.contains("trajectory")) {
+        const auto& traj = config["trajectory"];
+        auto parseColor = [](const json& arr, glm::vec4 defaultVal) -> glm::vec4 {
+            if (arr.is_array() && arr.size() >= 4) {
+                return {arr[0].get<float>(), arr[1].get<float>(), 
+                        arr[2].get<float>(), arr[3].get<float>()};
+            }
+            return defaultVal;
+        };
+        if (traj.contains("rocket_color")) {
+            trajectory_rocket_color = parseColor(traj["rocket_color"], trajectory_rocket_color);
+        }
+        if (traj.contains("prediction_color")) {
+            trajectory_prediction_color = parseColor(traj["prediction_color"], trajectory_prediction_color);
+        }
+        if (traj.contains("moon_color")) {
+            trajectory_moon_color = parseColor(traj["moon_color"], trajectory_moon_color);
+        }
+        if (traj.contains("earth_color")) {
+            trajectory_earth_color = parseColor(traj["earth_color"], trajectory_earth_color);
+        }
     }
 
     // Logger settings
@@ -148,5 +191,13 @@ void Config::parseConfig(const json& config) {
                 camera["target"][2].get<float>()
             };
         }
+        // Camera mode distances
+        camera_distance_locked = camera.value("distance_locked", camera_distance_locked);
+        camera_distance_earth = camera.value("distance_earth", camera_distance_earth);
+        camera_distance_moon = camera.value("distance_moon", camera_distance_moon);
+        camera_distance_overview = camera.value("distance_overview", camera_distance_overview);
+        camera_distance_solar_system = camera.value("distance_solar_system", camera_distance_solar_system);
+        camera_distance_full_solar = camera.value("distance_full_solar", camera_distance_full_solar);
+        camera_min_focus_distance = camera.value("min_focus_distance", camera_min_focus_distance);
     }
 }

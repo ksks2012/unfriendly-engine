@@ -97,11 +97,18 @@ public:
     float physics_moon_rotation_period = 27.3f * 24.0f * 3600.0f; // seconds
     
     // Simulation parameters
-    float simulation_trajectory_sample_time = 0.5f;      // Sample every 0.5 seconds (was 0.1)
+    float simulation_trajectory_sample_time = 0.5f;      // Sample every 0.5 seconds
     size_t simulation_trajectory_max_points = 5000;      // Maximum trajectory points
+    size_t simulation_prediction_max_points = 500;       // Maximum prediction points
     float simulation_prediction_duration = 30.0f;
     float simulation_prediction_step = 0.1f;
     float simulation_rendering_scale = 0.001f;
+    
+    // Trajectory colors (RGBA)
+    glm::vec4 trajectory_rocket_color = {1.0f, 0.0f, 0.0f, 1.0f};      // Red
+    glm::vec4 trajectory_prediction_color = {0.0f, 1.0f, 0.0f, 0.7f};  // Green with transparency
+    glm::vec4 trajectory_moon_color = {0.5f, 0.5f, 0.5f, 0.8f};        // Gray
+    glm::vec4 trajectory_earth_color = {0.0f, 0.5f, 1.0f, 0.8f};       // Light blue
 
     // Logger settings
     int logger_level = 3; // 0: DEBUG, 1: INFO, 2: WARN, 3: ERROR
@@ -112,6 +119,15 @@ public:
     float camera_distance = 500000.0f;
     glm::vec3 camera_position = {0.0f, 6371000.0f, 0.0f};
     glm::vec3 camera_target = {0.0f, 6371000.0f, 0.0f};
+    
+    // Camera mode distances (in km for rendering)
+    float camera_distance_locked = 500.0f;               // Follow rocket distance
+    float camera_distance_earth = 20000.0f;              // Earth view distance
+    float camera_distance_moon = 10000.0f;               // Moon view distance
+    float camera_distance_overview = 500000.0f;          // Earth-Moon overview
+    float camera_distance_solar_system = 300000000.0f;   // Inner solar system (~2 AU)
+    float camera_distance_full_solar = 5000000000.0f;    // Full solar system (~33 AU)
+    float camera_min_focus_distance = 5000.0f;           // Minimum focus distance
 
 private:
     void setDefaults();

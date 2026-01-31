@@ -9,12 +9,11 @@
 class TrajectoryFactory {
 public:
     static std::unique_ptr<Trajectory> createRocketTrajectory(const Config& config, std::shared_ptr<ILogger> logger) {
-        // Use config values for customizable trajectory length
-        // Default: 5000 points × 0.5s = 2500 seconds (~42 minutes) of history
+        // Use config values for customizable trajectory length and color
         Trajectory::Config trajConfig{
             config.simulation_trajectory_max_points,
             config.simulation_trajectory_sample_time,
-            glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), // red
+            config.trajectory_rocket_color,
             config.simulation_rendering_scale,
             config.physics_earth_radius,
             Trajectory::RenderMode::LineStrip  // Open path for rocket trail
@@ -23,10 +22,11 @@ public:
     }
 
     static std::unique_ptr<Trajectory> createRocketPredictionTrajectory(const Config& config, std::shared_ptr<ILogger> logger) {
+        // Use config values for prediction trajectory
         Trajectory::Config trajConfig{
-            500,  // Fewer points for prediction
-            0.2f, // Larger interval for prediction
-            glm::vec4(0.0f, 1.0f, 0.0f, 0.7f), // green with transparency
+            config.simulation_prediction_max_points,
+            config.simulation_prediction_step,
+            config.trajectory_prediction_color,
             config.simulation_rendering_scale,
             config.physics_earth_radius,
             Trajectory::RenderMode::LineStrip  // Open path for prediction
@@ -36,9 +36,9 @@ public:
 
     static std::unique_ptr<Trajectory> createBodyTrajectory(const Config& config, std::shared_ptr<ILogger> logger) {
         Trajectory::Config trajConfig{
-            1000,
-            0.1f,
-            glm::vec4(0.0f, 0.0f, 1.0f, 1.0f), // blue
+            config.simulation_trajectory_max_points,
+            config.simulation_trajectory_sample_time,
+            glm::vec4(0.0f, 0.0f, 1.0f, 1.0f), // blue (generic body)
             config.simulation_rendering_scale,
             config.physics_earth_radius,
             Trajectory::RenderMode::LineStrip
@@ -68,7 +68,7 @@ public:
         Trajectory::Config trajConfig{
             orbitPoints,
             0.1f,
-            glm::vec4(0.5f, 0.5f, 0.5f, 0.8f), // gray with slight transparency
+            config.trajectory_moon_color,
             config.simulation_rendering_scale,
             config.physics_earth_radius,
             Trajectory::RenderMode::LineLoop,  // Closed loop for orbit
@@ -110,7 +110,7 @@ public:
         Trajectory::Config trajConfig{
             orbitPoints,
             0.1f,
-            glm::vec4(0.0f, 0.5f, 1.0f, 0.8f), // light blue
+            config.trajectory_earth_color,
             config.simulation_rendering_scale,
             config.physics_earth_radius,
             Trajectory::RenderMode::LineLoop,  // Closed loop for orbit

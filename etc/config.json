@@ -28,10 +28,18 @@
         "moon_rotation_period": 2358720.0
     },
     "simulation": {
-        "trajectory_sample_time": 0.1,
-        "prediction_duration": 30.0,
-        "prediction_step": 0.1,
+        "trajectory_sample_time": 0.5,
+        "trajectory_max_points": 5000,
+        "prediction_max_points": 500,
+        "prediction_duration": 3600.0,
+        "prediction_step": 10.0,
         "rendering_scale": 0.001
+    },
+    "trajectory": {
+        "rocket_color": [1.0, 0.0, 0.0, 1.0],
+        "prediction_color": [0.0, 1.0, 0.0, 0.7],
+        "moon_color": [0.5, 0.5, 0.5, 0.8],
+        "earth_color": [0.0, 0.5, 1.0, 0.8]
     },
     "logger": {
         "level": 1
@@ -41,6 +49,13 @@
         "yaw": 45.0,
         "distance": 500000.0,
         "position": [0.0, 6371000.0, 0.0],
-        "target": [0.0, 6371000.0, 0.0]
+        "target": [0.0, 6371000.0, 0.0],
+        "distance_locked": 500.0,
+        "distance_earth": 20000.0,
+        "distance_moon": 10000.0,
+        "distance_overview": 500000.0,
+        "distance_solar_system": 300000000.0,
+        "distance_full_solar": 5000000000.0,
+        "min_focus_distance": 5000.0
     }
 }
