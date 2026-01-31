@@ -702,3 +702,28 @@ glm::vec3 Simulation::getMoonPos() const {
 const BODY_MAP& Simulation::getBodies() const {
     return bodies;
 }
+
+float Simulation::getRenderScale() const {
+    return config.simulation_rendering_scale;
+}
+
+void Simulation::getRenderMatrices(int width, int height, glm::mat4& projection, glm::mat4& view) const {
+    float sceneHeight = height * 0.8f;
+    
+    // Calculate near/far planes based on camera mode
+    float nearPlane;
+    float farPlane;
+    if (camera.mode == Camera::Mode::Locked) {
+        nearPlane = 0.01f;
+        farPlane = camera.distance * 100.0f;
+    } else if (camera.mode == Camera::Mode::SolarSystem || camera.mode == Camera::Mode::FullSolarSystem) {
+        nearPlane = std::max(1000.0f, camera.distance * 0.0001f);
+        farPlane = camera.distance * 10.0f;
+    } else {
+        nearPlane = std::max(0.1f, camera.distance * 0.001f);
+        farPlane = camera.distance * 10.0f;
+    }
+    
+    projection = glm::perspective(glm::radians(45.0f), (float)width / sceneHeight, nearPlane, farPlane);
+    view = camera.getViewMatrix();
+}

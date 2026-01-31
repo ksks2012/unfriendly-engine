@@ -104,6 +104,12 @@ void InputHandler::process(Simulation& sim) {
     if (isKeyPressedWithCooldown(GLFW_KEY_5, 0.2)) {
         sim.adjustCameraMode(Camera::Mode::FullSolarSystem);
     }
+    // P - Toggle planet labels
+    if (isKeyPressedWithCooldown(GLFW_KEY_P, 0.2)) {
+        if (togglePlanetLabelsCallback_) {
+            togglePlanetLabelsCallback_();
+        }
+    }
 }
 
 void InputHandler::mouseCallback(double xpos, double ypos) {

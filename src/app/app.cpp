@@ -1,4 +1,5 @@
 #include <stdexcept>
+#include <glm/glm.hpp>
 
 #include "app/app.h"
 
@@ -34,6 +35,11 @@ App::App(const std::string& title, int width, int height, Config& config, std::s
         simulation.focusOnBody(bodyName);
     });
     
+    // Set up callback for toggling planet labels
+    inputHandler->setTogglePlanetLabelsCallback([this]() {
+        ui->togglePlanetLabels();
+    });
+    
     glEnable(GL_DEPTH_TEST);
 }
 
@@ -62,6 +68,13 @@ void App::run() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         simulation.render(shader);
+        
+        // Get matrices for planet label rendering
+        glm::mat4 projection, view;
+        simulation.getRenderMatrices(width, height, projection, view);
+        ui->renderPlanetLabels(simulation.getCamera(), projection, view, 
+                               simulation.getRenderScale(), width, height);
+        
         ui->render(simulation.getTimeScale(), simulation.getRocket(), simulation.getCamera(), width, height);
         glfwSwapBuffers(window);
     }

@@ -1,6 +1,8 @@
 #include "ui/ui.h"
 #include "core/simulation.h"
 #include <glm/gtx/string_cast.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <map>
 
 UI::UI(GLFWwindow* win, Simulation& sim) 
     : window_(win), map_(sim), simulation_(sim), fpsCounter_(FPSCounter()), lastTime_(0.0f), selectedBody_("rocket") {
@@ -53,6 +55,12 @@ void UI::render(float timeScale, const Rocket& rocket, const Camera& camera, int
     renderFPS();
     renderCameraMode(camera, width, height);
     renderBodySelector(camera, width, height);
+    
+    // Render planet labels (must be called after NewFrame and before Render)
+    if (hasPendingLabelRender_) {
+        renderPlanetLabelsInternal(camera, pendingProjection_, pendingView_, 
+                                   pendingScale_, width, height);
+    }
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -86,7 +94,7 @@ void UI::renderFPS() {
 void UI::renderCameraMode(const Camera& camera, int width, int height) {
     // Position below the Map View panel (Map is at y=10, height=200)
     ImGui::SetNextWindowPos(ImVec2(10.0f, 220.0f), ImGuiCond_Always);
-    ImGui::SetNextWindowSize(ImVec2(200.0f, 130.0f), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(220.0f, 230.0f), ImGuiCond_Always);
 
     ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
                                    ImGuiWindowFlags_NoCollapse;
@@ -98,7 +106,14 @@ void UI::renderCameraMode(const Camera& camera, int width, int height) {
     ImGui::Text("L - Follow Rocket");
     ImGui::Text("1 - Earth View");
     ImGui::Text("2 - Moon View");
-    ImGui::Text("3 - System Overview");
+    ImGui::Text("3 - Earth-Moon Overview");
+    ImGui::Text("4 - Inner Solar System");
+    ImGui::Text("5 - Full Solar System");
+    ImGui::Text("P - Toggle Planet Labels");
+    
+    ImGui::Separator();
+    ImGui::TextColored(ImVec4(0.7f, 0.9f, 0.7f, 1.0f), "Tips:");
+    ImGui::TextWrapped("In Solar System views, planets are marked with colored labels.");
     ImGui::End();
 }
 
@@ -196,4 +211,126 @@ void UI::renderBodySelector(const Camera& camera, int width, int height) {
     }
     
     ImGui::End();
+}
+
+glm::vec2 UI::worldToScreen(const glm::vec3& worldPos, const glm::mat4& projection, 
+                             const glm::mat4& view, int width, int height) {
+    // Scene height is 80% of window height (consistent with simulation render)
+    float sceneHeight = height * 0.8f;
+    
+    // Transform world position to clip space
+    glm::vec4 clipPos = projection * view * glm::vec4(worldPos, 1.0f);
+    
+    // Perspective division
+    if (clipPos.w <= 0.0f) {
+        return glm::vec2(-1000.0f, -1000.0f);  // Behind camera
+    }
+    
+    glm::vec3 ndcPos = glm::vec3(clipPos) / clipPos.w;
+    
+    // Check if position is within visible frustum
+    if (ndcPos.x < -1.0f || ndcPos.x > 1.0f || 
+        ndcPos.y < -1.0f || ndcPos.y > 1.0f ||
+        ndcPos.z < -1.0f || ndcPos.z > 1.0f) {
+        return glm::vec2(-1000.0f, -1000.0f);  // Outside frustum
+    }
+    
+    // Convert to screen coordinates (only using scene area, not the info panel at bottom)
+    float screenX = (ndcPos.x + 1.0f) * 0.5f * width;
+    float screenY = (1.0f - ndcPos.y) * 0.5f * sceneHeight;  // Y is inverted
+    
+    return glm::vec2(screenX, screenY);
+}
+
+void UI::renderPlanetLabels(const Camera& camera, const glm::mat4& projection, const glm::mat4& view,
+                            float scale, int width, int height) {
+    // Store pending render data - actual rendering happens in render() after ImGui::NewFrame()
+    // Only enable if in appropriate camera mode and labels are visible
+    if ((camera.mode == Camera::Mode::SolarSystem || 
+         camera.mode == Camera::Mode::FullSolarSystem ||
+         camera.mode == Camera::Mode::FocusBody) && showPlanetLabels_) {
+        hasPendingLabelRender_ = true;
+        pendingProjection_ = projection;
+        pendingView_ = view;
+        pendingScale_ = scale;
+    } else {
+        hasPendingLabelRender_ = false;
+    }
+}
+
+void UI::renderPlanetLabelsInternal(const Camera& camera, const glm::mat4& projection, const glm::mat4& view,
+                                     float scale, int width, int height) {
+    const auto& bodies = simulation_.getBodies();
+    
+    // Define planet display names and colors
+    std::map<std::string, std::pair<std::string, ImVec4>> planetInfo = {
+        {"sun",     {"Sun",       ImVec4(1.0f, 0.8f, 0.0f, 1.0f)}},
+        {"mercury", {"Mercury",   ImVec4(0.7f, 0.7f, 0.7f, 1.0f)}},
+        {"venus",   {"Venus",     ImVec4(1.0f, 0.9f, 0.7f, 1.0f)}},
+        {"earth",   {"Earth",     ImVec4(0.3f, 0.6f, 1.0f, 1.0f)}},
+        {"moon",    {"Moon",      ImVec4(0.8f, 0.8f, 0.8f, 1.0f)}},
+        {"mars",    {"Mars",      ImVec4(1.0f, 0.4f, 0.2f, 1.0f)}},
+        {"jupiter", {"Jupiter",   ImVec4(0.9f, 0.7f, 0.5f, 1.0f)}},
+        {"saturn",  {"Saturn",    ImVec4(0.9f, 0.8f, 0.5f, 1.0f)}},
+        {"uranus",  {"Uranus",    ImVec4(0.5f, 0.8f, 0.9f, 1.0f)}},
+        {"neptune", {"Neptune",   ImVec4(0.3f, 0.4f, 0.9f, 1.0f)}}
+    };
+    
+    // Determine which planets to label based on view mode
+    std::vector<std::string> planetsToLabel;
+    if (camera.mode == Camera::Mode::SolarSystem) {
+        planetsToLabel = {"sun", "mercury", "venus", "earth", "mars"};
+    } else if (camera.mode == Camera::Mode::FullSolarSystem) {
+        planetsToLabel = {"sun", "mercury", "venus", "earth", "mars", 
+                          "jupiter", "saturn", "uranus", "neptune"};
+    } else if (camera.mode == Camera::Mode::FocusBody) {
+        // Show label for focused body and nearby objects
+        planetsToLabel = {camera.focusBodyName};
+        // Also show moon if focusing on earth
+        if (camera.focusBodyName == "earth") {
+            planetsToLabel.push_back("moon");
+        }
+    }
+    
+    // Draw labels for each visible planet
+    ImDrawList* drawList = ImGui::GetForegroundDrawList();
+    
+    for (const auto& name : planetsToLabel) {
+        auto it = bodies.find(name);
+        if (it == bodies.end()) continue;
+        
+        glm::vec3 worldPos = it->second->position * scale;
+        glm::vec2 screenPos = worldToScreen(worldPos, projection, view, width, height);
+        
+        // Check if on screen
+        if (screenPos.x < 0 || screenPos.x > width || 
+            screenPos.y < 0 || screenPos.y > height * 0.8f) {
+            continue;
+        }
+        
+        auto& info = planetInfo[name];
+        std::string label = info.first;
+        ImVec4 color = info.second;
+        
+        // Draw label with background for better visibility
+        ImVec2 textPos(screenPos.x + 10.0f, screenPos.y - 8.0f);
+        ImVec2 textSize = ImGui::CalcTextSize(label.c_str());
+        
+        // Background rectangle
+        ImVec2 bgMin(textPos.x - 2.0f, textPos.y - 2.0f);
+        ImVec2 bgMax(textPos.x + textSize.x + 2.0f, textPos.y + textSize.y + 2.0f);
+        drawList->AddRectFilled(bgMin, bgMax, IM_COL32(0, 0, 0, 180), 3.0f);
+        
+        // Draw label text
+        drawList->AddText(textPos, ImGui::ColorConvertFloat4ToU32(color), label.c_str());
+        
+        // Draw a small marker at the planet position
+        drawList->AddCircleFilled(ImVec2(screenPos.x, screenPos.y), 4.0f, 
+                                   ImGui::ColorConvertFloat4ToU32(color));
+        drawList->AddCircle(ImVec2(screenPos.x, screenPos.y), 6.0f, 
+                            IM_COL32(255, 255, 255, 200), 0, 1.5f);
+    }
+    
+    // Reset pending flag
+    hasPendingLabelRender_ = false;
 }

@@ -47,6 +47,10 @@ public:
 
     glm::vec3 getMoonPos() const;
     const BODY_MAP& getBodies() const;
+    float getRenderScale() const;  // Get rendering scale factor
+    
+    // Get projection and view matrices for UI rendering
+    void getRenderMatrices(int width, int height, glm::mat4& projection, glm::mat4& view) const;
 
 private:
     Config config;
