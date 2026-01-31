@@ -20,6 +20,12 @@ A simple rocket simulator built with C++, OpenGL, GLFW, GLM, and Dear ImGui. Fea
 - **Mouse Control**
   - Left mouse button drag: Rotate camera
   - Mouse wheel: Camera zoom
+- **UI Panel**
+  - Celestial Bodies selector: Click on any celestial body to focus camera on it
+    - Stars: Sun
+    - Inner Planets: Mercury, Venus, Earth (with Moon), Mars
+    - Outer Planets: Jupiter, Saturn, Uranus, Neptune
+    - Spacecraft: Rocket
 
 ### Solar System Simulation
 - **Sun**: Central star at origin (heliocentric coordinate system)
@@ -44,12 +50,27 @@ A simple rocket simulator built with C++, OpenGL, GLFW, GLM, and Dear ImGui. Fea
 - Rocket trajectory visualization (real-time flight path)
 - Predicted trajectory for rocket
 - Map View: Displays celestial body positions in a 2D overview
+- Celestial Bodies Panel: Interactive body selector for camera focus
 
 ### Physics Simulation
 - **Gravity**: N-body gravitational simulation including Sun and all planets
 - **Integration**: Velocity Verlet for accurate orbital mechanics
 - **Rocket Physics**: Thrust, fuel consumption, atmospheric drag
 - **Time Scale**: Adjustable from 0.1x to 1,000,000x for observing orbital periods
+
+### Camera Modes
+The simulation supports multiple camera modes for viewing the solar system:
+
+| Mode | Key | Description |
+|------|-----|-------------|
+| Free | F | Manually controlled camera |
+| Locked | L | Automatically follows the rocket |
+| Earth View | 1 | Fixed on Earth center |
+| Moon View | 2 | Fixed on Moon center |
+| Overview | 3 | View of Earth-Moon system |
+| Inner Solar System | 4 | View of inner planets (Mercury to Mars) |
+| Full Solar System | 5 | View of all 8 planets |
+| Focus Body | UI Click | Focus on any selected celestial body |
 
 ### Simulation Info
 The simulation provides real-time data displayed in an ImGui window:
