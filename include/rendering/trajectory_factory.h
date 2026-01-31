@@ -9,9 +9,11 @@
 class TrajectoryFactory {
 public:
     static std::unique_ptr<Trajectory> createRocketTrajectory(const Config& config, std::shared_ptr<ILogger> logger) {
+        // Use config values for customizable trajectory length
+        // Default: 5000 points × 0.5s = 2500 seconds (~42 minutes) of history
         Trajectory::Config trajConfig{
-            1000,
-            0.1f,
+            config.simulation_trajectory_max_points,
+            config.simulation_trajectory_sample_time,
             glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), // red
             config.simulation_rendering_scale,
             config.physics_earth_radius,

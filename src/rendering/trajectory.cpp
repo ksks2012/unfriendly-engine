@@ -33,8 +33,6 @@ void Trajectory::init() {
 }
 
 void Trajectory::update(const glm::vec3& position, float deltaTime) {
-    LOG_DEBUG(logger_, "Trajectory", "update");
-    
     // Static orbits (pre-calculated) should not be updated dynamically
     if (config_.isStatic) {
         return;
@@ -53,12 +51,27 @@ void Trajectory::update(const glm::vec3& position, float deltaTime) {
     if (sampleTimer_ < config_.sampleInterval) {
         return; // Not time to sample yet
     }
-    sampleTimer_ = 0.0f;
+    
+    // Reset timer but keep the remainder for accurate timing
+    sampleTimer_ -= config_.sampleInterval;
+    
+    // Skip update if position hasn't changed significantly (optimization)
+    if (count_ > 0) {
+        size_t lastIdx = (head_ == 0) ? config_.maxPoints - 1 : head_ - 1;
+        glm::vec3 lastPos = points_[lastIdx];
+        float dist = glm::length(position - lastPos);
+        // Skip if moved less than 1 meter (in rendering scale)
+        if (dist < 0.001f) {
+            return;
+        }
+    }
 
     // Add new point
     points_[head_] = position;
+    
+    // Update GPU buffer with new point data
     size_t offset = head_ * 3 * sizeof(GLfloat);
-    GLfloat vertex[3] = {points_[head_].x, points_[head_].y, points_[head_].z};
+    GLfloat vertex[3] = {position.x, position.y, position.z};
     renderObject_->updateBuffer(offset, 3 * sizeof(GLfloat), vertex);
 
     head_ = (head_ + 1) % config_.maxPoints;

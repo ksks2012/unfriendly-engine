@@ -97,7 +97,8 @@ public:
     float physics_moon_rotation_period = 27.3f * 24.0f * 3600.0f; // seconds
     
     // Simulation parameters
-    float simulation_trajectory_sample_time = 0.1f;
+    float simulation_trajectory_sample_time = 0.5f;      // Sample every 0.5 seconds (was 0.1)
+    size_t simulation_trajectory_max_points = 5000;      // Maximum trajectory points
     float simulation_prediction_duration = 30.0f;
     float simulation_prediction_step = 0.1f;
     float simulation_rendering_scale = 0.001f;
