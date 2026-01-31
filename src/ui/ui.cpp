@@ -1,7 +1,9 @@
 #include "ui/ui.h"
+#include "core/simulation.h"
 #include <glm/gtx/string_cast.hpp>
 
-UI::UI(GLFWwindow* win, Simulation& sim) : window_(win), map_(sim), fpsCounter_(FPSCounter()), lastTime_(0.0f) {
+UI::UI(GLFWwindow* win, Simulation& sim) 
+    : window_(win), map_(sim), simulation_(sim), fpsCounter_(FPSCounter()), lastTime_(0.0f), selectedBody_("rocket") {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGui_ImplGlfw_InitForOpenGL(window_, true);
@@ -50,6 +52,7 @@ void UI::render(float timeScale, const Rocket& rocket, const Camera& camera, int
 
     renderFPS();
     renderCameraMode(camera, width, height);
+    renderBodySelector(camera, width, height);
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -96,5 +99,85 @@ void UI::renderCameraMode(const Camera& camera, int width, int height) {
     ImGui::Text("1 - Earth View");
     ImGui::Text("2 - Moon View");
     ImGui::Text("3 - System Overview");
+    ImGui::End();
+}
+
+void UI::renderBodySelector(const Camera& camera, int width, int height) {
+    // Position on the right side of the screen
+    float panelWidth = 180.0f;
+    float panelHeight = 300.0f;
+    ImGui::SetNextWindowPos(ImVec2(width - panelWidth - 10.0f, 10.0f), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(panelWidth, panelHeight), ImGuiCond_Always);
+
+    ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+                                   ImGuiWindowFlags_NoCollapse;
+    ImGui::Begin("Celestial Bodies", nullptr, windowFlags);
+    
+    const auto& bodies = simulation_.getBodies();
+    
+    // Stars
+    ImGui::TextColored(ImVec4(1.0f, 0.9f, 0.0f, 1.0f), "Star");
+    ImGui::Separator();
+    if (bodies.find("sun") != bodies.end()) {
+        if (ImGui::Selectable("  Sun", selectedBody_ == "sun")) {
+            selectedBody_ = "sun";
+            if (bodySelectCallback_) bodySelectCallback_("sun");
+        }
+    }
+    
+    // Planets (inner)
+    ImGui::Spacing();
+    ImGui::TextColored(ImVec4(0.5f, 0.8f, 1.0f, 1.0f), "Inner Planets");
+    ImGui::Separator();
+    
+    const char* innerPlanets[] = {"mercury", "venus", "earth", "mars"};
+    const char* innerPlanetNames[] = {"Mercury", "Venus", "Earth", "Mars"};
+    for (int i = 0; i < 4; i++) {
+        if (bodies.find(innerPlanets[i]) != bodies.end()) {
+            std::string label = "  " + std::string(innerPlanetNames[i]);
+            if (ImGui::Selectable(label.c_str(), selectedBody_ == innerPlanets[i])) {
+                selectedBody_ = innerPlanets[i];
+                if (bodySelectCallback_) bodySelectCallback_(innerPlanets[i]);
+            }
+        }
+    }
+    
+    // Planets (outer)
+    ImGui::Spacing();
+    ImGui::TextColored(ImVec4(0.8f, 0.6f, 1.0f, 1.0f), "Outer Planets");
+    ImGui::Separator();
+    
+    const char* outerPlanets[] = {"jupiter", "saturn", "uranus", "neptune"};
+    const char* outerPlanetNames[] = {"Jupiter", "Saturn", "Uranus", "Neptune"};
+    for (int i = 0; i < 4; i++) {
+        if (bodies.find(outerPlanets[i]) != bodies.end()) {
+            std::string label = "  " + std::string(outerPlanetNames[i]);
+            if (ImGui::Selectable(label.c_str(), selectedBody_ == outerPlanets[i])) {
+                selectedBody_ = outerPlanets[i];
+                if (bodySelectCallback_) bodySelectCallback_(outerPlanets[i]);
+            }
+        }
+    }
+    
+    // Satellites
+    ImGui::Spacing();
+    ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "Satellites");
+    ImGui::Separator();
+    if (bodies.find("moon") != bodies.end()) {
+        if (ImGui::Selectable("  Moon (Earth)", selectedBody_ == "moon")) {
+            selectedBody_ = "moon";
+            if (bodySelectCallback_) bodySelectCallback_("moon");
+        }
+    }
+    
+    // Spacecraft
+    ImGui::Spacing();
+    ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.5f, 1.0f), "Spacecraft");
+    ImGui::Separator();
+    if (ImGui::Selectable("  Rocket", selectedBody_ == "rocket")) {
+        selectedBody_ = "rocket";
+        if (bodySelectCallback_) bodySelectCallback_("rocket");
+    }
+    
     ImGui::End();
 }

@@ -28,6 +28,12 @@ App::App(const std::string& title, int width, int height, Config& config, std::s
     simulation.init();
     inputHandler = std::make_unique<InputHandler>(window, simulation, config);
     ui = std::make_unique<UI>(window, simulation);
+    
+    // Set up callback for body selection
+    ui->setBodySelectCallback([this](const std::string& bodyName) {
+        simulation.focusOnBody(bodyName);
+    });
+    
     glEnable(GL_DEPTH_TEST);
 }
 

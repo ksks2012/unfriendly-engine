@@ -36,6 +36,7 @@ public:
     void adjustCameraRotation(float deltaPitch, float deltaYaw); // Adjust camera rotation
     void adjustCameraMode(Camera::Mode mode); // Adjust camera mode
     void adjustCameraTarget(const glm::vec3& target); // Adjust camera target    
+    void focusOnBody(const std::string& bodyName);  // Focus camera on a specific body
 
     glm::vec3 computeBodyAcceleration(const Body& body, const BODY_MAP& bodies) const; // Velocity Verlet
 

@@ -269,9 +269,18 @@ void Simulation::init() {
     createPlanetRenderObject("uranus", config.physics_uranus_radius);
     createPlanetRenderObject("neptune", config.physics_neptune_radius);
     
-    LOG_INFO(logger_, "Simulation", "Sun initialized: " + std::string(bodies.find("sun") != bodies.end() ? "valid" : "null"));
-    LOG_INFO(logger_, "Simulation", "Earth initialized: " + std::string(bodies.find("earth") != bodies.end() ? "valid" : "null"));
-    LOG_INFO(logger_, "Simulation", "Moon initialized: " + std::string(bodies.find("moon") != bodies.end() ? "valid" : "null"));
+    // Verify all bodies have render objects
+    LOG_INFO(logger_, "Simulation", "=== Render Object Status ===");
+    for (const auto& [name, body] : bodies) {
+        bool hasRender = body->renderObject != nullptr;
+        if (hasRender) {
+            LOG_INFO(logger_, "Simulation", name + ": renderObject OK");
+        } else {
+            LOG_ERROR(logger_, "Simulation", name + ": renderObject MISSING!");
+        }
+    }
+    LOG_INFO(logger_, "Simulation", "============================");
+    
     LOG_INFO(logger_, "Simulation", "All 8 planets initialized (Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, Neptune)");
     LOG_INFO(logger_, "Simulation", "Map objects initialized");
 }
@@ -553,6 +562,74 @@ void Simulation::adjustCameraMode(Camera::Mode mode) {
 void Simulation::adjustCameraTarget(const glm::vec3& target) {
     camera.setFixedTarget(target);
     LOG_INFO(logger_, "Simulation", "Camera target adjusted to " + glm::to_string(target));
+}
+
+void Simulation::focusOnBody(const std::string& bodyName) {
+    const float scale = 0.001f;  // Rendering scale (meters to km)
+    
+    if (bodyName == "rocket") {
+        // Switch to Locked mode for rocket
+        camera.setMode(Camera::Mode::Locked);
+        LOG_INFO(logger_, "Simulation", "Camera focused on rocket (Locked mode)");
+        return;
+    }
+    
+    // Find the body
+    auto it = bodies.find(bodyName);
+    if (it == bodies.end()) {
+        LOG_WARN(logger_, "Simulation", "Body not found: " + bodyName);
+        return;
+    }
+    
+    // Get body position
+    glm::vec3 bodyPos = it->second->position * scale;
+    
+    // Get body radius from config (in meters, convert to km)
+    float bodyRadiusKm = 0.0f;
+    if (bodyName == "sun") bodyRadiusKm = config.physics_sun_radius * scale;
+    else if (bodyName == "mercury") bodyRadiusKm = config.physics_mercury_radius * scale;
+    else if (bodyName == "venus") bodyRadiusKm = config.physics_venus_radius * scale;
+    else if (bodyName == "earth") bodyRadiusKm = config.physics_earth_radius * scale;
+    else if (bodyName == "mars") bodyRadiusKm = config.physics_mars_radius * scale;
+    else if (bodyName == "jupiter") bodyRadiusKm = config.physics_jupiter_radius * scale;
+    else if (bodyName == "saturn") bodyRadiusKm = config.physics_saturn_radius * scale;
+    else if (bodyName == "uranus") bodyRadiusKm = config.physics_uranus_radius * scale;
+    else if (bodyName == "neptune") bodyRadiusKm = config.physics_neptune_radius * scale;
+    else if (bodyName == "moon") bodyRadiusKm = config.physics_moon_radius * scale;
+    else bodyRadiusKm = 1000.0f;  // Default 1000 km
+    
+    // Calculate appropriate viewing distance based on body size
+    float viewDistance = bodyRadiusKm * 5.0f;  // 5x radius for good viewing
+    
+    // Minimum distance for very small bodies
+    viewDistance = std::max(viewDistance, 5000.0f);  // At least 5000 km
+    
+    // Adjust view distance for specific body types
+    if (bodyName == "sun") {
+        viewDistance = bodyRadiusKm * 8.0f;  // Sun is huge
+    } else if (bodyName == "jupiter" || bodyName == "saturn") {
+        viewDistance = bodyRadiusKm * 6.0f;  // Gas giants
+    }
+    
+    // Set camera mode based on body type
+    if (bodyName == "earth") {
+        camera.setMode(Camera::Mode::FixedEarth);
+    } else if (bodyName == "moon") {
+        camera.setMode(Camera::Mode::FixedMoon);
+    } else {
+        // For all other bodies (including sun and planets), use SolarSystem mode
+        // This mode uses fixedTarget which we'll set to the body position
+        camera.setMode(Camera::Mode::SolarSystem);
+    }
+    
+    // Set the camera target and position
+    camera.setFixedTarget(bodyPos);
+    camera.distance = viewDistance;
+    camera.target = bodyPos;  // Also set target directly for immediate effect
+    camera.position = bodyPos + glm::vec3(0.0f, viewDistance * 0.3f, viewDistance);  // Position camera
+    
+    LOG_INFO(logger_, "Simulation", "Camera focused on " + bodyName + 
+             " at distance " + std::to_string(viewDistance) + " km");
 }
 
 glm::vec3 Simulation::computeBodyAcceleration(const Body& body, const BODY_MAP& bodies) const {
