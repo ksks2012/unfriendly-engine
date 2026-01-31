@@ -105,7 +105,7 @@ void UI::renderCameraMode(const Camera& camera, int width, int height) {
 void UI::renderBodySelector(const Camera& camera, int width, int height) {
     // Position on the right side of the screen
     float panelWidth = 180.0f;
-    float panelHeight = 300.0f;
+    float panelHeight = 350.0f;  // Increased height for reorganized layout
     ImGui::SetNextWindowPos(ImVec2(width - panelWidth - 10.0f, 10.0f), ImGuiCond_Always);
     ImGui::SetNextWindowSize(ImVec2(panelWidth, panelHeight), ImGuiCond_Always);
 
@@ -125,24 +125,51 @@ void UI::renderBodySelector(const Camera& camera, int width, int height) {
         }
     }
     
-    // Planets (inner)
+    // Inner Planets with their satellites
     ImGui::Spacing();
     ImGui::TextColored(ImVec4(0.5f, 0.8f, 1.0f, 1.0f), "Inner Planets");
     ImGui::Separator();
     
-    const char* innerPlanets[] = {"mercury", "venus", "earth", "mars"};
-    const char* innerPlanetNames[] = {"Mercury", "Venus", "Earth", "Mars"};
-    for (int i = 0; i < 4; i++) {
-        if (bodies.find(innerPlanets[i]) != bodies.end()) {
-            std::string label = "  " + std::string(innerPlanetNames[i]);
-            if (ImGui::Selectable(label.c_str(), selectedBody_ == innerPlanets[i])) {
-                selectedBody_ = innerPlanets[i];
-                if (bodySelectCallback_) bodySelectCallback_(innerPlanets[i]);
+    // Mercury
+    if (bodies.find("mercury") != bodies.end()) {
+        if (ImGui::Selectable("  Mercury", selectedBody_ == "mercury")) {
+            selectedBody_ = "mercury";
+            if (bodySelectCallback_) bodySelectCallback_("mercury");
+        }
+    }
+    
+    // Venus
+    if (bodies.find("venus") != bodies.end()) {
+        if (ImGui::Selectable("  Venus", selectedBody_ == "venus")) {
+            selectedBody_ = "venus";
+            if (bodySelectCallback_) bodySelectCallback_("venus");
+        }
+    }
+    
+    // Earth and its Moon
+    if (bodies.find("earth") != bodies.end()) {
+        if (ImGui::Selectable("  Earth", selectedBody_ == "earth")) {
+            selectedBody_ = "earth";
+            if (bodySelectCallback_) bodySelectCallback_("earth");
+        }
+        // Moon as sub-item under Earth
+        if (bodies.find("moon") != bodies.end()) {
+            if (ImGui::Selectable("    - Moon", selectedBody_ == "moon")) {
+                selectedBody_ = "moon";
+                if (bodySelectCallback_) bodySelectCallback_("moon");
             }
         }
     }
     
-    // Planets (outer)
+    // Mars
+    if (bodies.find("mars") != bodies.end()) {
+        if (ImGui::Selectable("  Mars", selectedBody_ == "mars")) {
+            selectedBody_ = "mars";
+            if (bodySelectCallback_) bodySelectCallback_("mars");
+        }
+    }
+    
+    // Outer Planets
     ImGui::Spacing();
     ImGui::TextColored(ImVec4(0.8f, 0.6f, 1.0f, 1.0f), "Outer Planets");
     ImGui::Separator();
@@ -156,17 +183,6 @@ void UI::renderBodySelector(const Camera& camera, int width, int height) {
                 selectedBody_ = outerPlanets[i];
                 if (bodySelectCallback_) bodySelectCallback_(outerPlanets[i]);
             }
-        }
-    }
-    
-    // Satellites
-    ImGui::Spacing();
-    ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "Satellites");
-    ImGui::Separator();
-    if (bodies.find("moon") != bodies.end()) {
-        if (ImGui::Selectable("  Moon (Earth)", selectedBody_ == "moon")) {
-            selectedBody_ = "moon";
-            if (bodySelectCallback_) bodySelectCallback_("moon");
         }
     }
     

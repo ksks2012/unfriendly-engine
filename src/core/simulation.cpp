@@ -370,6 +370,13 @@ void Simulation::render(const Shader& shader) const {
         // Sun center for full solar system view
         target = glm::vec3(0.0f);
         camera.setFixedTarget(target);
+    } else if (camera.mode == Camera::Mode::FocusBody) {
+        // Focus on a specific body - update fixedTarget to track moving body
+        const std::string& bodyName = camera.focusBodyName;
+        if (!bodyName.empty() && bodies.find(bodyName) != bodies.end()) {
+            target = bodies.at(bodyName)->position * scale;
+            camera.setFixedTarget(target);
+        }
     }
 
     camera.update(target);
@@ -584,52 +591,79 @@ void Simulation::focusOnBody(const std::string& bodyName) {
     // Get body position
     glm::vec3 bodyPos = it->second->position * scale;
     
-    // Get body radius from config (in meters, convert to km)
+    // Get body radius from config (in meters, convert to km for rendering)
     float bodyRadiusKm = 0.0f;
-    if (bodyName == "sun") bodyRadiusKm = config.physics_sun_radius * scale;
-    else if (bodyName == "mercury") bodyRadiusKm = config.physics_mercury_radius * scale;
-    else if (bodyName == "venus") bodyRadiusKm = config.physics_venus_radius * scale;
-    else if (bodyName == "earth") bodyRadiusKm = config.physics_earth_radius * scale;
-    else if (bodyName == "mars") bodyRadiusKm = config.physics_mars_radius * scale;
-    else if (bodyName == "jupiter") bodyRadiusKm = config.physics_jupiter_radius * scale;
-    else if (bodyName == "saturn") bodyRadiusKm = config.physics_saturn_radius * scale;
-    else if (bodyName == "uranus") bodyRadiusKm = config.physics_uranus_radius * scale;
-    else if (bodyName == "neptune") bodyRadiusKm = config.physics_neptune_radius * scale;
-    else if (bodyName == "moon") bodyRadiusKm = config.physics_moon_radius * scale;
-    else bodyRadiusKm = 1000.0f;  // Default 1000 km
+    float viewMultiplier = 5.0f;  // Default view distance multiplier
     
-    // Calculate appropriate viewing distance based on body size
-    float viewDistance = bodyRadiusKm * 5.0f;  // 5x radius for good viewing
-    
-    // Minimum distance for very small bodies
-    viewDistance = std::max(viewDistance, 5000.0f);  // At least 5000 km
-    
-    // Adjust view distance for specific body types
     if (bodyName == "sun") {
-        viewDistance = bodyRadiusKm * 8.0f;  // Sun is huge
-    } else if (bodyName == "jupiter" || bodyName == "saturn") {
-        viewDistance = bodyRadiusKm * 6.0f;  // Gas giants
+        bodyRadiusKm = config.physics_sun_radius * scale;
+        viewMultiplier = 10.0f;  // Sun is huge, need more distance
+    } else if (bodyName == "mercury") {
+        bodyRadiusKm = config.physics_mercury_radius * scale;
+        viewMultiplier = 8.0f;  // Small planet
+    } else if (bodyName == "venus") {
+        bodyRadiusKm = config.physics_venus_radius * scale;
+        viewMultiplier = 6.0f;
+    } else if (bodyName == "earth") {
+        bodyRadiusKm = config.physics_earth_radius * scale;
+        viewMultiplier = 6.0f;
+    } else if (bodyName == "mars") {
+        bodyRadiusKm = config.physics_mars_radius * scale;
+        viewMultiplier = 8.0f;  // Small planet
+    } else if (bodyName == "jupiter") {
+        bodyRadiusKm = config.physics_jupiter_radius * scale;
+        viewMultiplier = 4.0f;  // Gas giant, already very large
+    } else if (bodyName == "saturn") {
+        bodyRadiusKm = config.physics_saturn_radius * scale;
+        viewMultiplier = 4.0f;  // Gas giant
+    } else if (bodyName == "uranus") {
+        bodyRadiusKm = config.physics_uranus_radius * scale;
+        viewMultiplier = 5.0f;  // Ice giant
+    } else if (bodyName == "neptune") {
+        bodyRadiusKm = config.physics_neptune_radius * scale;
+        viewMultiplier = 5.0f;  // Ice giant
+    } else if (bodyName == "moon") {
+        bodyRadiusKm = config.physics_moon_radius * scale;
+        viewMultiplier = 10.0f;  // Moon is small
+    } else {
+        bodyRadiusKm = 1000.0f;  // Default 1000 km
     }
     
-    // Set camera mode based on body type
-    if (bodyName == "earth") {
-        camera.setMode(Camera::Mode::FixedEarth);
-    } else if (bodyName == "moon") {
-        camera.setMode(Camera::Mode::FixedMoon);
-    } else {
-        // For all other bodies (including sun and planets), use SolarSystem mode
-        // This mode uses fixedTarget which we'll set to the body position
-        camera.setMode(Camera::Mode::SolarSystem);
+    // Calculate view distance based on body radius and multiplier
+    float viewDistance = bodyRadiusKm * viewMultiplier;
+    
+    // Ensure minimum distance for very small bodies
+    float minDistance = 5000.0f;  // At least 5000 km
+    if (bodyName == "moon" || bodyName == "mercury" || bodyName == "mars") {
+        minDistance = 10000.0f;  // Small bodies need more relative distance
     }
+    viewDistance = std::max(viewDistance, minDistance);
+    
+    // Set camera mode - use FocusBody for all bodies selected via UI
+    // This allows the camera to track the moving body
+    camera.setMode(Camera::Mode::FocusBody);
+    camera.focusBodyName = bodyName;  // Store the body name for tracking
     
     // Set the camera target and position
     camera.setFixedTarget(bodyPos);
     camera.distance = viewDistance;
-    camera.target = bodyPos;  // Also set target directly for immediate effect
-    camera.position = bodyPos + glm::vec3(0.0f, viewDistance * 0.3f, viewDistance);  // Position camera
+    camera.target = bodyPos;  // Set target directly for immediate effect
+    
+    // Position camera at an angle for better view
+    float camAngle = glm::radians(30.0f);  // 30 degree angle above the ecliptic
+    camera.position = bodyPos + glm::vec3(
+        viewDistance * std::sin(camAngle) * 0.7f,
+        viewDistance * std::sin(camAngle),
+        viewDistance * std::cos(camAngle)
+    );
+    
+    // Reset pitch/yaw for consistent view
+    camera.pitch = 20.0f;
+    camera.yaw = 45.0f;
     
     LOG_INFO(logger_, "Simulation", "Camera focused on " + bodyName + 
-             " at distance " + std::to_string(viewDistance) + " km");
+             " (radius: " + std::to_string(bodyRadiusKm) + " km, distance: " + 
+             std::to_string(viewDistance) + " km)");
 }
 
 glm::vec3 Simulation::computeBodyAcceleration(const Body& body, const BODY_MAP& bodies) const {

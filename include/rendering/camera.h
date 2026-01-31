@@ -5,6 +5,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <string>
 
 class Camera {
 public:
@@ -15,7 +16,8 @@ public:
         FixedMoon,      // Fixed on Moon center
         Overview,       // Overview of Earth-Moon system
         SolarSystem,    // Solar system view (inner planets)
-        FullSolarSystem // Full solar system view (all 8 planets including Neptune)
+        FullSolarSystem, // Full solar system view (all 8 planets including Neptune)
+        FocusBody       // Focus on a specific celestial body (set via UI)
     };
 
     glm::vec3 position;    // Camera position
@@ -25,6 +27,7 @@ public:
     float distance;        // Distance to the target
     Mode mode;            // Camera mode
     glm::vec3 fixedTarget; // Fixed target position (for Fixed mode)
+    std::string focusBodyName; // Name of the body being focused on (for FocusBody mode)
 
 public:
     Camera();

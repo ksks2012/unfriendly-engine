@@ -196,6 +196,18 @@ void Camera::update(const glm::vec3& rocketPosition) {
             smoothedTarget = target;
             break;
         }
+        case Mode::FocusBody: {
+            // Focus on a specific celestial body (fixedTarget is updated externally)
+            target = fixedTarget;
+            float radPitch = glm::radians(pitch);
+            float radYaw = glm::radians(yaw);
+            position.x = target.x + distance * cos(radPitch) * sin(radYaw);
+            position.y = target.y + distance * sin(radPitch);
+            position.z = target.z + distance * cos(radPitch) * cos(radYaw);
+            smoothedPosition = position;
+            smoothedTarget = target;
+            break;
+        }
     }
 }
 
@@ -257,6 +269,7 @@ const char* Camera::getModeName() const {
         case Mode::Overview: return "Earth-Moon Overview";
         case Mode::SolarSystem: return "Inner Solar System";
         case Mode::FullSolarSystem: return "Full Solar System (8 Planets)";
+        case Mode::FocusBody: return "Focus Body";
         default: return "Unknown";
     }
 }
