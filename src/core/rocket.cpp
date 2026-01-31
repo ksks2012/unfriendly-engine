@@ -8,6 +8,7 @@
 Rocket::Rocket(const Config& config, std::shared_ptr<ILogger> logger, const FlightPlan& plan)
      : flightPlan(plan), fuel_mass(config.rocket_fuel_mass),
         thrust(config.rocket_thrust), exhaust_velocity(config.rocket_exhaust_velocity),
+        earthPosition_(0.0f),  // Will be updated from simulation
         Body(config, logger, "Rocket", config.rocket_mass, config.rocket_initial_position, config.rocket_initial_velocity) {
     if (!logger_) {
         throw std::runtime_error("[Rocket] Logger is null");
@@ -63,7 +64,25 @@ void Rocket::init() {
 }
 
 void Rocket::update(float deltaTime, const BODY_MAP& bodies) {
-    if (!launched) return;
+    // Update Earth position for altitude calculations
+    glm::vec3 previousEarthPosition = earthPosition_;
+    if (bodies.find("earth") != bodies.end()) {
+        earthPosition_ = bodies.at("earth")->position;
+    }
+    
+    if (!launched) {
+        // When not launched, rocket should follow Earth's movement
+        // Calculate how much Earth has moved and apply the same delta to rocket
+        glm::vec3 earthDelta = earthPosition_ - previousEarthPosition;
+        position += earthDelta;
+        
+        // Also update velocity to match Earth's orbital velocity
+        if (bodies.find("earth") != bodies.end()) {
+            velocity = bodies.at("earth")->velocity;
+        }
+        return;
+    }
+    
     time += deltaTime;
     
     if (trajectory_ && deltaTime > 0.0f) {
@@ -73,7 +92,7 @@ void Rocket::update(float deltaTime, const BODY_MAP& bodies) {
         // Update prediction less frequently to improve performance
         predictionTimer_ += deltaTime;
         if (predictionTimer_ >= predictionUpdateInterval_) {
-            predictTrajectory(config_.simulation_prediction_duration, config_.simulation_prediction_step);
+            predictTrajectory(config_.simulation_prediction_duration, config_.simulation_prediction_step, bodies);
             predictionTimer_ = 0.0f;
         }
     }
@@ -85,10 +104,14 @@ void Rocket::update(float deltaTime, const BODY_MAP& bodies) {
     velocity = newState.velocity;
     mass = currentMass;
     
-    float r = glm::length(position);
-    float altitude = r - config_.physics_earth_radius;
+    // Calculate altitude relative to Earth (not Sun) in heliocentric coordinates
+    glm::vec3 relativeToEarth = position - earthPosition_;
+    float distanceFromEarthCenter = glm::length(relativeToEarth);
+    float altitude = distanceFromEarthCenter - config_.physics_earth_radius;
     if (altitude < 0.0f) {
-        position = glm::normalize(position) * config_.physics_earth_radius;
+        // Crashed into Earth
+        glm::vec3 dirFromEarth = glm::normalize(relativeToEarth);
+        position = earthPosition_ + dirFromEarth * config_.physics_earth_radius;
         velocity = glm::vec3(0.0f);
         launched = false;
     }
@@ -256,10 +279,17 @@ void Rocket::setTrajectoryRender(std::unique_ptr<IRenderObject> trajectory, std:
 // private
 
 glm::vec3 Rocket::computeAccelerationRK4(float currentMass, const BODY_MAP& bodies) const {
+    // This version uses the rocket's current position/velocity (for real-time update)
+    return computeAccelerationAt(position, velocity, currentMass, bodies);
+}
+
+glm::vec3 Rocket::computeAccelerationAt(const glm::vec3& pos, const glm::vec3& vel, float currentMass, const BODY_MAP& bodies) const {
     glm::vec3 acc(0.0f);
+    
+    // Gravity from all bodies
     for (const auto& [name, body] : bodies) {
         if (body.get() != this) {
-            glm::vec3 delta = position - body->position;
+            glm::vec3 delta = pos - body->position;
             float r = glm::length(delta);
             if (r > 1e-6f) {
                 acc -= (config_.physics_gravity_constant * body->mass / (r * r * r)) * delta;
@@ -267,17 +297,20 @@ glm::vec3 Rocket::computeAccelerationRK4(float currentMass, const BODY_MAP& bodi
         }
     }
     
+    // Thrust
     if (fuel_mass > 0.0f && currentMass > 0.0f) {
         acc += (thrust / currentMass) * thrustDirection;
     }
     
-    float r = glm::length(position);
-    float altitude = r - config_.physics_earth_radius;
-    if (altitude < 100000.0f) {
+    // Atmospheric drag (relative to Earth)
+    glm::vec3 relativeToEarth = pos - earthPosition_;
+    float distFromEarthCenter = glm::length(relativeToEarth);
+    float altitude = distFromEarthCenter - config_.physics_earth_radius;
+    if (altitude > 0.0f && altitude < 100000.0f) {
         float rho = config_.physics_air_density * std::exp(-altitude / config_.physics_scale_height);
-        float v_magnitude = glm::length(velocity);
+        float v_magnitude = glm::length(vel);
         if (v_magnitude > 0.0f) {
-            glm::vec3 v_unit = velocity / v_magnitude;
+            glm::vec3 v_unit = vel / v_magnitude;
             float drag_force = 0.5f * rho * config_.physics_drag_coefficient * config_.physics_cross_section_area * v_magnitude * v_magnitude;
             acc -= drag_force * v_unit / currentMass;
         }
@@ -298,7 +331,7 @@ glm::vec3 Rocket::offsetPosition(glm::vec3 inputPosition) const {
     return inputPosition * config_.simulation_rendering_scale;
 }
 
-void Rocket::predictTrajectory(float duration, float step) {
+void Rocket::predictTrajectory(float duration, float step, const BODY_MAP& bodies) {
     LOG_DEBUG(logger_, "Rocket", "predictTrajectory");
 
     // Reset prediction trajectory before recalculating
@@ -314,13 +347,18 @@ void Rocket::predictTrajectory(float duration, float step) {
         glm::vec3 scaledPos = offsetPosition(state.position);
         prediction_->update(scaledPos, step);
         
-        // Stop if crashed or escaped
-        float altitude = glm::length(state.position) - config_.physics_earth_radius;
+        // Calculate altitude relative to Earth (not Sun) in heliocentric coordinates
+        glm::vec3 relativeToEarth = state.position - earthPosition_;
+        float distanceFromEarthCenter = glm::length(relativeToEarth);
+        float altitude = distanceFromEarthCenter - config_.physics_earth_radius;
+        
+        // Stop if crashed or escaped too far from Earth
         if (altitude < 0.0f || altitude > config_.physics_moon_distance * 2.0f) {
             break;
         }
         
-        state = updateStateRK4(state, step, predMass, predFuel, {});
+        // Use actual bodies for gravity calculation in prediction
+        state = updateStateRK4(state, step, predMass, predFuel, bodies);
         predTime += step;
     }
 }
@@ -329,32 +367,40 @@ Body Rocket::updateStateRK4(const Body& state, float deltaTime, float& currentMa
     float fuel_consumption_rate = thrust / exhaust_velocity;
     float delta_fuel = fuel_consumption_rate * deltaTime;
     
+    // RK4 integration using correct intermediate positions and velocities
     Body k1, k2, k3, k4;
-    k1.velocity = computeAccelerationRK4(currentMass, bodies);
+    
+    // k1: acceleration at current state
+    k1.velocity = computeAccelerationAt(state.position, state.velocity, currentMass, bodies);
     k1.position = state.velocity;
     
+    // k2: acceleration at midpoint using k1
     Body mid1;
     mid1.position = state.position + k1.position * (deltaTime / 2.0f);
     mid1.velocity = state.velocity + k1.velocity * (deltaTime / 2.0f);
-    k2.velocity = computeAccelerationRK4(currentMass, bodies);
+    k2.velocity = computeAccelerationAt(mid1.position, mid1.velocity, currentMass, bodies);
     k2.position = mid1.velocity;
     
+    // k3: acceleration at midpoint using k2
     Body mid2;
     mid2.position = state.position + k2.position * (deltaTime / 2.0f);
     mid2.velocity = state.velocity + k2.velocity * (deltaTime / 2.0f);
-    k3.velocity = computeAccelerationRK4(currentMass, bodies);
+    k3.velocity = computeAccelerationAt(mid2.position, mid2.velocity, currentMass, bodies);
     k3.position = mid2.velocity;
     
+    // k4: acceleration at endpoint using k3
     Body end;
     end.position = state.position + k3.position * deltaTime;
     end.velocity = state.velocity + k3.velocity * deltaTime;
-    k4.velocity = computeAccelerationRK4(currentMass, bodies);
+    k4.velocity = computeAccelerationAt(end.position, end.velocity, currentMass, bodies);
     k4.position = end.velocity;
     
+    // Combine the four estimates
     Body newState;
     newState.position = state.position + (k1.position + 2.0f * k2.position + 2.0f * k3.position + k4.position) * (deltaTime / 6.0f);
     newState.velocity = state.velocity + (k1.velocity + 2.0f * k2.velocity + 2.0f * k3.velocity + k4.velocity) * (deltaTime / 6.0f);
     
+    // Update fuel consumption
     if (currentFuel > 0.0f) {
         currentFuel = std::max(0.0f, currentFuel - delta_fuel);
         currentMass = currentMass - delta_fuel;
