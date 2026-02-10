@@ -7,7 +7,7 @@
 void OrbitalInfo::render(const Rocket& rocket, const BODY_MAP& bodies,
                           float panelX, float panelY) {
     ImGui::SetNextWindowPos(ImVec2(panelX, panelY), ImGuiCond_Always);
-    ImGui::SetNextWindowSize(ImVec2(220.0f, 320.0f), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(220.0f, 400.0f), ImGuiCond_Always);
     
     ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
                              ImGuiWindowFlags_NoCollapse;

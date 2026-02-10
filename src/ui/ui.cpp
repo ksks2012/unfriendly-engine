@@ -49,8 +49,8 @@ void UI::render(float timeScale, const Rocket& rocket, const Camera& camera, int
     ImGui::Text("Launched: %s", rocket.isLaunched() ? "Yes" : "No");
     ImGui::End();
 
-    // Thumbnail (top-left corner)
-    map_.render(width, height);
+    // Thumbnail (top-left corner) - Hidden
+    // map_.render(width, height);
 
     renderFPS();
     renderCameraMode(camera, width, height);
@@ -73,10 +73,10 @@ void UI::render(float timeScale, const Rocket& rocket, const Camera& camera, int
         navBall_.render(rocket, earthPos, navBallX, navBallY, navBallSize);
     }
     
-    // Render Orbital Info panel (positioned below Camera Control)
+    // Render Orbital Info panel (positioned below Camera Control, which is now at y=10, height=230)
     if (showOrbitalInfo_) {
         const auto& bodies = simulation_.getBodies();
-        orbitalInfo_.render(rocket, bodies, 10.0f, 460.0f);
+        orbitalInfo_.render(rocket, bodies, 10.0f, 250.0f);
     }
     
     // Render planet labels (must be called after NewFrame and before Render)
@@ -115,8 +115,8 @@ void UI::renderFPS() {
 }
 
 void UI::renderCameraMode(const Camera& camera, int width, int height) {
-    // Position below the Map View panel (Map is at y=10, height=200)
-    ImGui::SetNextWindowPos(ImVec2(10.0f, 220.0f), ImGuiCond_Always);
+    // Position at top-left (Map View is hidden)
+    ImGui::SetNextWindowPos(ImVec2(10.0f, 10.0f), ImGuiCond_Always);
     ImGui::SetNextWindowSize(ImVec2(220.0f, 230.0f), ImGuiCond_Always);
 
     ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
