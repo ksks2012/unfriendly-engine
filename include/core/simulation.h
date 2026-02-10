@@ -8,6 +8,7 @@
 #include "logging/logger.h"
 #include "core/flight_plan.h"
 #include "rendering/render_object.h"
+#include "rendering/saturn_rings.h"
 #include "core/rocket.h"
 #include "rendering/shader.h"
 #include "logging/spdlog_logger.h"
@@ -67,6 +68,9 @@ private:
     std::unique_ptr<RenderObject> mapEarth;
     std::unique_ptr<RenderObject> mapMoon;
     std::unique_ptr<RenderObject> mapRocket;
+    
+    // Saturn's rings
+    std::unique_ptr<SaturnRings> saturnRings_;
 
     std::shared_ptr<ILogger> logger_;
 };

@@ -281,6 +281,11 @@ void Simulation::init() {
     }
     LOG_INFO(logger_, "Simulation", "============================");
     
+    // Initialize Saturn's rings
+    saturnRings_ = std::make_unique<SaturnRings>(config.physics_saturn_radius);
+    saturnRings_->init();
+    LOG_INFO(logger_, "Simulation", "Saturn's rings initialized");
+    
     LOG_INFO(logger_, "Simulation", "All 8 planets initialized (Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, Neptune)");
     LOG_INFO(logger_, "Simulation", "Map objects initialized");
 }
@@ -469,6 +474,14 @@ void Simulation::render(const Shader& shader) const {
     renderPlanet("saturn", glm::vec4(0.9f, 0.8f, 0.5f, 1.0f));     // Pale yellow
     renderPlanet("uranus", glm::vec4(0.6f, 0.8f, 0.9f, 1.0f));     // Cyan/light blue
     renderPlanet("neptune", glm::vec4(0.2f, 0.3f, 0.8f, 1.0f));    // Deep blue
+    
+    // Render Saturn's rings (after Saturn's sphere, with proper blending)
+    if (saturnRings_ && bodies.find("saturn") != bodies.end()) {
+        glm::mat4 saturnModel = glm::translate(glm::mat4(1.0f), bodies.at("saturn")->position * scale);
+        saturnRings_->render(saturnModel, view, projection, scale);
+        // Restore main shader after ring rendering
+        shader.use();
+    }
 
     GLenum err = glGetError();
     if (err != GL_NO_ERROR) {
