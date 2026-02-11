@@ -78,10 +78,10 @@ set(TEST_SOURCES
 )
 add_executable(runTests ${TEST_SOURCES} ${HEADERS})
 target_link_libraries(runTests
-    /usr/local/lib/libgtest.a
-    /usr/local/lib/libgtest_main.a
-    /usr/local/lib/libgmock.a
-    /usr/local/lib/libgmock_main.a
+    /usr/lib/x86_64-linux-gnu/libgtest.a
+    /usr/lib/x86_64-linux-gnu/libgtest_main.a
+    /usr/lib/x86_64-linux-gnu/libgmock.a
+    /usr/lib/x86_64-linux-gnu/libgmock_main.a
     ${OPENGL_LIBRARIES}
     glfw
     GLEW::GLEW
