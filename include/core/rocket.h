@@ -23,16 +23,16 @@
 
 class Rocket : Body {
 private:
-    float predictionDuration, predictionStep; // Prediction parameters
+    float predictionDuration = 0.0f, predictionStep = 0.0f; // Prediction parameters
     float predictionTimer_ = 0.0f;            // Timer for prediction update frequency
     float predictionUpdateInterval_ = 2.0f;   // Update prediction every 2 seconds (reduced frequency)
 
     float fuel_mass;           // Fuel mass (kg)
     float thrust;              // Thrust (N)
     float exhaust_velocity;    // Exhaust velocity (m/s)
-    float time;                // Time (s)
-    glm::vec3 thrustDirection; // Thrust direction
-    bool launched;             // Whether the rocket is launched
+    float time = 0.0f;                // Time (s)
+    glm::vec3 thrustDirection = glm::vec3(0.0f); // Thrust direction
+    bool launched = false;             // Whether the rocket is launched
     glm::vec3 earthPosition_;  // Earth position for altitude calculations in heliocentric coordinates
     
     FlightPlan flightPlan;

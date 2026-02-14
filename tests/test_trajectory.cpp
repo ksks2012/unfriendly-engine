@@ -51,10 +51,11 @@ TEST_F(TrajectoryTest, UpdateValid) {
     auto traj = TrajectoryFactory::createRocketTrajectory(config, logger);
     traj->setRenderObject(std::move(mockRenderObject));
     traj->init();
-    traj->update(glm::vec3(0.0f, 6371000.0f, 0.0f), 0.1f);
+    // deltaTime must be >= sampleInterval (default 0.5s) to trigger a sample
+    traj->update(glm::vec3(0.0f, 6371000.0f, 0.0f), config.simulation_trajectory_sample_time);
     EXPECT_FALSE(traj->getPoints().empty());
     EXPECT_EQ(traj->getSampleTimer(), 0.0f);
-    EXPECT_EQ(traj->getPoints().size(), 1000);
+    EXPECT_EQ(traj->getPoints().size(), config.simulation_trajectory_max_points);
     EXPECT_EQ(traj->getPoints()[0], glm::vec3(0.0f, 6371000.0f, 0.0f));
 }
 
@@ -62,8 +63,8 @@ TEST_F(TrajectoryTest, Reset) {
     auto traj = TrajectoryFactory::createRocketTrajectory(config, logger);
     traj->setRenderObject(std::move(mockRenderObject));
     traj->init();
-    traj->update(glm::vec3(0.0f, 6371000.0f, 0.0f), 0.1f);
+    traj->update(glm::vec3(0.0f, 6371000.0f, 0.0f), config.simulation_trajectory_sample_time);
     traj->reset();
-    EXPECT_EQ(traj->getPoints().size(), 1000);
+    EXPECT_EQ(traj->getPoints().size(), config.simulation_trajectory_max_points);
     EXPECT_EQ(traj->getSampleTimer(), 0.0f);
 }

@@ -48,7 +48,7 @@ TEST(ConfigTest, MoonParameters) {
     EXPECT_FLOAT_EQ(config.physics_moon_radius, 1737100.0f);
     EXPECT_FLOAT_EQ(config.physics_moon_mass, 7.34767309e22f);
     EXPECT_FLOAT_EQ(config.physics_moon_distance, 384400000.0f);
-    EXPECT_FLOAT_EQ(config.physics_moon_gravity_constant, 1.982e-14f);
+    EXPECT_FLOAT_EQ(config.physics_moon_gravity_constant, 6.674e-11f);
     EXPECT_FLOAT_EQ(config.physics_moon_gravity, 1.62f);
 
     std::ofstream file("./var/test_moon_config.json");
@@ -65,7 +65,7 @@ TEST(ConfigTest, MoonParameters) {
     EXPECT_FLOAT_EQ(config.physics_moon_radius, 173710.0f);
     EXPECT_FLOAT_EQ(config.physics_moon_mass, 7.34767309e21f);
     EXPECT_FLOAT_EQ(config.physics_moon_distance, 38440000.0f);
-    EXPECT_FLOAT_EQ(config.physics_moon_gravity_constant, 1.982e-14f);
+    EXPECT_FLOAT_EQ(config.physics_moon_gravity_constant, 6.674e-11f);
     EXPECT_FLOAT_EQ(config.physics_moon_gravity, 1.62f);
 }
 
