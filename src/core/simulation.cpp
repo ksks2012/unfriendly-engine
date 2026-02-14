@@ -295,6 +295,9 @@ void Simulation::update(float deltaTime) {
     elapsed_time += deltaTime * timeScale;
     float dt = deltaTime * timeScale;
     
+    // Build Barnes-Hut octree once per frame for O(n log n) gravity
+    buildOctree();
+    
     // Step 1: Update all celestial bodies (Velocity Verlet)
     std::vector<std::pair<std::string, glm::vec3>> current_accs;
     for (const auto& [name, body] : bodies) {
@@ -305,6 +308,9 @@ void Simulation::update(float deltaTime) {
     for (const auto& [name, body] : bodies) {
         body->position += body->velocity * dt + 0.5f * current_accs[std::distance(bodies.begin(), bodies.find(name))].second * dt * dt;
     }
+    
+    // Rebuild octree after position update for accurate new accelerations
+    buildOctree();
     
     // Calculate new accelerations and update velocities
     for (auto& [name, body] : bodies) {
@@ -321,7 +327,7 @@ void Simulation::update(float deltaTime) {
         body->update(dt);
     }
     
-    rocket.update(dt, bodies);
+    rocket.update(dt, bodies, &octree_);
     
     float moon_radius = glm::length(bodies["moon"]->position);
     LOG_ORBIT(logger_, "Moon", elapsed_time, bodies["moon"]->position, moon_radius, bodies["moon"]->velocity);
@@ -680,20 +686,18 @@ void Simulation::focusOnBody(const std::string& bodyName) {
              std::to_string(viewDistance) + " km)");
 }
 
-glm::vec3 Simulation::computeBodyAcceleration(const Body& body, const BODY_MAP& bodies) const {
-    glm::vec3 acc(0.0f);
-    for (const auto& [name, other] : bodies) {
-        if (other.get() != &body) {
-            glm::vec3 delta = body.position - other->position;
-            float r = glm::length(delta);
-            if (r > 1e-6f) {
-                acc -= (config.physics_gravity_constant * other->mass / (r * r * r)) * delta;
-            } else {
-                LOG_WARN(logger_, "Simulation", "Close encounter detected for " + name);
-            }
-        }
+void Simulation::buildOctree() {
+    std::vector<OctreeBody> octreeBodies;
+    octreeBodies.reserve(bodies.size());
+    for (const auto& [name, body] : bodies) {
+        octreeBodies.emplace_back(body->position, body->mass, name);
     }
-    return acc;
+    octree_.build(octreeBodies);
+}
+
+glm::vec3 Simulation::computeBodyAcceleration(const Body& body, const BODY_MAP& bodies) const {
+    // Use Barnes-Hut octree for O(n log n) gravitational force calculation
+    return octree_.computeAcceleration(body.position, config.physics_gravity_constant);
 }
 
 float Simulation::getTimeScale() const { 

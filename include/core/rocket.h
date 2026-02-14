@@ -6,6 +6,7 @@
 #include "body.h"
 #include "app/config.h"
 #include "core/flight_plan.h"
+#include "core/octree.h"
 #include "logging/logger.h"
 #include "rendering/shader.h"
 #include "rendering/render_object.h"
@@ -49,19 +50,19 @@ private:
 
     // Private functions
     // Runge-Kutta 4th order method
-    glm::vec3 computeAccelerationRK4(float currentMass, const BODY_MAP& bodies) const;
-    glm::vec3 computeAccelerationAt(const glm::vec3& pos, const glm::vec3& vel, float currentMass, const BODY_MAP& bodies) const;
+    glm::vec3 computeAccelerationRK4(float currentMass, const BODY_MAP& bodies, const Octree* octree = nullptr) const;
+    glm::vec3 computeAccelerationAt(const glm::vec3& pos, const glm::vec3& vel, float currentMass, const BODY_MAP& bodies, const Octree* octree = nullptr) const;
     void updateTrajectory();
     glm::vec3 offsetPosition() const;
     glm::vec3 offsetPosition(glm::vec3) const;
-    Body updateStateRK4(const Body& state, float deltaTime, float& currentMass, float& currentFuel, const BODY_MAP& bodies) const;
+    Body updateStateRK4(const Body& state, float deltaTime, float& currentMass, float& currentFuel, const BODY_MAP& bodies, const Octree* octree = nullptr) const;
 
 public:
     Rocket(const Config&, std::shared_ptr<ILogger> logger, const FlightPlan&);
 
     // Public functions
     void init();
-    void update(float, const BODY_MAP&);
+    void update(float, const BODY_MAP&, const Octree* octree = nullptr);
     void render(const Shader&) const;
     void toggleLaunch();
     void resetTime();
@@ -85,7 +86,7 @@ public:
     void setEarthPosition(const glm::vec3& pos) { earthPosition_ = pos; }
 
     // Prediction
-    void predictTrajectory(float, float, const BODY_MAP&);
+    void predictTrajectory(float, float, const BODY_MAP&, const Octree* octree = nullptr);
 };
 
 #endif

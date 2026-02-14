@@ -7,6 +7,7 @@
 #include "rendering/camera.h"
 #include "logging/logger.h"
 #include "core/flight_plan.h"
+#include "core/octree.h"
 #include "rendering/render_object.h"
 #include "rendering/saturn_rings.h"
 #include "core/rocket.h"
@@ -71,6 +72,12 @@ private:
     
     // Saturn's rings
     std::unique_ptr<SaturnRings> saturnRings_;
+
+    // Barnes-Hut octree for O(n log n) gravitational force calculation
+    Octree octree_;
+
+    // Build octree from current body state (call once per frame)
+    void buildOctree();
 
     std::shared_ptr<ILogger> logger_;
 };

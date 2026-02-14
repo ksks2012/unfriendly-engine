@@ -63,7 +63,7 @@ void Rocket::init() {
     prediction_->init();
 }
 
-void Rocket::update(float deltaTime, const BODY_MAP& bodies) {
+void Rocket::update(float deltaTime, const BODY_MAP& bodies, const Octree* octree) {
     // Update Earth position for altitude calculations
     glm::vec3 previousEarthPosition = earthPosition_;
     if (bodies.find("earth") != bodies.end()) {
@@ -86,7 +86,7 @@ void Rocket::update(float deltaTime, const BODY_MAP& bodies) {
         if (prediction_ && deltaTime > 0.0f) {
             predictionTimer_ += deltaTime;
             if (predictionTimer_ >= predictionUpdateInterval_) {
-                predictTrajectory(config_.simulation_prediction_duration, config_.simulation_prediction_step, bodies);
+                predictTrajectory(config_.simulation_prediction_duration, config_.simulation_prediction_step, bodies, octree);
                 predictionTimer_ = 0.0f;
             }
         }
@@ -102,14 +102,14 @@ void Rocket::update(float deltaTime, const BODY_MAP& bodies) {
         // Update prediction less frequently to improve performance
         predictionTimer_ += deltaTime;
         if (predictionTimer_ >= predictionUpdateInterval_) {
-            predictTrajectory(config_.simulation_prediction_duration, config_.simulation_prediction_step, bodies);
+            predictTrajectory(config_.simulation_prediction_duration, config_.simulation_prediction_step, bodies, octree);
             predictionTimer_ = 0.0f;
         }
     }
     
     Body current = *this;
     float currentMass = mass;
-    Body newState = updateStateRK4(current, deltaTime, currentMass, fuel_mass, bodies);
+    Body newState = updateStateRK4(current, deltaTime, currentMass, fuel_mass, bodies, octree);
     position = newState.position;
     velocity = newState.velocity;
     mass = currentMass;
@@ -288,21 +288,25 @@ void Rocket::setTrajectoryRender(std::unique_ptr<IRenderObject> trajectory, std:
 
 // private
 
-glm::vec3 Rocket::computeAccelerationRK4(float currentMass, const BODY_MAP& bodies) const {
+glm::vec3 Rocket::computeAccelerationRK4(float currentMass, const BODY_MAP& bodies, const Octree* octree) const {
     // This version uses the rocket's current position/velocity (for real-time update)
-    return computeAccelerationAt(position, velocity, currentMass, bodies);
+    return computeAccelerationAt(position, velocity, currentMass, bodies, octree);
 }
 
-glm::vec3 Rocket::computeAccelerationAt(const glm::vec3& pos, const glm::vec3& vel, float currentMass, const BODY_MAP& bodies) const {
+glm::vec3 Rocket::computeAccelerationAt(const glm::vec3& pos, const glm::vec3& vel, float currentMass, const BODY_MAP& bodies, const Octree* octree) const {
     glm::vec3 acc(0.0f);
     
-    // Gravity from all bodies
-    for (const auto& [name, body] : bodies) {
-        if (body.get() != this) {
-            glm::vec3 delta = pos - body->position;
-            float r = glm::length(delta);
-            if (r > 1e-6f) {
-                acc -= (config_.physics_gravity_constant * body->mass / (r * r * r)) * delta;
+    // Gravity from all bodies: use Barnes-Hut octree if available, else direct summation
+    if (octree) {
+        acc = octree->computeAcceleration(pos, config_.physics_gravity_constant);
+    } else {
+        for (const auto& [name, body] : bodies) {
+            if (body.get() != this) {
+                glm::vec3 delta = pos - body->position;
+                float r = glm::length(delta);
+                if (r > 1e-6f) {
+                    acc -= (config_.physics_gravity_constant * body->mass / (r * r * r)) * delta;
+                }
             }
         }
     }
@@ -341,7 +345,7 @@ glm::vec3 Rocket::offsetPosition(glm::vec3 inputPosition) const {
     return inputPosition * config_.simulation_rendering_scale;
 }
 
-void Rocket::predictTrajectory(float duration, float step, const BODY_MAP& bodies) {
+void Rocket::predictTrajectory(float duration, float step, const BODY_MAP& bodies, const Octree* octree) {
     LOG_DEBUG(logger_, "Rocket", "predictTrajectory");
 
     // Reset prediction trajectory before recalculating
@@ -396,13 +400,13 @@ void Rocket::predictTrajectory(float duration, float step, const BODY_MAP& bodie
         }
         
         // Use actual bodies for gravity calculation in prediction
-        state = updateStateRK4(state, adaptiveStep, predMass, predFuel, bodies);
+        state = updateStateRK4(state, adaptiveStep, predMass, predFuel, bodies, octree);
         predTime += adaptiveStep;
         timeSinceLastRender += adaptiveStep;
     }
 }
 
-Body Rocket::updateStateRK4(const Body& state, float deltaTime, float& currentMass, float& currentFuel, const BODY_MAP& bodies) const {
+Body Rocket::updateStateRK4(const Body& state, float deltaTime, float& currentMass, float& currentFuel, const BODY_MAP& bodies, const Octree* octree) const {
     float fuel_consumption_rate = thrust / exhaust_velocity;
     float delta_fuel = fuel_consumption_rate * deltaTime;
     
@@ -410,28 +414,28 @@ Body Rocket::updateStateRK4(const Body& state, float deltaTime, float& currentMa
     Body k1, k2, k3, k4;
     
     // k1: acceleration at current state
-    k1.velocity = computeAccelerationAt(state.position, state.velocity, currentMass, bodies);
+    k1.velocity = computeAccelerationAt(state.position, state.velocity, currentMass, bodies, octree);
     k1.position = state.velocity;
     
     // k2: acceleration at midpoint using k1
     Body mid1;
     mid1.position = state.position + k1.position * (deltaTime / 2.0f);
     mid1.velocity = state.velocity + k1.velocity * (deltaTime / 2.0f);
-    k2.velocity = computeAccelerationAt(mid1.position, mid1.velocity, currentMass, bodies);
+    k2.velocity = computeAccelerationAt(mid1.position, mid1.velocity, currentMass, bodies, octree);
     k2.position = mid1.velocity;
     
     // k3: acceleration at midpoint using k2
     Body mid2;
     mid2.position = state.position + k2.position * (deltaTime / 2.0f);
     mid2.velocity = state.velocity + k2.velocity * (deltaTime / 2.0f);
-    k3.velocity = computeAccelerationAt(mid2.position, mid2.velocity, currentMass, bodies);
+    k3.velocity = computeAccelerationAt(mid2.position, mid2.velocity, currentMass, bodies, octree);
     k3.position = mid2.velocity;
     
     // k4: acceleration at endpoint using k3
     Body end;
     end.position = state.position + k3.position * deltaTime;
     end.velocity = state.velocity + k3.velocity * deltaTime;
-    k4.velocity = computeAccelerationAt(end.position, end.velocity, currentMass, bodies);
+    k4.velocity = computeAccelerationAt(end.position, end.velocity, currentMass, bodies, octree);
     k4.position = end.velocity;
     
     // Combine the four estimates
