@@ -34,6 +34,11 @@ public:
 private:
     GLuint vao, vbo, ebo;
     GLsizei indexCount;
+
+    // Lazy-initialized EBO for bridging two segments of a ring-buffer trajectory.
+    // Mutable because it is created on first use during const render calls.
+    mutable GLuint bridgeEBO_ = 0;
+    void ensureBridgeEBO() const;
 };
 
 #endif

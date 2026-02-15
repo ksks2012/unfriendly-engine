@@ -35,6 +35,9 @@ RenderObject::~RenderObject() {
     glDeleteVertexArrays(1, &vao);
     glDeleteBuffers(1, &vbo);
     glDeleteBuffers(1, &ebo);
+    if (bridgeEBO_) {
+        glDeleteBuffers(1, &bridgeEBO_);
+    }
 }
 
 void RenderObject::render() const {
@@ -51,6 +54,16 @@ GLuint RenderObject::getVbo() const {
     return vbo;
 }
 
+void RenderObject::ensureBridgeEBO() const {
+    if (bridgeEBO_ == 0) {
+        glGenBuffers(1, &bridgeEBO_);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bridgeEBO_);
+        // Allocate space for 2 indices; actual values written per draw call
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, 2 * sizeof(GLuint), nullptr, GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    }
+}
+
 void RenderObject::renderTrajectory(size_t head, size_t count, size_t maxSize) const {
     if (count == 0) return;
     
@@ -60,24 +73,32 @@ void RenderObject::renderTrajectory(size_t head, size_t count, size_t maxSize) c
     glLineWidth(2.0f);
     glBindVertexArray(vao);
     
-    if (count == maxSize) {
-        // Buffer is full, need to draw in two parts
-        // First part: from head to end of buffer (older points)
+    if (count == maxSize && head > 0) {
+        // Buffer is full (ring buffer wrapped around).
+        // head points to the NEXT write position, so it's also the oldest point.
+        //
+        // Draw order: oldest data first → newest data
+        //   Part 1: [head .. maxSize-1]
+        //   Bridge:  maxSize-1 → 0
+        //   Part 2: [0 .. head-1]
+
+        // Part 1: old points [head .. maxSize-1]
         size_t firstPartCount = maxSize - head;
-        if (firstPartCount > 0) {
-            glDrawArrays(GL_LINE_STRIP, head, firstPartCount);
-        }
-        // Second part: from beginning to head (newer points)
-        if (head > 0) {
-            glDrawArrays(GL_LINE_STRIP, 0, head);
-        }
-        // Connect the two parts with a single line segment
-        // This requires drawing the last point of first part to first point of second part
-        if (firstPartCount > 0 && head > 0) {
-            // Draw connection line between end and start
-            GLint connectIndices[2] = { static_cast<GLint>(maxSize - 1), 0 };
-            glDrawElements(GL_LINES, 2, GL_UNSIGNED_INT, connectIndices);
-        }
+        glDrawArrays(GL_LINE_STRIP, head, firstPartCount);
+        
+        // Bridge: connect last vertex of part 1 (maxSize-1) to first vertex of part 2 (0)
+        ensureBridgeEBO();
+        GLuint bridgeIndices[2] = { static_cast<GLuint>(maxSize - 1), 0 };
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bridgeEBO_);
+        glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sizeof(bridgeIndices), bridgeIndices);
+        glDrawElements(GL_LINES, 2, GL_UNSIGNED_INT, nullptr);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        
+        // Part 2: new points [0 .. head-1]
+        glDrawArrays(GL_LINE_STRIP, 0, head);
+    } else if (count == maxSize && head == 0) {
+        // Special case: head wrapped exactly to 0, entire buffer is in order
+        glDrawArrays(GL_LINE_STRIP, 0, maxSize);
     } else {
         // Buffer not full, draw from beginning to count
         glDrawArrays(GL_LINE_STRIP, 0, count);
