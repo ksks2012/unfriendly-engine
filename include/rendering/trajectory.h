@@ -62,6 +62,21 @@ private:
     float sampleTimer_;
     glm::vec3 center_ = glm::vec3(0.0f);  // Orbit center point
 
+    // Dirty region tracking for batched VBO upload.
+    // Instead of calling glBufferSubData on every point insertion,
+    // we record which indices were modified and flush them all at once
+    // before rendering, reducing GPU upload calls from N to 1-2 per frame.
+    bool dirty_ = false;
+    size_t dirtyStart_ = 0;  // First modified index in the ring buffer
+    size_t dirtyEnd_ = 0;    // One past the last modified index
+    bool dirtyWrapped_ = false;  // True if dirty region wraps around the ring buffer
+
+    // Flush pending point data to the GPU (called before render)
+    void flushToGPU();
+
+    // Mark an index as modified
+    void markDirty(size_t index);
+
     // Convert simulation coordinates to rendering coordinates
     glm::vec3 offsetPosition(const glm::vec3& position) const;
 };

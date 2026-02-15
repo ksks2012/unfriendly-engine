@@ -66,18 +66,95 @@ void Trajectory::update(const glm::vec3& position, float deltaTime) {
         }
     }
 
-    // Add new point
+    // Add new point (CPU side only, defer GPU upload to flushToGPU)
     points_[head_] = position;
-    
-    // Update GPU buffer with new point data
-    size_t offset = head_ * 3 * sizeof(GLfloat);
-    GLfloat vertex[3] = {position.x, position.y, position.z};
-    renderObject_->updateBuffer(offset, 3 * sizeof(GLfloat), vertex);
+    markDirty(head_);
 
     head_ = (head_ + 1) % config_.maxPoints;
     if (count_ < config_.maxPoints) {
         count_++;
     }
+}
+
+void Trajectory::markDirty(size_t index) {
+    if (!dirty_) {
+        // First dirty point this frame
+        dirty_ = true;
+        dirtyStart_ = index;
+        dirtyEnd_ = index + 1;
+        dirtyWrapped_ = false;
+    } else {
+        // Extend dirty region
+        size_t nextEnd = index + 1;
+        if (nextEnd <= dirtyStart_) {
+            // New point is before the current start — wrap-around detected
+            dirtyWrapped_ = true;
+            dirtyEnd_ = nextEnd;
+        } else {
+            dirtyEnd_ = nextEnd;
+        }
+    }
+}
+
+void Trajectory::flushToGPU() {
+    if (!dirty_ || !renderObject_) {
+        return;
+    }
+
+    if (!dirtyWrapped_) {
+        // Contiguous region: single upload
+        size_t startOffset = dirtyStart_ * 3 * sizeof(GLfloat);
+        size_t count = dirtyEnd_ - dirtyStart_;
+        std::vector<GLfloat> buffer(count * 3);
+        for (size_t i = 0; i < count; ++i) {
+            const auto& p = points_[dirtyStart_ + i];
+            buffer[i * 3 + 0] = p.x;
+            buffer[i * 3 + 1] = p.y;
+            buffer[i * 3 + 2] = p.z;
+        }
+        renderObject_->updateBuffer(
+            static_cast<GLintptr>(startOffset),
+            static_cast<GLsizei>(buffer.size() * sizeof(GLfloat)),
+            buffer.data());
+    } else {
+        // Wrapped region: two uploads (tail portion + head portion)
+        // Part 1: from dirtyStart_ to end of buffer
+        size_t tailCount = config_.maxPoints - dirtyStart_;
+        if (tailCount > 0) {
+            size_t startOffset = dirtyStart_ * 3 * sizeof(GLfloat);
+            std::vector<GLfloat> buffer(tailCount * 3);
+            for (size_t i = 0; i < tailCount; ++i) {
+                const auto& p = points_[dirtyStart_ + i];
+                buffer[i * 3 + 0] = p.x;
+                buffer[i * 3 + 1] = p.y;
+                buffer[i * 3 + 2] = p.z;
+            }
+            renderObject_->updateBuffer(
+                static_cast<GLintptr>(startOffset),
+                static_cast<GLsizei>(buffer.size() * sizeof(GLfloat)),
+                buffer.data());
+        }
+        // Part 2: from 0 to dirtyEnd_
+        if (dirtyEnd_ > 0) {
+            std::vector<GLfloat> buffer(dirtyEnd_ * 3);
+            for (size_t i = 0; i < dirtyEnd_; ++i) {
+                const auto& p = points_[i];
+                buffer[i * 3 + 0] = p.x;
+                buffer[i * 3 + 1] = p.y;
+                buffer[i * 3 + 2] = p.z;
+            }
+            renderObject_->updateBuffer(
+                0,
+                static_cast<GLsizei>(buffer.size() * sizeof(GLfloat)),
+                buffer.data());
+        }
+    }
+
+    // Reset dirty state
+    dirty_ = false;
+    dirtyStart_ = 0;
+    dirtyEnd_ = 0;
+    dirtyWrapped_ = false;
 }
 
 void Trajectory::render(const Shader& shader) const {
@@ -89,6 +166,11 @@ void Trajectory::render(const Shader& shader, const glm::vec3& center) const {
     if (count_ == 0) {
         return;
     }
+    
+    // Flush any pending point data to GPU before drawing
+    // (const_cast is safe here: flushToGPU only mutates internal dirty tracking
+    // state and GPU buffer, not the logical trajectory data)
+    const_cast<Trajectory*>(this)->flushToGPU();
     
     // Apply translation to orbit center
     glm::mat4 model = glm::translate(glm::mat4(1.0f), center);
