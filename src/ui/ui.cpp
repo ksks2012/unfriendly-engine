@@ -47,6 +47,9 @@ void UI::render(float timeScale, const Rocket& rocket, const Camera& camera, int
     ImGui::Text("Altitude: %.1f m", glm::length(rocket.getPosition()) - 6371000.0f);
     ImGui::Text("Time: %.1f s", rocket.getTime());
     ImGui::Text("Launched: %s", rocket.isLaunched() ? "Yes" : "No");
+    if (rocket.isCrashed()) {
+        ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.2f, 1.0f), "*** CRASHED ***");
+    }
     ImGui::End();
 
     // Thumbnail (top-left corner) - Hidden

@@ -27,13 +27,31 @@ private:
     float predictionTimer_ = 0.0f;            // Timer for prediction update frequency
     float predictionUpdateInterval_ = 2.0f;   // Update prediction every 2 seconds (reduced frequency)
 
+    // Cache the initial state used for the last prediction.
+    // If the rocket's state hasn't changed significantly since the last prediction,
+    // we skip the expensive recalculation (500 RK4 steps × 4 force evaluations each).
+    bool predictionDirty_ = true;             // Force first prediction
+    glm::vec3 lastPredPos_ = glm::vec3(0.0f);
+    glm::vec3 lastPredVel_ = glm::vec3(0.0f);
+    float lastPredThrust_ = 0.0f;
+    float lastPredFuelMass_ = 0.0f;
+
+    // Check if prediction needs to be recalculated based on state changes
+    bool needsPredictionUpdate() const;
+
     float fuel_mass;           // Fuel mass (kg)
     float thrust;              // Thrust (N)
     float exhaust_velocity;    // Exhaust velocity (m/s)
     float time = 0.0f;                // Time (s)
-    glm::vec3 thrustDirection = glm::vec3(0.0f); // Thrust direction
+    glm::vec3 thrustDirection = glm::vec3(0.0f); // Thrust direction (in local frame relative to Earth surface)
     bool launched = false;             // Whether the rocket is launched
+    bool crashed_ = false;             // Whether the rocket has crashed
     glm::vec3 earthPosition_;  // Earth position for altitude calculations in heliocentric coordinates
+
+    // Convert a local thrust direction (relative to Earth surface at rocket position)
+    // to world-space direction in heliocentric coordinates.
+    // Local frame: Y = radially outward from Earth center, X/Z = tangential.
+    glm::vec3 localToWorldDirection(const glm::vec3& localDir) const;
     
     FlightPlan flightPlan;
 
@@ -73,6 +91,7 @@ public:
     glm::vec3 getRenderPosition() const;  // Get position in rendering coordinates
     float getTime() const;
     bool isLaunched() const;
+    bool isCrashed() const;
     float getMass() const;
     float getFuelMass() const;
     float getThrust() const;

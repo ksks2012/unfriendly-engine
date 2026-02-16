@@ -119,17 +119,26 @@ void Rocket::update(float deltaTime, const BODY_MAP& bodies, const Octree* octre
     float distanceFromEarthCenter = glm::length(relativeToEarth);
     float altitude = distanceFromEarthCenter - config_.physics_earth_radius;
     if (altitude < 0.0f) {
-        // Crashed into Earth
+        // Crashed into Earth: clamp position to surface, match Earth velocity
+        LOG_INFO(logger_, "Rocket", "Crashed into Earth at altitude " + std::to_string(altitude));
         glm::vec3 dirFromEarth = glm::normalize(relativeToEarth);
         position = earthPosition_ + dirFromEarth * config_.physics_earth_radius;
-        velocity = glm::vec3(0.0f);
+        // Match Earth orbital velocity so the rocket stays on the surface
+        if (bodies.find("earth") != bodies.end()) {
+            velocity = bodies.at("earth")->velocity;
+        } else {
+            velocity = glm::vec3(0.0f);
+        }
         launched = false;
+        crashed_ = true;
+        predictionDirty_ = true;
     }
     
     auto action = flightPlan.getAction(altitude, glm::length(velocity));
     if (action) {
         thrust = action->thrust;
         thrustDirection = action->direction;
+        predictionDirty_ = true;  // Thrust/direction change invalidates prediction
     }
 }
 
@@ -210,6 +219,8 @@ void Rocket::render(const Shader& shader) const {
 
 void Rocket::toggleLaunch() {
     launched = !launched;
+    crashed_ = false;  // Clear crash state on any launch toggle
+    predictionDirty_ = true;  // Force prediction recalculation on launch state change
     // NOTE: Wind force can be added here if needed
     // NOTE: Initial horizontal velocity to enter orbit (approximately the first cosmic velocity)
     if (!launched) {
@@ -240,6 +251,10 @@ float Rocket::getTime() const {
 
 bool Rocket::isLaunched() const { 
     return launched; 
+}
+
+bool Rocket::isCrashed() const {
+    return crashed_;
 }
 
 float Rocket::getMass() const { 
@@ -311,9 +326,10 @@ glm::vec3 Rocket::computeAccelerationAt(const glm::vec3& pos, const glm::vec3& v
         }
     }
     
-    // Thrust
+    // Thrust: convert local-frame thrustDirection to world-space
     if (fuel_mass > 0.0f && currentMass > 0.0f) {
-        acc += (thrust / currentMass) * thrustDirection;
+        glm::vec3 worldThrust = localToWorldDirection(thrustDirection);
+        acc += (thrust / currentMass) * worldThrust;
     }
     
     // Atmospheric drag (relative to Earth)
@@ -345,8 +361,66 @@ glm::vec3 Rocket::offsetPosition(glm::vec3 inputPosition) const {
     return inputPosition * config_.simulation_rendering_scale;
 }
 
+glm::vec3 Rocket::localToWorldDirection(const glm::vec3& localDir) const {
+    // Build a local coordinate frame at the rocket's position relative to Earth.
+    // Local Y = radially outward from Earth center (the "up" direction at launch site)
+    // Local X = arbitrary tangential direction (eastward-like)
+    // Local Z = completes the right-handed frame
+    glm::vec3 radial = position - earthPosition_;
+    float r = glm::length(radial);
+    if (r < 1e-6f) {
+        return localDir;  // Degenerate: rocket at Earth center
+    }
+    
+    glm::vec3 up = radial / r;  // Local Y: radially outward
+    
+    // Choose a reference vector that's not parallel to up for cross product
+    glm::vec3 ref = (std::abs(glm::dot(up, glm::vec3(0, 0, 1))) < 0.99f)
+                   ? glm::vec3(0, 0, 1) : glm::vec3(1, 0, 0);
+    
+    glm::vec3 east = glm::normalize(glm::cross(ref, up));  // Local X: tangential
+    glm::vec3 north = glm::cross(up, east);                 // Local Z: completes frame
+    
+    // Transform: world_dir = east * localDir.x + up * localDir.y + north * localDir.z
+    return east * localDir.x + up * localDir.y + north * localDir.z;
+}
+
+bool Rocket::needsPredictionUpdate() const {
+    // Always compute on first call
+    if (predictionDirty_) return true;
+
+    // Position change threshold: if the rocket has moved significantly
+    // relative to its orbit, the old prediction is stale.
+    // Use a fraction of Earth's radius as a meaningful distance.
+    constexpr float posThreshold = 1000.0f;       // 1 km
+    constexpr float velThreshold = 1.0f;           // 1 m/s
+    constexpr float thrustEps    = 0.01f;          // Thrust on/off change
+    constexpr float fuelEps      = 0.01f;          // Fuel consumption change
+
+    float dPos = glm::length(position - lastPredPos_);
+    float dVel = glm::length(velocity - lastPredVel_);
+    float dThrust = std::abs(thrust - lastPredThrust_);
+    float dFuel = std::abs(fuel_mass - lastPredFuelMass_);
+
+    return dPos > posThreshold || dVel > velThreshold
+        || dThrust > thrustEps || dFuel > fuelEps;
+}
+
 void Rocket::predictTrajectory(float duration, float step, const BODY_MAP& bodies, const Octree* octree) {
     LOG_DEBUG(logger_, "Rocket", "predictTrajectory");
+
+    // Skip expensive recalculation if state hasn't changed significantly
+    if (!needsPredictionUpdate()) {
+        LOG_DEBUG(logger_, "Rocket", "Prediction skipped - state unchanged");
+        return;
+    }
+
+    // Cache the state we're basing this prediction on
+    lastPredPos_      = position;
+    lastPredVel_      = velocity;
+    lastPredThrust_   = thrust;
+    lastPredFuelMass_ = fuel_mass;
+    predictionDirty_  = false;
 
     // Reset prediction trajectory before recalculating
     prediction_->reset();
