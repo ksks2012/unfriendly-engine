@@ -9,12 +9,12 @@
  */
 Simulation::Simulation(Camera &camera) 
     : config(Config()), logger_(std::make_shared<SpdlogLogger>()), rocket(config, logger_, FlightPlan(config.flight_plan_path)), 
-        camera(camera), moonPos(0.0f, 384400000.0f, 0.0f) {
+        camera(camera), moonPos(0.0, 384400000.0, 0.0) {
 }
 
 Simulation::Simulation(Config& config, std::shared_ptr<ILogger> logger, Camera& camera) : 
         config(config), rocket(config, logger, FlightPlan(config.flight_plan_path)), 
-        logger_(logger), camera(camera), timeScale(1.0f), moonPos(0.0f, 384400000.0f, 0.0f) {
+        logger_(logger), camera(camera), timeScale(1.0f), moonPos(0.0, 384400000.0, 0.0) {
     if (!logger_) {
         throw std::runtime_error("Logger is null");
     }
@@ -27,13 +27,13 @@ void Simulation::init() {
     LOG_DEBUG(logger_, "Simulation", "Initializing simulation...");
     
     // Sun at origin (heliocentric coordinate system)
-    bodies["sun"] = std::make_unique<Body>(config, logger_, "sun", config.physics_sun_mass, glm::vec3(0.0f), glm::vec3(0.0f));
+    bodies["sun"] = std::make_unique<Body>(config, logger_, "sun", config.physics_sun_mass, glm::dvec3(0.0), glm::dvec3(0.0));
     
     // Mercury - innermost planet
     // Orbital inclination: 7.005° to ecliptic
     {
-        glm::vec3 pos = glm::vec3(config.physics_mercury_orbit_radius, 0.0f, 0.0f);
-        glm::vec3 vel = glm::vec3(0.0f, 0.0f, config.physics_mercury_orbital_velocity);
+        glm::dvec3 pos = glm::dvec3(config.physics_mercury_orbit_radius, 0.0, 0.0);
+        glm::dvec3 vel = glm::dvec3(0.0, 0.0, config.physics_mercury_orbital_velocity);
         bodies["mercury"] = std::make_unique<Body>(config, logger_, "mercury", config.physics_mercury_mass, pos, vel);
         bodies["mercury"]->setTrajectory(TrajectoryFactory::createPlanetOrbit(
             config, logger_, config.physics_mercury_orbit_radius,
@@ -45,8 +45,8 @@ void Simulation::init() {
     // Venus - second planet
     // Orbital inclination: 3.395° to ecliptic
     {
-        glm::vec3 pos = glm::vec3(config.physics_venus_orbit_radius, 0.0f, 0.0f);
-        glm::vec3 vel = glm::vec3(0.0f, 0.0f, config.physics_venus_orbital_velocity);
+        glm::dvec3 pos = glm::dvec3(config.physics_venus_orbit_radius, 0.0, 0.0);
+        glm::dvec3 vel = glm::dvec3(0.0, 0.0, config.physics_venus_orbital_velocity);
         bodies["venus"] = std::make_unique<Body>(config, logger_, "venus", config.physics_venus_mass, pos, vel);
         bodies["venus"]->setTrajectory(TrajectoryFactory::createPlanetOrbit(
             config, logger_, config.physics_venus_orbit_radius,
@@ -56,8 +56,8 @@ void Simulation::init() {
     }
     
     // Earth orbiting the Sun (1 AU distance, orbital velocity ~29.78 km/s)
-    glm::vec3 earthPos = glm::vec3(config.physics_earth_orbit_radius, 0.0f, 0.0f);
-    glm::vec3 earthVel = glm::vec3(0.0f, 0.0f, config.physics_earth_orbital_velocity); // Perpendicular to position
+    glm::dvec3 earthPos = glm::dvec3(config.physics_earth_orbit_radius, 0.0, 0.0);
+    glm::dvec3 earthVel = glm::dvec3(0.0, 0.0, config.physics_earth_orbital_velocity); // Perpendicular to position
     bodies["earth"] = std::make_unique<Body>(config, logger_, "earth", config.physics_earth_mass, earthPos, earthVel);
     
     // Moon orbiting Earth with ~5.145° orbital inclination relative to the ecliptic
@@ -66,16 +66,16 @@ void Simulation::init() {
     
     // Moon position: in the inclined orbital plane
     // Start with position in the ecliptic (X-Z plane), then apply inclination
-    float moonDistLocal_z = config.physics_moon_distance; // Moon along +Z in local orbital plane
-    float moonPosY = moonDistLocal_z * std::sin(lunarInclination);
-    float moonPosZ = moonDistLocal_z * std::cos(lunarInclination);
-    glm::vec3 moonPos = earthPos + glm::vec3(0.0f, moonPosY, moonPosZ);
+    double moonDistLocal_z = config.physics_moon_distance; // Moon along +Z in local orbital plane
+    double moonPosY = moonDistLocal_z * std::sin(lunarInclination);
+    double moonPosZ = moonDistLocal_z * std::cos(lunarInclination);
+    glm::dvec3 moonPos = earthPos + glm::dvec3(0.0, moonPosY, moonPosZ);
     
     // Moon velocity: orbital velocity (~1022 m/s) perpendicular to position in the inclined plane
     // In the inclined plane, velocity is along -X when position is along +Z
-    const float moonOrbitalSpeed = 1022.0f;
-    glm::vec3 moonVelRelative = glm::vec3(-moonOrbitalSpeed, 0.0f, 0.0f);
-    glm::vec3 moonVel = earthVel + moonVelRelative;
+    const double moonOrbitalSpeed = 1022.0;
+    glm::dvec3 moonVelRelative = glm::dvec3(-moonOrbitalSpeed, 0.0, 0.0);
+    glm::dvec3 moonVel = earthVel + moonVelRelative;
     
     bodies["moon"] = std::make_unique<Body>(config, logger_, "moon", config.physics_moon_mass, moonPos, moonVel);
     bodies["moon"]->setTrajectory(TrajectoryFactory::createMoonTrajectory(config, logger_));
@@ -86,8 +86,8 @@ void Simulation::init() {
     // Mars - fourth planet
     // Orbital inclination: 1.850° to ecliptic
     {
-        glm::vec3 pos = glm::vec3(config.physics_mars_orbit_radius, 0.0f, 0.0f);
-        glm::vec3 vel = glm::vec3(0.0f, 0.0f, config.physics_mars_orbital_velocity);
+        glm::dvec3 pos = glm::dvec3(config.physics_mars_orbit_radius, 0.0, 0.0);
+        glm::dvec3 vel = glm::dvec3(0.0, 0.0, config.physics_mars_orbital_velocity);
         bodies["mars"] = std::make_unique<Body>(config, logger_, "mars", config.physics_mars_mass, pos, vel);
         bodies["mars"]->setTrajectory(TrajectoryFactory::createPlanetOrbit(
             config, logger_, config.physics_mars_orbit_radius,
@@ -99,8 +99,8 @@ void Simulation::init() {
     // Jupiter - fifth planet (gas giant)
     // Orbital inclination: 1.303° to ecliptic
     {
-        glm::vec3 pos = glm::vec3(config.physics_jupiter_orbit_radius, 0.0f, 0.0f);
-        glm::vec3 vel = glm::vec3(0.0f, 0.0f, config.physics_jupiter_orbital_velocity);
+        glm::dvec3 pos = glm::dvec3(config.physics_jupiter_orbit_radius, 0.0, 0.0);
+        glm::dvec3 vel = glm::dvec3(0.0, 0.0, config.physics_jupiter_orbital_velocity);
         bodies["jupiter"] = std::make_unique<Body>(config, logger_, "jupiter", config.physics_jupiter_mass, pos, vel);
         bodies["jupiter"]->setTrajectory(TrajectoryFactory::createPlanetOrbit(
             config, logger_, config.physics_jupiter_orbit_radius,
@@ -112,8 +112,8 @@ void Simulation::init() {
     // Saturn - sixth planet (gas giant with rings)
     // Orbital inclination: 2.485° to ecliptic
     {
-        glm::vec3 pos = glm::vec3(config.physics_saturn_orbit_radius, 0.0f, 0.0f);
-        glm::vec3 vel = glm::vec3(0.0f, 0.0f, config.physics_saturn_orbital_velocity);
+        glm::dvec3 pos = glm::dvec3(config.physics_saturn_orbit_radius, 0.0, 0.0);
+        glm::dvec3 vel = glm::dvec3(0.0, 0.0, config.physics_saturn_orbital_velocity);
         bodies["saturn"] = std::make_unique<Body>(config, logger_, "saturn", config.physics_saturn_mass, pos, vel);
         bodies["saturn"]->setTrajectory(TrajectoryFactory::createPlanetOrbit(
             config, logger_, config.physics_saturn_orbit_radius,
@@ -125,8 +125,8 @@ void Simulation::init() {
     // Uranus - seventh planet (ice giant)
     // Orbital inclination: 0.773° to ecliptic
     {
-        glm::vec3 pos = glm::vec3(config.physics_uranus_orbit_radius, 0.0f, 0.0f);
-        glm::vec3 vel = glm::vec3(0.0f, 0.0f, config.physics_uranus_orbital_velocity);
+        glm::dvec3 pos = glm::dvec3(config.physics_uranus_orbit_radius, 0.0, 0.0);
+        glm::dvec3 vel = glm::dvec3(0.0, 0.0, config.physics_uranus_orbital_velocity);
         bodies["uranus"] = std::make_unique<Body>(config, logger_, "uranus", config.physics_uranus_mass, pos, vel);
         bodies["uranus"]->setTrajectory(TrajectoryFactory::createPlanetOrbit(
             config, logger_, config.physics_uranus_orbit_radius,
@@ -138,8 +138,8 @@ void Simulation::init() {
     // Neptune - eighth planet (ice giant)
     // Orbital inclination: 1.770° to ecliptic
     {
-        glm::vec3 pos = glm::vec3(config.physics_neptune_orbit_radius, 0.0f, 0.0f);
-        glm::vec3 vel = glm::vec3(0.0f, 0.0f, config.physics_neptune_orbital_velocity);
+        glm::dvec3 pos = glm::dvec3(config.physics_neptune_orbit_radius, 0.0, 0.0);
+        glm::dvec3 vel = glm::dvec3(0.0, 0.0, config.physics_neptune_orbital_velocity);
         bodies["neptune"] = std::make_unique<Body>(config, logger_, "neptune", config.physics_neptune_mass, pos, vel);
         bodies["neptune"]->setTrajectory(TrajectoryFactory::createPlanetOrbit(
             config, logger_, config.physics_neptune_orbit_radius,
@@ -154,7 +154,7 @@ void Simulation::init() {
     }
     
     // Update rocket initial position relative to Earth
-    rocket.setPosition(earthPos + glm::vec3(0.0f, config.physics_earth_radius, 0.0f));
+    rocket.setPosition(earthPos + glm::dvec3(0.0, config.physics_earth_radius, 0.0));
     rocket.setVelocity(earthVel); // Rocket starts with Earth's orbital velocity
     rocket.setEarthPosition(earthPos);  // Set Earth position for altitude calculations
 
@@ -293,20 +293,21 @@ void Simulation::init() {
 void Simulation::update(float deltaTime) {
     static float elapsed_time = 0.0f;
     elapsed_time += deltaTime * timeScale;
-    float dt = deltaTime * timeScale;
+    double dt = static_cast<double>(deltaTime * timeScale);
     
     // Build Barnes-Hut octree once per frame for O(n log n) gravity
     buildOctree();
     
     // Step 1: Update all celestial bodies (Velocity Verlet)
-    std::vector<std::pair<std::string, glm::vec3>> current_accs;
+    std::vector<std::pair<std::string, glm::dvec3>> current_accs;
     for (const auto& [name, body] : bodies) {
-        current_accs.emplace_back(name, computeBodyAcceleration(*body, bodies));
+        glm::dvec3 acc = computeBodyAcceleration(*body, bodies);
+        current_accs.emplace_back(name, acc);
     }
     
     // Update positions
     for (const auto& [name, body] : bodies) {
-        body->position += body->velocity * dt + 0.5f * current_accs[std::distance(bodies.begin(), bodies.find(name))].second * dt * dt;
+        body->position += body->velocity * dt + 0.5 * current_accs[std::distance(bodies.begin(), bodies.find(name))].second * dt * dt;
     }
     
     // Rebuild octree after position update for accurate new accelerations
@@ -314,13 +315,14 @@ void Simulation::update(float deltaTime) {
     
     // Calculate new accelerations and update velocities
     for (auto& [name, body] : bodies) {
-        glm::vec3 new_acc = computeBodyAcceleration(*body, bodies);
-        body->velocity += 0.5f * (current_accs[std::distance(bodies.begin(), bodies.find(name))].second + new_acc) * dt;
+        glm::dvec3 new_acc = computeBodyAcceleration(*body, bodies);
+        
+        body->velocity += 0.5 * (current_accs[std::distance(bodies.begin(), bodies.find(name))].second + new_acc) * dt;
         
         // Check for NaN
         if (std::isnan(body->position.x) || std::isnan(body->velocity.x)) {
             LOG_ERROR(logger_, "Simulation", "NaN detected in " + name + ": Pos=" + 
-                      glm::to_string(body->position) + ", Vel=" + glm::to_string(body->velocity));
+                      glm::to_string(glm::vec3(body->position)) + ", Vel=" + glm::to_string(glm::vec3(body->velocity)));
         }
         
         // Update trajectory for bodies that have one (scale position for rendering)
@@ -329,9 +331,9 @@ void Simulation::update(float deltaTime) {
     
     rocket.update(dt, bodies, &octree_);
     
-    float moon_radius = glm::length(bodies["moon"]->position);
-    LOG_ORBIT(logger_, "Moon", elapsed_time, bodies["moon"]->position, moon_radius, bodies["moon"]->velocity);
-    LOG_DEBUG(logger_, "Simulation", "Rocket: Pos=" + glm::to_string(rocket.getPosition()));
+    double moon_radius = glm::length(bodies["moon"]->position);
+    LOG_ORBIT(logger_, "Moon", elapsed_time, glm::vec3(bodies["moon"]->position), static_cast<float>(moon_radius), glm::vec3(bodies["moon"]->velocity));
+    LOG_DEBUG(logger_, "Simulation", "Rocket: Pos=" + glm::to_string(glm::vec3(rocket.getPosition())));
 }
 
 void Simulation::updateCameraPosition() const {
@@ -344,48 +346,91 @@ void Simulation::render(const Shader& shader) const {
     float sceneHeight = height * 0.8f;
 
     // Scale factor (physical unit meters to rendering unit kilometers)
-    const float scale = config.simulation_rendering_scale;
+    const double scale = static_cast<double>(config.simulation_rendering_scale);
+    const float scalef = config.simulation_rendering_scale;
+
+    // ---------------------------------------------------------------
+    // Camera-relative rendering (origin rebasing)
+    // ---------------------------------------------------------------
+    // Problem: In heliocentric coordinates, positions are ~1.5e11 m.
+    // After scale (×0.001), that's ~1.5e8 km.  float32 has only ~7
+    // significant digits, so camera offsets of 10,000 km are lost.
+    // Solution: Choose a renderOrigin (dvec3) near the camera focus,
+    // compute all render positions as vec3((pos - renderOrigin) * scale).
+    // This keeps float values small and precise.
+    // ---------------------------------------------------------------
+
+    // Determine renderOrigin based on camera mode (in physics coords, meters)
+    if (camera.mode == Camera::Mode::Locked || camera.mode == Camera::Mode::Free) {
+        renderOrigin_ = rocket.getPosition();
+    } else if (camera.mode == Camera::Mode::FixedEarth) {
+        if (bodies.find("earth") != bodies.end())
+            renderOrigin_ = bodies.at("earth")->position;
+        else
+            renderOrigin_ = glm::dvec3(0.0);
+    } else if (camera.mode == Camera::Mode::FixedMoon) {
+        if (bodies.find("moon") != bodies.end())
+            renderOrigin_ = bodies.at("moon")->position;
+        else
+            renderOrigin_ = glm::dvec3(0.0);
+    } else if (camera.mode == Camera::Mode::Overview) {
+        if (bodies.find("earth") != bodies.end() && bodies.find("moon") != bodies.end())
+            renderOrigin_ = (bodies.at("earth")->position + bodies.at("moon")->position) * 0.5;
+        else
+            renderOrigin_ = glm::dvec3(0.0);
+    } else if (camera.mode == Camera::Mode::SolarSystem || camera.mode == Camera::Mode::FullSolarSystem) {
+        renderOrigin_ = glm::dvec3(0.0);  // Sun is at origin — no rebasing needed
+    } else if (camera.mode == Camera::Mode::FocusBody) {
+        const std::string& bodyName = camera.focusBodyName;
+        if (!bodyName.empty() && bodies.find(bodyName) != bodies.end())
+            renderOrigin_ = bodies.at(bodyName)->position;
+        else
+            renderOrigin_ = glm::dvec3(0.0);
+    } else {
+        renderOrigin_ = glm::dvec3(0.0);
+    }
+
+    // Helper: convert physics position to origin-relative render position
+    auto toRender = [&](const glm::dvec3& physPos) -> glm::vec3 {
+        return glm::vec3((physPos - renderOrigin_) * scale);
+    };
+
     glm::vec3 target = glm::vec3(0.0f);
-    
+
     // Update Earth position for camera (used in Locked mode to calculate radial direction)
     if (bodies.find("earth") != bodies.end()) {
-        camera.setEarthPosition(bodies.at("earth")->position * scale);
+        camera.setEarthPosition(toRender(bodies.at("earth")->position));
     }
     
-    // Update camera target based on mode
+    // Update camera target based on mode (all positions are origin-relative)
     if (camera.mode == Camera::Mode::Locked || camera.mode == Camera::Mode::Free) {
-        // Use getRenderPosition() to get the same coordinates used for rocket rendering
-        target = rocket.getRenderPosition();
+        target = toRender(rocket.getPosition());
     } else if (camera.mode == Camera::Mode::FixedEarth) {
-        // Earth center in heliocentric coordinates
         if (bodies.find("earth") != bodies.end()) {
-            target = bodies.at("earth")->position * scale;
+            target = toRender(bodies.at("earth")->position);
             camera.setFixedTarget(target);
         }
     } else if (camera.mode == Camera::Mode::FixedMoon) {
         if (bodies.find("moon") != bodies.end()) {
-            target = bodies.at("moon")->position * scale;
+            target = toRender(bodies.at("moon")->position);
             camera.setFixedTarget(target);
         }
     } else if (camera.mode == Camera::Mode::Overview) {
-        // Midpoint between Earth and Moon
         if (bodies.find("earth") != bodies.end() && bodies.find("moon") != bodies.end()) {
-            target = (bodies.at("earth")->position + bodies.at("moon")->position) * scale * 0.5f;
+            glm::dvec3 midpoint = (bodies.at("earth")->position + bodies.at("moon")->position) * 0.5;
+            target = toRender(midpoint);
             camera.setFixedTarget(target);
         }
     } else if (camera.mode == Camera::Mode::SolarSystem) {
-        // Sun center (origin in heliocentric coords)
-        target = glm::vec3(0.0f);
+        target = toRender(glm::dvec3(0.0));
         camera.setFixedTarget(target);
     } else if (camera.mode == Camera::Mode::FullSolarSystem) {
-        // Sun center for full solar system view
-        target = glm::vec3(0.0f);
+        target = toRender(glm::dvec3(0.0));
         camera.setFixedTarget(target);
     } else if (camera.mode == Camera::Mode::FocusBody) {
-        // Focus on a specific body - update fixedTarget to track moving body
         const std::string& bodyName = camera.focusBodyName;
         if (!bodyName.empty() && bodies.find(bodyName) != bodies.end()) {
-            target = bodies.at(bodyName)->position * scale;
+            target = toRender(bodies.at(bodyName)->position);
             camera.setFixedTarget(target);
         }
     }
@@ -415,8 +460,8 @@ void Simulation::render(const Shader& shader) const {
     
     // Render the Sun (orange)
     if (bodies.find("sun") != bodies.end() && bodies.at("sun")->renderObject) {
-        glm::mat4 sunModel = glm::translate(glm::mat4(1.0f), bodies.at("sun")->position * scale);
-        sunModel = glm::scale(sunModel, glm::vec3(scale, scale, scale));
+        glm::mat4 sunModel = glm::translate(glm::mat4(1.0f), toRender(bodies.at("sun")->position));
+        sunModel = glm::scale(sunModel, glm::vec3(scalef, scalef, scalef));
         shader.setMat4("model", sunModel);
         shader.setVec4("color", glm::vec4(1.0f, 0.5f, 0.0f, 1.0f)); // Orange
         bodies.at("sun")->renderObject->render();
@@ -429,8 +474,8 @@ void Simulation::render(const Shader& shader) const {
 
     // Render the Earth (blue)
     if (bodies.find("earth") != bodies.end() && bodies.at("earth")->renderObject) {
-        glm::mat4 earthModel = glm::translate(glm::mat4(1.0f), bodies.at("earth")->position * scale);
-        earthModel = glm::scale(earthModel, glm::vec3(scale, scale, scale));
+        glm::mat4 earthModel = glm::translate(glm::mat4(1.0f), toRender(bodies.at("earth")->position));
+        earthModel = glm::scale(earthModel, glm::vec3(scalef, scalef, scalef));
         shader.setMat4("model", earthModel);
         shader.setVec4("color", glm::vec4(0.0f, 0.0f, 1.0f, 1.0f)); // Blue
         bodies.at("earth")->renderObject->render();
@@ -438,18 +483,18 @@ void Simulation::render(const Shader& shader) const {
         LOG_ERROR(logger_, "Simulation", "Earth is null or has no renderObject!");
     }
 
-    rocket.render(shader);
+    rocket.render(shader, renderOrigin_);
 
     // Render the Moon (gray)
     if (bodies.find("moon") != bodies.end() && bodies.at("moon")->renderObject) {
-        glm::mat4 moonModel = glm::translate(glm::mat4(1.0f), bodies.at("moon")->position * scale);
-        moonModel = glm::scale(moonModel, glm::vec3(scale, scale, scale));
+        glm::mat4 moonModel = glm::translate(glm::mat4(1.0f), toRender(bodies.at("moon")->position));
+        moonModel = glm::scale(moonModel, glm::vec3(scalef, scalef, scalef));
         shader.setMat4("model", moonModel);
         shader.setVec4("color", glm::vec4(0.7f, 0.7f, 0.7f, 1.0f)); // Gray
         bodies.at("moon")->renderObject->render();
         
-        // Render Moon's orbit centered on Earth's position
-        glm::vec3 earthCenter = bodies.at("earth")->position * scale;
+        // Render Moon's orbit centered on Earth's position (origin-relative)
+        glm::vec3 earthCenter = toRender(bodies.at("earth")->position);
         bodies.at("moon")->render(shader, earthCenter);
     } else {
         LOG_ERROR(logger_, "Simulation", "Moon is null or has no renderObject!");
@@ -463,8 +508,8 @@ void Simulation::render(const Shader& shader) const {
             body->render(shader);
             // Render planet sphere
             if (body->renderObject) {
-                glm::mat4 model = glm::translate(glm::mat4(1.0f), body->position * scale);
-                model = glm::scale(model, glm::vec3(scale, scale, scale));
+                glm::mat4 model = glm::translate(glm::mat4(1.0f), toRender(body->position));
+                model = glm::scale(model, glm::vec3(scalef, scalef, scalef));
                 shader.setMat4("model", model);
                 shader.setVec4("color", color);
                 body->renderObject->render();
@@ -483,8 +528,8 @@ void Simulation::render(const Shader& shader) const {
     
     // Render Saturn's rings (after Saturn's sphere, with proper blending)
     if (saturnRings_ && bodies.find("saturn") != bodies.end()) {
-        glm::mat4 saturnModel = glm::translate(glm::mat4(1.0f), bodies.at("saturn")->position * scale);
-        saturnRings_->render(saturnModel, view, projection, scale);
+        glm::mat4 saturnModel = glm::translate(glm::mat4(1.0f), toRender(bodies.at("saturn")->position));
+        saturnRings_->render(saturnModel, view, projection, scalef);
         // Restore main shader after ring rendering
         shader.use();
     }
@@ -538,39 +583,75 @@ void Simulation::adjustCameraMode(Camera::Mode mode) {
     camera.setMode(mode);
     
     // Scale factor for rendering (meters to km)
-    const float scale = config.simulation_rendering_scale;
+    const double scale = static_cast<double>(config.simulation_rendering_scale);
+
+    // Update renderOrigin FIRST so that toRender() uses the correct origin
+    // for the new mode (not the stale origin from the previous mode).
+    switch (mode) {
+        case Camera::Mode::Locked:
+        case Camera::Mode::Free:
+            renderOrigin_ = rocket.getPosition();
+            break;
+        case Camera::Mode::FixedEarth:
+            if (bodies.find("earth") != bodies.end())
+                renderOrigin_ = bodies.at("earth")->position;
+            break;
+        case Camera::Mode::FixedMoon:
+            if (bodies.find("moon") != bodies.end())
+                renderOrigin_ = bodies.at("moon")->position;
+            break;
+        case Camera::Mode::Overview:
+            if (bodies.find("earth") != bodies.end() && bodies.find("moon") != bodies.end())
+                renderOrigin_ = (bodies.at("earth")->position + bodies.at("moon")->position) * 0.5;
+            break;
+        case Camera::Mode::SolarSystem:
+        case Camera::Mode::FullSolarSystem:
+            renderOrigin_ = glm::dvec3(0.0);
+            break;
+        case Camera::Mode::FocusBody: {
+            const std::string& bodyName = camera.focusBodyName;
+            if (!bodyName.empty() && bodies.find(bodyName) != bodies.end())
+                renderOrigin_ = bodies.at(bodyName)->position;
+            break;
+        }
+    }
+
+    // Helper: convert physics position to origin-relative render position
+    auto toRender = [&](const glm::dvec3& physPos) -> glm::vec3 {
+        return glm::vec3((physPos - renderOrigin_) * scale);
+    };
     
     // Set appropriate target and distance based on mode
     // Distances are loaded from config for easy customization
     switch (mode) {
         case Camera::Mode::FixedEarth:
             if (bodies.find("earth") != bodies.end()) {
-                camera.setFixedTarget(bodies.at("earth")->position * scale);
+                camera.setFixedTarget(toRender(bodies.at("earth")->position));
             }
             camera.distance = config.camera_distance_earth;
             break;
         case Camera::Mode::FixedMoon:
             if (bodies.find("moon") != bodies.end()) {
-                camera.setFixedTarget(bodies.at("moon")->position * scale);
+                camera.setFixedTarget(toRender(bodies.at("moon")->position));
                 camera.distance = config.camera_distance_moon;
             }
             break;
         case Camera::Mode::Overview:
             // Midpoint between Earth and Moon
             if (bodies.find("earth") != bodies.end() && bodies.find("moon") != bodies.end()) {
-                glm::vec3 midpoint = (bodies.at("earth")->position + bodies.at("moon")->position) * scale * 0.5f;
-                camera.setFixedTarget(midpoint);
+                glm::dvec3 midpoint = (bodies.at("earth")->position + bodies.at("moon")->position) * 0.5;
+                camera.setFixedTarget(toRender(midpoint));
                 camera.distance = config.camera_distance_overview;
             }
             break;
         case Camera::Mode::SolarSystem:
             // Sun at origin, view inner solar system (up to Mars)
-            camera.setFixedTarget(glm::vec3(0.0f));
+            camera.setFixedTarget(toRender(glm::dvec3(0.0)));
             camera.distance = config.camera_distance_solar_system;
             break;
         case Camera::Mode::FullSolarSystem:
             // Sun at origin, view entire solar system including Neptune (~30 AU)
-            camera.setFixedTarget(glm::vec3(0.0f));
+            camera.setFixedTarget(toRender(glm::dvec3(0.0)));
             camera.distance = config.camera_distance_full_solar;
             break;
         case Camera::Mode::Locked:
@@ -593,6 +674,7 @@ void Simulation::adjustCameraTarget(const glm::vec3& target) {
 
 void Simulation::focusOnBody(const std::string& bodyName) {
     const float scale = config.simulation_rendering_scale;
+    const double scaled = static_cast<double>(scale);
     
     if (bodyName == "rocket") {
         // Switch to Locked mode for rocket
@@ -608,8 +690,11 @@ void Simulation::focusOnBody(const std::string& bodyName) {
         return;
     }
     
-    // Get body position
-    glm::vec3 bodyPos = it->second->position * scale;
+    // Update renderOrigin to the focused body's position for float precision
+    renderOrigin_ = it->second->position;
+
+    // Body position relative to renderOrigin (will be near zero)
+    glm::vec3 bodyPos = glm::vec3((it->second->position - renderOrigin_) * scaled);
     
     // Get body radius from config (in meters, convert to km for rendering)
     float bodyRadiusKm = 0.0f;
@@ -695,9 +780,26 @@ void Simulation::buildOctree() {
     octree_.build(octreeBodies);
 }
 
-glm::vec3 Simulation::computeBodyAcceleration(const Body& body, const BODY_MAP& bodies) const {
-    // Use Barnes-Hut octree for O(n log n) gravitational force calculation
-    return octree_.computeAcceleration(body.position, config.physics_gravity_constant);
+glm::dvec3 Simulation::computeBodyAcceleration(const Body& body, const BODY_MAP& bodies) const {
+    // Use direct summation for celestial bodies (only ~10 bodies, O(n²) is trivial).
+    // Barnes-Hut octree is reserved for rocket gravity calculations where the
+    // number of gravitational sources justifies the O(n log n) approach.
+    //
+    // Direct summation avoids a subtle octree aliasing bug: when two bodies
+    // share similar coordinates (e.g., Earth and Moon have identical X values),
+    // internal node center-of-mass can land extremely close to one body,
+    // producing a near-zero denominator and catastrophic force blow-up.
+    glm::dvec3 acc(0.0);
+    for (const auto& [name, other] : bodies) {
+        if (&(*other) == &body) continue;  // Skip self
+        glm::dvec3 delta = other->position - body.position;
+        double distSq = glm::dot(delta, delta);
+        double dist = std::sqrt(distSq);
+        if (dist < 1.0) continue;  // Softening: skip if < 1 meter
+        double distCubed = distSq * dist;
+        acc += (config.physics_gravity_constant * other->mass / distCubed) * delta;
+    }
+    return acc;
 }
 
 float Simulation::getTimeScale() const { 
@@ -712,8 +814,13 @@ Camera& Simulation::getCamera() {
     return camera;
 }
 
-glm::vec3 Simulation::getMoonPos() const {
-    return moonPos;
+glm::dvec3 Simulation::getMoonPos() const {
+    // Return real-time moon position from physics bodies (dvec3)
+    auto it = bodies.find("moon");
+    if (it != bodies.end()) {
+        return it->second->position;
+    }
+    return moonPos;  // Fallback to initial value
 }
 
 const BODY_MAP& Simulation::getBodies() const {

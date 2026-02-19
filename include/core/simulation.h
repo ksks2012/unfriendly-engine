@@ -40,16 +40,17 @@ public:
     void adjustCameraTarget(const glm::vec3& target); // Adjust camera target    
     void focusOnBody(const std::string& bodyName);  // Focus camera on a specific body
 
-    glm::vec3 computeBodyAcceleration(const Body& body, const BODY_MAP& bodies) const; // Velocity Verlet
+    glm::dvec3 computeBodyAcceleration(const Body& body, const BODY_MAP& bodies) const; // Velocity Verlet
 
 
     float getTimeScale() const;
     Rocket& getRocket();
     Camera& getCamera();
 
-    glm::vec3 getMoonPos() const;
+    glm::dvec3 getMoonPos() const;
     const BODY_MAP& getBodies() const;
     float getRenderScale() const;  // Get rendering scale factor
+    const glm::dvec3& getRenderOrigin() const { return renderOrigin_; }
     
     // Get projection and view matrices for UI rendering
     void getRenderMatrices(int width, int height, glm::mat4& projection, glm::mat4& view) const;
@@ -65,13 +66,17 @@ private:
 
     void updateCameraPosition() const; // Update camera position
 
-    glm::vec3 moonPos;
+    glm::dvec3 moonPos;
     std::unique_ptr<RenderObject> mapEarth;
     std::unique_ptr<RenderObject> mapMoon;
     std::unique_ptr<RenderObject> mapRocket;
     
     // Saturn's rings
     std::unique_ptr<SaturnRings> saturnRings_;
+
+    // Camera-relative rendering origin (double precision)
+    // All render positions are computed relative to this point to avoid float precision loss
+    mutable glm::dvec3 renderOrigin_;
 
     // Barnes-Hut octree for O(n log n) gravitational force calculation
     Octree octree_;
