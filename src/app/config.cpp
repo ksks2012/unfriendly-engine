@@ -19,34 +19,34 @@ void Config::loadFromFile(const std::string& filename) {
 
 void Config::setDefaults() {
     // Rocket parameters    
-    rocket_mass = 501000.0f;
-    rocket_fuel_mass = 500000.0f;
-    rocket_thrust = 20000000.0f;
-    rocket_exhaust_velocity = 3000.0f;
-    rocket_initial_position = {0.0f, 6371000.0f, 0.0f};
-    rocket_initial_velocity = {0.0f, 0.0f, 0.0f};
+    rocket_mass = 501000.0;
+    rocket_fuel_mass = 500000.0;
+    rocket_thrust = 20000000.0;
+    rocket_exhaust_velocity = 3000.0;
+    rocket_initial_position = {0.0, 6371000.0, 0.0};
+    rocket_initial_velocity = {0.0, 0.0, 0.0};
     rocket_rotation_speed = 360.0f;
     rocket_direction_cooldown = 0.05f;
     flight_plan_path = "etc/flight_plan.json";
 
     // Physics parameters
     // Earth parameters
-    physics_earth_radius = 6371000.0f;
-    physics_gravity_constant = 6.674e-11f;
-    physics_earth_mass = 5.972e24f;
-    physics_air_density = 1.225f;
-    physics_scale_height = 8000.0f;
+    physics_earth_radius = 6371000.0;
+    physics_gravity_constant = 6.674e-11;
+    physics_earth_mass = 5.972e24;
+    physics_air_density = 1.225;
+    physics_scale_height = 8000.0;
     physics_drag_coefficient = 0.13;
-    physics_cross_section_area = 1.0f;
+    physics_cross_section_area = 1.0;
     // Moon parameters
-    physics_moon_radius = 1737100.0f;
-    physics_moon_mass = 7.34767309e22f;
-    physics_moon_distance = 384400000.0f;
-    physics_moon_gravity_constant = 6.674e-11f; // Same as universal gravitational constant
-    physics_moon_gravity = 1.62f; // Surface gravity in m/s^2
-    physics_moon_angular_speed = 2.6617e-6f; // radians per second (2π / 27.3 days)
-    physics_moon_rotation_speed = 2.6617e-6f; // radians per second, tidally locked
-    physics_moon_rotation_period = 27.3f * 24.0f * 3600.0f; // seconds (27.3 days)
+    physics_moon_radius = 1737100.0;
+    physics_moon_mass = 7.34767309e22;
+    physics_moon_distance = 384400000.0;
+    physics_moon_gravity_constant = 6.674e-11; // Same as universal gravitational constant
+    physics_moon_gravity = 1.62; // Surface gravity in m/s^2
+    physics_moon_angular_speed = 2.6617e-6; // radians per second (2π / 27.3 days)
+    physics_moon_rotation_speed = 2.6617e-6; // radians per second, tidally locked
+    physics_moon_rotation_period = 27.3 * 24.0 * 3600.0; // seconds (27.3 days)
 
     // Simulation parameters
     simulation_trajectory_sample_time = 0.5f;
@@ -92,16 +92,16 @@ void Config::parseConfig(const json& config) {
         rocket_exhaust_velocity = rocket.value("exhaust_velocity", rocket_exhaust_velocity);
         if (rocket.contains("initial_position") && rocket["initial_position"].size() == 3) {
             rocket_initial_position = {
-                rocket["initial_position"][0].get<float>(),
-                rocket["initial_position"][1].get<float>(),
-                rocket["initial_position"][2].get<float>()
+                rocket["initial_position"][0].get<double>(),
+                rocket["initial_position"][1].get<double>(),
+                rocket["initial_position"][2].get<double>()
             };
         }
         if (rocket.contains("initial_velocity") && rocket["initial_velocity"].size() == 3) {
             rocket_initial_velocity = {
-                rocket["initial_velocity"][0].get<float>(),
-                rocket["initial_velocity"][1].get<float>(),
-                rocket["initial_velocity"][2].get<float>()
+                rocket["initial_velocity"][0].get<double>(),
+                rocket["initial_velocity"][1].get<double>(),
+                rocket["initial_velocity"][2].get<double>()
             };
         }
         rocket_rotation_speed = rocket.value("rotation_speed", rocket_rotation_speed);
