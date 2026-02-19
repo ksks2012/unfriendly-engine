@@ -4,6 +4,14 @@
 #include <iostream>
 #include <glm/gtc/type_ptr.hpp>
 
+// Static member definitions
+GLuint SaturnRings::sharedShaderProgram_ = 0;
+int    SaturnRings::shaderRefCount_ = 0;
+GLint  SaturnRings::modelLoc_ = -1;
+GLint  SaturnRings::viewLoc_ = -1;
+GLint  SaturnRings::projLoc_ = -1;
+GLint  SaturnRings::textureLoc_ = -1;
+
 SaturnRings::SaturnRings(float saturnRadius) : saturnRadius_(saturnRadius) {}
 
 SaturnRings::~SaturnRings() {
@@ -11,7 +19,7 @@ SaturnRings::~SaturnRings() {
     if (vbo_) glDeleteBuffers(1, &vbo_);
     if (ebo_) glDeleteBuffers(1, &ebo_);
     if (texture_) glDeleteTextures(1, &texture_);
-    if (shaderProgram_) glDeleteProgram(shaderProgram_);
+    releaseShader();
 }
 
 void SaturnRings::init() {
@@ -51,8 +59,8 @@ void SaturnRings::init() {
     // Generate texture
     generateRingTexture();
     
-    // Create shader
-    createShader();
+    // Acquire shared shader (compiles only on first call)
+    acquireShader();
 }
 
 void SaturnRings::generateDiskMesh(std::vector<float>& vertices, 
@@ -205,7 +213,28 @@ void SaturnRings::generateRingTexture() {
     glBindTexture(GL_TEXTURE_1D, 0);
 }
 
-void SaturnRings::createShader() {
+void SaturnRings::acquireShader() {
+    if (shaderRefCount_ == 0) {
+        compileShader();
+    }
+    ++shaderRefCount_;
+}
+
+void SaturnRings::releaseShader() {
+    if (shaderRefCount_ > 0) {
+        --shaderRefCount_;
+        if (shaderRefCount_ == 0 && sharedShaderProgram_) {
+            glDeleteProgram(sharedShaderProgram_);
+            sharedShaderProgram_ = 0;
+            modelLoc_ = -1;
+            viewLoc_ = -1;
+            projLoc_ = -1;
+            textureLoc_ = -1;
+        }
+    }
+}
+
+void SaturnRings::compileShader() {
     // Vertex shader for rings
     const char* vertexSource = R"(
         #version 330 core
@@ -271,31 +300,31 @@ void SaturnRings::createShader() {
     }
     
     // Link program
-    shaderProgram_ = glCreateProgram();
-    glAttachShader(shaderProgram_, vertexShader);
-    glAttachShader(shaderProgram_, fragmentShader);
-    glLinkProgram(shaderProgram_);
+    sharedShaderProgram_ = glCreateProgram();
+    glAttachShader(sharedShaderProgram_, vertexShader);
+    glAttachShader(sharedShaderProgram_, fragmentShader);
+    glLinkProgram(sharedShaderProgram_);
     
-    glGetProgramiv(shaderProgram_, GL_LINK_STATUS, &success);
+    glGetProgramiv(sharedShaderProgram_, GL_LINK_STATUS, &success);
     if (!success) {
         char infoLog[512];
-        glGetProgramInfoLog(shaderProgram_, 512, nullptr, infoLog);
+        glGetProgramInfoLog(sharedShaderProgram_, 512, nullptr, infoLog);
         std::cerr << "Saturn rings shader linking failed: " << infoLog << std::endl;
     }
     
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
     
-    // Get uniform locations
-    modelLoc_ = glGetUniformLocation(shaderProgram_, "model");
-    viewLoc_ = glGetUniformLocation(shaderProgram_, "view");
-    projLoc_ = glGetUniformLocation(shaderProgram_, "projection");
-    textureLoc_ = glGetUniformLocation(shaderProgram_, "ringTexture");
+    // Cache uniform locations
+    modelLoc_ = glGetUniformLocation(sharedShaderProgram_, "model");
+    viewLoc_ = glGetUniformLocation(sharedShaderProgram_, "view");
+    projLoc_ = glGetUniformLocation(sharedShaderProgram_, "projection");
+    textureLoc_ = glGetUniformLocation(sharedShaderProgram_, "ringTexture");
 }
 
 void SaturnRings::render(const glm::mat4& model, const glm::mat4& view,
                           const glm::mat4& projection, float scale) const {
-    if (!shaderProgram_ || !vao_ || !texture_) return;
+    if (!sharedShaderProgram_ || !vao_ || !texture_) return;
     
     // Save current OpenGL state
     GLboolean depthMask;
@@ -312,8 +341,8 @@ void SaturnRings::render(const glm::mat4& model, const glm::mat4& view,
     // Disable depth writing (but keep depth testing) for transparent objects
     glDepthMask(GL_FALSE);
     
-    // Use ring shader
-    glUseProgram(shaderProgram_);
+    // Use shared ring shader
+    glUseProgram(sharedShaderProgram_);
     
     // Create scaled model matrix
     // The ring mesh is already sized in meters, so we just need to apply scale

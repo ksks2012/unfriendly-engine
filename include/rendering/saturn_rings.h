@@ -19,6 +19,9 @@
  *   - A Ring (bright)
  *   - Encke Gap (narrow gap in A Ring)
  *   - F Ring (outer, faint)
+ * 
+ * The ring shader is compiled once and shared across all instances
+ * via static members with reference counting.
  */
 class SaturnRings {
 public:
@@ -56,19 +59,30 @@ private:
     static constexpr float INNER_RADIUS_RATIO = 1.24f;  // D Ring inner edge
     static constexpr float OUTER_RADIUS_RATIO = 2.27f;  // F Ring outer edge
     
-    // OpenGL objects
+    // Per-instance OpenGL objects
     GLuint vao_ = 0;
     GLuint vbo_ = 0;
     GLuint ebo_ = 0;
     GLuint texture_ = 0;
-    GLuint shaderProgram_ = 0;
     GLsizei indexCount_ = 0;
     
-    // Uniform locations
-    GLint modelLoc_ = -1;
-    GLint viewLoc_ = -1;
-    GLint projLoc_ = -1;
-    GLint textureLoc_ = -1;
+    // Shared shader program (compiled once, used by all instances)
+    static GLuint sharedShaderProgram_;
+    static int shaderRefCount_;
+    static GLint modelLoc_;
+    static GLint viewLoc_;
+    static GLint projLoc_;
+    static GLint textureLoc_;
+    
+    /**
+     * Acquire the shared shader, compiling it if this is the first instance.
+     */
+    static void acquireShader();
+    
+    /**
+     * Release the shared shader, deleting it if this is the last instance.
+     */
+    static void releaseShader();
     
     /**
      * Generate disk mesh vertices and indices
@@ -82,9 +96,9 @@ private:
     void generateRingTexture();
     
     /**
-     * Compile and link the ring shader
+     * Compile and link the ring shader (called only once)
      */
-    void createShader();
+    static void compileShader();
     
     /**
      * Get ring opacity at a given radial distance (in Saturn radii)
