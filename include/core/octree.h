@@ -25,12 +25,12 @@
  * Uses lightweight value type to avoid coupling with Body class.
  */
 struct OctreeBody {
-    glm::vec3 position;
-    float mass;
+    glm::dvec3 position;
+    double mass;
     std::string name;  // For debugging / identification
     
-    OctreeBody() : position(0.0f), mass(0.0f), name("") {}
-    OctreeBody(const glm::vec3& pos, float m, const std::string& n = "")
+    OctreeBody() : position(0.0), mass(0.0), name("") {}
+    OctreeBody(const glm::dvec3& pos, double m, const std::string& n = "")
         : position(pos), mass(m), name(n) {}
 };
 
@@ -38,16 +38,16 @@ struct OctreeBody {
  * Axis-aligned bounding box for octree nodes.
  */
 struct OctreeBounds {
-    glm::vec3 center;
-    float halfSize;  // Half the side length of the cube
+    glm::dvec3 center;
+    double halfSize;  // Half the side length of the cube
     
-    OctreeBounds() : center(0.0f), halfSize(0.0f) {}
-    OctreeBounds(const glm::vec3& c, float h) : center(c), halfSize(h) {}
+    OctreeBounds() : center(0.0), halfSize(0.0) {}
+    OctreeBounds(const glm::dvec3& c, double h) : center(c), halfSize(h) {}
     
     /**
      * Check if a point is inside this bounding box.
      */
-    bool contains(const glm::vec3& point) const {
+    bool contains(const glm::dvec3& point) const {
         return (point.x >= center.x - halfSize && point.x <= center.x + halfSize &&
                 point.y >= center.y - halfSize && point.y <= center.y + halfSize &&
                 point.z >= center.z - halfSize && point.z <= center.z + halfSize);
@@ -62,8 +62,8 @@ struct OctreeBounds {
      *   3: -x, +y, +z    7: +x, +y, +z
      */
     OctreeBounds getChildBounds(int octant) const {
-        float quarter = halfSize * 0.5f;
-        glm::vec3 childCenter = center;
+        double quarter = halfSize * 0.5;
+        glm::dvec3 childCenter = center;
         childCenter.x += (octant & 4) ? quarter : -quarter;
         childCenter.y += (octant & 2) ? quarter : -quarter;
         childCenter.z += (octant & 1) ? quarter : -quarter;
@@ -99,15 +99,15 @@ public:
      * @param softening Softening length to prevent singularities
      * @return Gravitational acceleration vector
      */
-    glm::vec3 computeAcceleration(const glm::vec3& position, float theta, 
-                                   float G, float softening = 1e-6f) const;
+    glm::dvec3 computeAcceleration(const glm::dvec3& position, double theta, 
+                                   double G, double softening = 1e-6) const;
     
     // Accessors for testing
     bool isEmpty() const { return !hasBody_ && !isInternal_; }
     bool isLeaf() const { return hasBody_ && !isInternal_; }
     bool isInternal() const { return isInternal_; }
-    float getTotalMass() const { return totalMass_; }
-    glm::vec3 getCenterOfMass() const { return centerOfMass_; }
+    double getTotalMass() const { return totalMass_; }
+    glm::dvec3 getCenterOfMass() const { return centerOfMass_; }
     const OctreeBounds& getBounds() const { return bounds_; }
     int getBodyCount() const { return bodyCount_; }
     
@@ -120,8 +120,8 @@ private:
     OctreeBounds bounds_;
     
     // Aggregate mass properties (used for Barnes-Hut approximation)
-    float totalMass_ = 0.0f;
-    glm::vec3 centerOfMass_ = glm::vec3(0.0f);
+    double totalMass_ = 0.0;
+    glm::dvec3 centerOfMass_ = glm::dvec3(0.0);
     int bodyCount_ = 0;
     
     // Node state
@@ -135,7 +135,7 @@ private:
     /**
      * Determine which octant a position falls into.
      */
-    int getOctant(const glm::vec3& position) const;
+    int getOctant(const glm::dvec3& position) const;
     
     /**
      * Subdivide this node into 8 children.
@@ -184,7 +184,7 @@ public:
      * @param G Gravitational constant
      * @return Gravitational acceleration vector
      */
-    glm::vec3 computeAcceleration(const glm::vec3& position, float G) const;
+    glm::dvec3 computeAcceleration(const glm::dvec3& position, double G) const;
     
     /**
      * Set the opening angle parameter.

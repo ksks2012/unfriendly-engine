@@ -18,17 +18,17 @@ void Map::render(int width, int height) {
     float cx = canvasPos.x + mapWidth * 0.5f;
     float cy = canvasPos.y + mapHeight * 0.5f;
 
-    float mapScale = 0.000000001f;
+    double mapScale = 0.000000001;
     drawList->AddCircleFilled(ImVec2(cx, cy), 8.0f, IM_COL32(0, 0, 150, 255));
 
-    glm::vec3 moonPos = simulation.getMoonPos();
-    float mx = cx + moonPos.x * mapScale * 100.0f;
-    float my = cy + moonPos.y * mapScale * 100.0f;
+    glm::dvec3 moonPos = simulation.getMoonPos();
+    float mx = cx + static_cast<float>(moonPos.x * mapScale * 100.0);
+    float my = cy + static_cast<float>(moonPos.y * mapScale * 100.0);
     drawList->AddCircleFilled(ImVec2(mx, my), 3.0f, IM_COL32(200, 200, 200, 255));
 
-    glm::vec3 rocketPos = simulation.getRocket().getPosition();
-    float rx = cx + rocketPos.x * mapScale * 100.0f;
-    float ry = cy + rocketPos.y * mapScale * 100.0f;
+    glm::dvec3 rocketPos = simulation.getRocket().getPosition();
+    float rx = cx + static_cast<float>(rocketPos.x * mapScale * 100.0);
+    float ry = cy + static_cast<float>(rocketPos.y * mapScale * 100.0);
     drawList->AddCircleFilled(ImVec2(rx, ry), 2.0f, IM_COL32(255, 0, 0, 255));
 
     ImGui::End();

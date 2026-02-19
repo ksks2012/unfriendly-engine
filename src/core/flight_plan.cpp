@@ -36,9 +36,9 @@ void FlightPlan::parseFlightPlan(const nlohmann::json& json) {
                 stage.action.thrust = action.value("thrust", 0.0);
                 if (action.contains("direction") && action["direction"].size() == 3) {
                     stage.action.direction = {
-                        action["direction"][0].get<float>(),
-                        action["direction"][1].get<float>(),
-                        action["direction"][2].get<float>()
+                        action["direction"][0].get<double>(),
+                        action["direction"][1].get<double>(),
+                        action["direction"][2].get<double>()
                     };
                 }
             }

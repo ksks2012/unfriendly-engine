@@ -18,15 +18,15 @@ protected:
 
 public:
     std::string name;
-    float mass;
-    glm::vec3 position;
-    glm::vec3 velocity;
+    double mass;
+    glm::dvec3 position;
+    glm::dvec3 velocity;
     std::unique_ptr<IRenderObject> renderObject;
 
 public:
     Body();
     Body(const Config& config, std::shared_ptr<ILogger> logger);
-    Body(const Config& config, std::shared_ptr<ILogger> logger, const std::string& name, float mass, const glm::vec3& position, const glm::vec3& velocity);
+    Body(const Config& config, std::shared_ptr<ILogger> logger, const std::string& name, double mass, const glm::dvec3& position, const glm::dvec3& velocity);
     Body(const Body& other);
     virtual ~Body() = default;
 
@@ -38,13 +38,13 @@ public:
 
     // Getters
     std::string getName() const { return name; }
-    float getMass() const { return mass; }
-    glm::vec3 getPosition() const { return position; }
-    glm::vec3 getVelocity() const { return velocity; }
+    double getMass() const { return mass; }
+    glm::dvec3 getPosition() const { return position; }
+    glm::dvec3 getVelocity() const { return velocity; }
 
     // Setters
-    void setPosition(const glm::vec3& position) { this->position = position; }
-    void setVelocity(const glm::vec3& velocity) { this->velocity = velocity; }
+    void setPosition(const glm::dvec3& position) { this->position = position; }
+    void setVelocity(const glm::dvec3& velocity) { this->velocity = velocity; }
     void setTrajectory(std::unique_ptr<Trajectory> trajectory);
 };
 

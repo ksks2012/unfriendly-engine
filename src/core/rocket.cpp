@@ -8,7 +8,7 @@
 Rocket::Rocket(const Config& config, std::shared_ptr<ILogger> logger, const FlightPlan& plan)
      : flightPlan(plan), fuel_mass(config.rocket_fuel_mass),
         thrust(config.rocket_thrust), exhaust_velocity(config.rocket_exhaust_velocity),
-        earthPosition_(0.0f),  // Will be updated from simulation
+        earthPosition_(0.0),  // Will be updated from simulation
         Body(config, logger, "Rocket", config.rocket_mass, config.rocket_initial_position, config.rocket_initial_velocity) {
     if (!logger_) {
         throw std::runtime_error("[Rocket] Logger is null");
@@ -16,7 +16,7 @@ Rocket::Rocket(const Config& config, std::shared_ptr<ILogger> logger, const Flig
 }
 
 void Rocket::init() {
-    thrustDirection = glm::vec3(0.0f, 1.0f, 0.0f); // Thrust direction (upward)
+    thrustDirection = glm::dvec3(0.0, 1.0, 0.0); // Thrust direction (upward)
 
     // Rocket 3D pyramid vertices (in rendering units: km)
     // Made larger so it's visible at typical camera distances (100-500 km)
@@ -65,7 +65,7 @@ void Rocket::init() {
 
 void Rocket::update(float deltaTime, const BODY_MAP& bodies, const Octree* octree) {
     // Update Earth position for altitude calculations
-    glm::vec3 previousEarthPosition = earthPosition_;
+    glm::dvec3 previousEarthPosition = earthPosition_;
     if (bodies.find("earth") != bodies.end()) {
         earthPosition_ = bodies.at("earth")->position;
     }
@@ -73,7 +73,7 @@ void Rocket::update(float deltaTime, const BODY_MAP& bodies, const Octree* octre
     if (!launched) {
         // When not launched, rocket should follow Earth's movement
         // Calculate how much Earth has moved and apply the same delta to rocket
-        glm::vec3 earthDelta = earthPosition_ - previousEarthPosition;
+        glm::dvec3 earthDelta = earthPosition_ - previousEarthPosition;
         position += earthDelta;
         
         // Also update velocity to match Earth's orbital velocity
@@ -108,26 +108,26 @@ void Rocket::update(float deltaTime, const BODY_MAP& bodies, const Octree* octre
     }
     
     Body current = *this;
-    float currentMass = mass;
-    Body newState = updateStateRK4(current, deltaTime, currentMass, fuel_mass, bodies, octree);
+    double currentMass = mass;
+    Body newState = updateStateRK4(current, static_cast<double>(deltaTime), currentMass, fuel_mass, bodies, octree);
     position = newState.position;
     velocity = newState.velocity;
     mass = currentMass;
     
     // Calculate altitude relative to Earth (not Sun) in heliocentric coordinates
-    glm::vec3 relativeToEarth = position - earthPosition_;
-    float distanceFromEarthCenter = glm::length(relativeToEarth);
-    float altitude = distanceFromEarthCenter - config_.physics_earth_radius;
-    if (altitude < 0.0f) {
+    glm::dvec3 relativeToEarth = position - earthPosition_;
+    double distanceFromEarthCenter = glm::length(relativeToEarth);
+    double altitude = distanceFromEarthCenter - config_.physics_earth_radius;
+    if (altitude < 0.0) {
         // Crashed into Earth: clamp position to surface, match Earth velocity
         LOG_INFO(logger_, "Rocket", "Crashed into Earth at altitude " + std::to_string(altitude));
-        glm::vec3 dirFromEarth = glm::normalize(relativeToEarth);
+        glm::dvec3 dirFromEarth = glm::normalize(relativeToEarth);
         position = earthPosition_ + dirFromEarth * config_.physics_earth_radius;
         // Match Earth orbital velocity so the rocket stays on the surface
         if (bodies.find("earth") != bodies.end()) {
             velocity = bodies.at("earth")->velocity;
         } else {
-            velocity = glm::vec3(0.0f);
+            velocity = glm::dvec3(0.0);
         }
         launched = false;
         crashed_ = true;
@@ -143,6 +143,10 @@ void Rocket::update(float deltaTime, const BODY_MAP& bodies, const Octree* octre
 }
 
 void Rocket::render(const Shader& shader) const {
+    render(shader, glm::dvec3(0.0));
+}
+
+void Rocket::render(const Shader& shader, const glm::dvec3& renderOrigin) const {
     // Calculate rotation matrix to align rocket with velocity direction
     glm::mat4 model = glm::mat4(1.0f);
     
@@ -150,18 +154,18 @@ void Rocket::render(const Shader& shader) const {
     // Use numerical differentiation: direction = d(offsetPosition)/dt
     // which is approximately (offsetPosition(pos + vel*dt) - offsetPosition(pos)) / dt
     glm::vec3 direction;
-    if (glm::length(velocity) > 0.1f) {
+    if (glm::length(velocity) > 0.1) {
         // Small time step for numerical derivative
-        const float dt = 0.01f;  // 10ms
+        const double dt = 0.01;  // 10ms
         
-        // Current render position
-        glm::vec3 currentRenderPos = offsetPosition();
+        // Current render position (relative to renderOrigin)
+        glm::vec3 currentRenderPos = glm::vec3((position - renderOrigin) * static_cast<double>(config_.simulation_rendering_scale));
         
         // Future position in physics coordinates
-        glm::vec3 futurePhysicsPos = position + velocity * dt;
+        glm::dvec3 futurePhysicsPos = position + velocity * dt;
         
-        // Future render position
-        glm::vec3 futureRenderPos = offsetPosition(futurePhysicsPos);
+        // Future render position (relative to renderOrigin)
+        glm::vec3 futureRenderPos = glm::vec3((futurePhysicsPos - renderOrigin) * static_cast<double>(config_.simulation_rendering_scale));
         
         // Velocity direction in render coordinates
         glm::vec3 renderVelocity = futureRenderPos - currentRenderPos;
@@ -201,8 +205,9 @@ void Rocket::render(const Shader& shader) const {
     // If dotProduct >= 0.999f, no rotation needed (already aligned)
     
     // Apply transformations: first rotate (around origin), then translate
-    // This ensures the rocket rotates around its own center before being positioned
-    model = glm::translate(model, offsetPosition());
+    // Position is computed relative to renderOrigin for float precision
+    glm::vec3 relativePos = glm::vec3((position - renderOrigin) * static_cast<double>(config_.simulation_rendering_scale));
+    model = glm::translate(model, relativePos);
     model = model * rotation;
     
     shader.setMat4("model", model);
@@ -232,11 +237,11 @@ void Rocket::resetTime() {
     time = 0.0f;
 }
 
-glm::vec3 Rocket::getPosition() const { 
+glm::dvec3 Rocket::getPosition() const { 
     return position; 
 }
 
-glm::vec3 Rocket::getVelocity() const { 
+glm::dvec3 Rocket::getVelocity() const { 
     return velocity; 
 }
 
@@ -257,29 +262,29 @@ bool Rocket::isCrashed() const {
     return crashed_;
 }
 
-float Rocket::getMass() const { 
+double Rocket::getMass() const { 
     return mass; 
 }
 
-float Rocket::getFuelMass() const { 
+double Rocket::getFuelMass() const { 
     return fuel_mass; 
 }
 
-float Rocket::getThrust() const { 
+double Rocket::getThrust() const { 
     return thrust; 
 }
 
-float Rocket::getExhaustVelocity() const { 
+double Rocket::getExhaustVelocity() const { 
     return exhaust_velocity; 
 }
 
-glm::vec3 Rocket::getThrustDirection() const {
+glm::dvec3 Rocket::getThrustDirection() const {
     return thrustDirection;
 }
 
-void Rocket::setThrustDirection(const glm::vec3& direction) {
+void Rocket::setThrustDirection(const glm::dvec3& direction) {
     thrustDirection = glm::normalize(direction);
-    if (glm::length(velocity) > 0.0f) {
+    if (glm::length(velocity) > 0.0) {
         velocity = glm::normalize(thrustDirection) * glm::length(velocity);
     }
 }
@@ -303,13 +308,13 @@ void Rocket::setTrajectoryRender(std::unique_ptr<IRenderObject> trajectory, std:
 
 // private
 
-glm::vec3 Rocket::computeAccelerationRK4(float currentMass, const BODY_MAP& bodies, const Octree* octree) const {
+glm::dvec3 Rocket::computeAccelerationRK4(double currentMass, const BODY_MAP& bodies, const Octree* octree) const {
     // This version uses the rocket's current position/velocity (for real-time update)
     return computeAccelerationAt(position, velocity, currentMass, bodies, octree);
 }
 
-glm::vec3 Rocket::computeAccelerationAt(const glm::vec3& pos, const glm::vec3& vel, float currentMass, const BODY_MAP& bodies, const Octree* octree) const {
-    glm::vec3 acc(0.0f);
+glm::dvec3 Rocket::computeAccelerationAt(const glm::dvec3& pos, const glm::dvec3& vel, double currentMass, const BODY_MAP& bodies, const Octree* octree) const {
+    glm::dvec3 acc(0.0);
     
     // Gravity from all bodies: use Barnes-Hut octree if available, else direct summation
     if (octree) {
@@ -317,9 +322,9 @@ glm::vec3 Rocket::computeAccelerationAt(const glm::vec3& pos, const glm::vec3& v
     } else {
         for (const auto& [name, body] : bodies) {
             if (body.get() != this) {
-                glm::vec3 delta = pos - body->position;
-                float r = glm::length(delta);
-                if (r > 1e-6f) {
+                glm::dvec3 delta = pos - body->position;
+                double r = glm::length(delta);
+                if (r > 1e-6) {
                     acc -= (config_.physics_gravity_constant * body->mass / (r * r * r)) * delta;
                 }
             }
@@ -327,59 +332,59 @@ glm::vec3 Rocket::computeAccelerationAt(const glm::vec3& pos, const glm::vec3& v
     }
     
     // Thrust: convert local-frame thrustDirection to world-space
-    if (fuel_mass > 0.0f && currentMass > 0.0f) {
-        glm::vec3 worldThrust = localToWorldDirection(thrustDirection);
+    if (fuel_mass > 0.0 && currentMass > 0.0) {
+        glm::dvec3 worldThrust = localToWorldDirection(thrustDirection);
         acc += (thrust / currentMass) * worldThrust;
     }
     
     // Atmospheric drag (relative to Earth)
-    glm::vec3 relativeToEarth = pos - earthPosition_;
-    float distFromEarthCenter = glm::length(relativeToEarth);
-    float altitude = distFromEarthCenter - config_.physics_earth_radius;
-    if (altitude > 0.0f && altitude < 100000.0f) {
-        float rho = config_.physics_air_density * std::exp(-altitude / config_.physics_scale_height);
-        float v_magnitude = glm::length(vel);
-        if (v_magnitude > 0.0f) {
-            glm::vec3 v_unit = vel / v_magnitude;
-            float drag_force = 0.5f * rho * config_.physics_drag_coefficient * config_.physics_cross_section_area * v_magnitude * v_magnitude;
+    glm::dvec3 relativeToEarth = pos - earthPosition_;
+    double distFromEarthCenter = glm::length(relativeToEarth);
+    double altitude = distFromEarthCenter - config_.physics_earth_radius;
+    if (altitude > 0.0 && altitude < 100000.0) {
+        double rho = config_.physics_air_density * std::exp(-altitude / config_.physics_scale_height);
+        double v_magnitude = glm::length(vel);
+        if (v_magnitude > 0.0) {
+            glm::dvec3 v_unit = vel / v_magnitude;
+            double drag_force = 0.5 * rho * config_.physics_drag_coefficient * config_.physics_cross_section_area * v_magnitude * v_magnitude;
             acc -= drag_force * v_unit / currentMass;
         }
     }
     
-    LOG_DEBUG(logger_, "Rocket", "Acc=" + glm::to_string(acc) + ", Fuel=" + std::to_string(fuel_mass));
+    LOG_DEBUG(logger_, "Rocket", "Acc=" + glm::to_string(glm::vec3(acc)) + ", Fuel=" + std::to_string(fuel_mass));
     return acc;
 }
 
 glm::vec3 Rocket::offsetPosition() const {
     // In heliocentric coordinate system, just scale the position
-    // The position is already in meters, convert to km for rendering
-    return position * config_.simulation_rendering_scale;
+    // The position is already in meters (dvec3), convert to km (vec3) for rendering
+    return glm::vec3(position * static_cast<double>(config_.simulation_rendering_scale));
 }
 
-glm::vec3 Rocket::offsetPosition(glm::vec3 inputPosition) const {
+glm::vec3 Rocket::offsetPosition(const glm::dvec3& inputPosition) const {
     // In heliocentric coordinate system, just scale the position
-    return inputPosition * config_.simulation_rendering_scale;
+    return glm::vec3(inputPosition * static_cast<double>(config_.simulation_rendering_scale));
 }
 
-glm::vec3 Rocket::localToWorldDirection(const glm::vec3& localDir) const {
+glm::dvec3 Rocket::localToWorldDirection(const glm::dvec3& localDir) const {
     // Build a local coordinate frame at the rocket's position relative to Earth.
     // Local Y = radially outward from Earth center (the "up" direction at launch site)
     // Local X = arbitrary tangential direction (eastward-like)
     // Local Z = completes the right-handed frame
-    glm::vec3 radial = position - earthPosition_;
-    float r = glm::length(radial);
-    if (r < 1e-6f) {
+    glm::dvec3 radial = position - earthPosition_;
+    double r = glm::length(radial);
+    if (r < 1e-6) {
         return localDir;  // Degenerate: rocket at Earth center
     }
     
-    glm::vec3 up = radial / r;  // Local Y: radially outward
+    glm::dvec3 up = radial / r;  // Local Y: radially outward
     
     // Choose a reference vector that's not parallel to up for cross product
-    glm::vec3 ref = (std::abs(glm::dot(up, glm::vec3(0, 0, 1))) < 0.99f)
-                   ? glm::vec3(0, 0, 1) : glm::vec3(1, 0, 0);
+    glm::dvec3 ref = (std::abs(glm::dot(up, glm::dvec3(0, 0, 1))) < 0.99)
+                   ? glm::dvec3(0, 0, 1) : glm::dvec3(1, 0, 0);
     
-    glm::vec3 east = glm::normalize(glm::cross(ref, up));  // Local X: tangential
-    glm::vec3 north = glm::cross(up, east);                 // Local Z: completes frame
+    glm::dvec3 east = glm::normalize(glm::cross(ref, up));  // Local X: tangential
+    glm::dvec3 north = glm::cross(up, east);                 // Local Z: completes frame
     
     // Transform: world_dir = east * localDir.x + up * localDir.y + north * localDir.z
     return east * localDir.x + up * localDir.y + north * localDir.z;
@@ -392,15 +397,15 @@ bool Rocket::needsPredictionUpdate() const {
     // Position change threshold: if the rocket has moved significantly
     // relative to its orbit, the old prediction is stale.
     // Use a fraction of Earth's radius as a meaningful distance.
-    constexpr float posThreshold = 1000.0f;       // 1 km
-    constexpr float velThreshold = 1.0f;           // 1 m/s
-    constexpr float thrustEps    = 0.01f;          // Thrust on/off change
-    constexpr float fuelEps      = 0.01f;          // Fuel consumption change
+    constexpr double posThreshold = 1000.0;       // 1 km
+    constexpr double velThreshold = 1.0;           // 1 m/s
+    constexpr double thrustEps    = 0.01;          // Thrust on/off change
+    constexpr double fuelEps      = 0.01;          // Fuel consumption change
 
-    float dPos = glm::length(position - lastPredPos_);
-    float dVel = glm::length(velocity - lastPredVel_);
-    float dThrust = std::abs(thrust - lastPredThrust_);
-    float dFuel = std::abs(fuel_mass - lastPredFuelMass_);
+    double dPos = glm::length(position - lastPredPos_);
+    double dVel = glm::length(velocity - lastPredVel_);
+    double dThrust = std::abs(thrust - lastPredThrust_);
+    double dFuel = std::abs(fuel_mass - lastPredFuelMass_);
 
     return dPos > posThreshold || dVel > velThreshold
         || dThrust > thrustEps || dFuel > fuelEps;
@@ -426,8 +431,8 @@ void Rocket::predictTrajectory(float duration, float step, const BODY_MAP& bodie
     prediction_->reset();
     
     Body state = *this;
-    float predMass = mass;
-    float predFuel = fuel_mass;
+    double predMass = mass;
+    double predFuel = fuel_mass;
     float predTime = 0.0f;
     
     // Adaptive step control parameters
@@ -452,23 +457,23 @@ void Rocket::predictTrajectory(float duration, float step, const BODY_MAP& bodie
         }
         
         // Calculate altitude relative to Earth (not Sun) in heliocentric coordinates
-        glm::vec3 relativeToEarth = state.position - earthPosition_;
-        float distanceFromEarthCenter = glm::length(relativeToEarth);
-        float altitude = distanceFromEarthCenter - config_.physics_earth_radius;
+        glm::dvec3 relativeToEarth = state.position - earthPosition_;
+        double distanceFromEarthCenter = glm::length(relativeToEarth);
+        double altitude = distanceFromEarthCenter - config_.physics_earth_radius;
         
         // Stop if crashed or escaped too far from Earth
-        if (altitude < 0.0f || altitude > config_.physics_moon_distance * 2.0f) {
+        if (altitude < 0.0 || altitude > config_.physics_moon_distance * 2.0) {
             break;
         }
         
         // Adaptive step size based on altitude
         // Use larger steps at higher altitudes where dynamics change slowly
         float adaptiveStep = step;
-        if (altitude > 100000.0f) {
+        if (altitude > 100000.0) {
             // Above 100 km: can use larger steps
             adaptiveStep = step * 2.0f;
         }
-        if (altitude > 1000000.0f) {
+        if (altitude > 1000000.0) {
             // Above 1000 km: use even larger steps
             adaptiveStep = step * 5.0f;
         }
@@ -480,9 +485,9 @@ void Rocket::predictTrajectory(float duration, float step, const BODY_MAP& bodie
     }
 }
 
-Body Rocket::updateStateRK4(const Body& state, float deltaTime, float& currentMass, float& currentFuel, const BODY_MAP& bodies, const Octree* octree) const {
-    float fuel_consumption_rate = thrust / exhaust_velocity;
-    float delta_fuel = fuel_consumption_rate * deltaTime;
+Body Rocket::updateStateRK4(const Body& state, double deltaTime, double& currentMass, double& currentFuel, const BODY_MAP& bodies, const Octree* octree) const {
+    double fuel_consumption_rate = thrust / exhaust_velocity;
+    double delta_fuel = fuel_consumption_rate * deltaTime;
     
     // RK4 integration using correct intermediate positions and velocities
     Body k1, k2, k3, k4;
@@ -493,15 +498,15 @@ Body Rocket::updateStateRK4(const Body& state, float deltaTime, float& currentMa
     
     // k2: acceleration at midpoint using k1
     Body mid1;
-    mid1.position = state.position + k1.position * (deltaTime / 2.0f);
-    mid1.velocity = state.velocity + k1.velocity * (deltaTime / 2.0f);
+    mid1.position = state.position + k1.position * (deltaTime / 2.0);
+    mid1.velocity = state.velocity + k1.velocity * (deltaTime / 2.0);
     k2.velocity = computeAccelerationAt(mid1.position, mid1.velocity, currentMass, bodies, octree);
     k2.position = mid1.velocity;
     
     // k3: acceleration at midpoint using k2
     Body mid2;
-    mid2.position = state.position + k2.position * (deltaTime / 2.0f);
-    mid2.velocity = state.velocity + k2.velocity * (deltaTime / 2.0f);
+    mid2.position = state.position + k2.position * (deltaTime / 2.0);
+    mid2.velocity = state.velocity + k2.velocity * (deltaTime / 2.0);
     k3.velocity = computeAccelerationAt(mid2.position, mid2.velocity, currentMass, bodies, octree);
     k3.position = mid2.velocity;
     
@@ -514,12 +519,12 @@ Body Rocket::updateStateRK4(const Body& state, float deltaTime, float& currentMa
     
     // Combine the four estimates
     Body newState;
-    newState.position = state.position + (k1.position + 2.0f * k2.position + 2.0f * k3.position + k4.position) * (deltaTime / 6.0f);
-    newState.velocity = state.velocity + (k1.velocity + 2.0f * k2.velocity + 2.0f * k3.velocity + k4.velocity) * (deltaTime / 6.0f);
+    newState.position = state.position + (k1.position + 2.0 * k2.position + 2.0 * k3.position + k4.position) * (deltaTime / 6.0);
+    newState.velocity = state.velocity + (k1.velocity + 2.0 * k2.velocity + 2.0 * k3.velocity + k4.velocity) * (deltaTime / 6.0);
     
     // Update fuel consumption
-    if (currentFuel > 0.0f) {
-        currentFuel = std::max(0.0f, currentFuel - delta_fuel);
+    if (currentFuel > 0.0) {
+        currentFuel = std::max(0.0, currentFuel - delta_fuel);
         currentMass = currentMass - delta_fuel;
     }
     

@@ -11,13 +11,13 @@
 using json = nlohmann::json;
 
 struct FlightCondition {
-    float altitude_min;
-    float altitude_max;
-    float speed_min;
-    float speed_max;
+    double altitude_min;
+    double altitude_max;
+    double speed_min;
+    double speed_max;
 
     // Check if the rocket satisfies the conditions
-    bool isSatisfied(float altitude, float speed) const {
+    bool isSatisfied(double altitude, double speed) const {
         bool altitude_ok = (!altitude_min || altitude >= altitude_min) &&
                           (!altitude_max || altitude <= altitude_max);
         bool speed_ok = (!speed_min || speed >= speed_min) &&
@@ -27,10 +27,10 @@ struct FlightCondition {
 };
 
 struct FlightAction {
-    float thrust;
-    glm::vec3 direction;
+    double thrust;
+    glm::dvec3 direction;
 
-    FlightAction(float t = 0.0, glm::vec3 d = {0.0f, 0.0f, 0.0f})
+    FlightAction(double t = 0.0, glm::dvec3 d = {0.0, 0.0, 0.0})
         : thrust(t), direction(d) {}
 };
 

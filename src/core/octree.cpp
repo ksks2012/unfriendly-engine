@@ -9,7 +9,7 @@
 
 OctreeNode::OctreeNode(const OctreeBounds& bounds) : bounds_(bounds) {}
 
-int OctreeNode::getOctant(const glm::vec3& position) const {
+int OctreeNode::getOctant(const glm::dvec3& position) const {
     int octant = 0;
     if (position.x >= bounds_.center.x) octant |= 4;
     if (position.y >= bounds_.center.y) octant |= 2;
@@ -29,16 +29,14 @@ void OctreeNode::subdivide() {
 void OctreeNode::updateMassProperties(const OctreeBody& newBody) {
     // Incremental update of center of mass:
     // new_com = (old_total_mass * old_com + new_mass * new_pos) / new_total_mass
-    // Use double precision to avoid overflow at solar system scales
-    // (mass ~1e30 * position ~1e12 = ~1e42, which exceeds float max ~3.4e38)
-    double newTotalMass = static_cast<double>(totalMass_) + static_cast<double>(newBody.mass);
+    // All values are now double precision natively, no conversion needed.
+    double newTotalMass = totalMass_ + newBody.mass;
     if (newTotalMass > 0.0) {
-        glm::dvec3 oldWeighted = static_cast<double>(totalMass_) * glm::dvec3(centerOfMass_);
-        glm::dvec3 newWeighted = static_cast<double>(newBody.mass) * glm::dvec3(newBody.position);
-        glm::dvec3 newCom = (oldWeighted + newWeighted) / newTotalMass;
-        centerOfMass_ = glm::vec3(newCom);
+        glm::dvec3 oldWeighted = totalMass_ * centerOfMass_;
+        glm::dvec3 newWeighted = newBody.mass * newBody.position;
+        centerOfMass_ = (oldWeighted + newWeighted) / newTotalMass;
     }
-    totalMass_ = static_cast<float>(newTotalMass);
+    totalMass_ = newTotalMass;
     bodyCount_++;
 }
 
@@ -76,27 +74,25 @@ void OctreeNode::insert(const OctreeBody& body) {
     children_[octant]->insert(body);
 }
 
-glm::vec3 OctreeNode::computeAcceleration(const glm::vec3& position, float theta,
-                                            float G, float softening) const {
+glm::dvec3 OctreeNode::computeAcceleration(const glm::dvec3& position, double theta,
+                                            double G, double softening) const {
     if (bodyCount_ == 0) {
-        return glm::vec3(0.0f);
+        return glm::dvec3(0.0);
     }
     
-    // Use double precision for intermediate calculations to avoid overflow
-    // at solar system scales (distances ~10^12, masses ~10^30)
-    glm::dvec3 delta = glm::dvec3(centerOfMass_) - glm::dvec3(position);
+    glm::dvec3 delta = centerOfMass_ - position;
     double distSq = glm::dot(delta, delta);
     double dist = std::sqrt(distSq);
     
     // Skip if the query position is at the center of mass (self-interaction)
-    if (dist < static_cast<double>(softening)) {
+    if (dist < softening) {
         // For leaf nodes with one body, this means we're computing force on ourselves
         if (isLeaf()) {
-            return glm::vec3(0.0f);
+            return glm::dvec3(0.0);
         }
         // For internal nodes, recurse into children to handle properly
         if (isInternal_) {
-            glm::vec3 acc(0.0f);
+            glm::dvec3 acc(0.0);
             for (const auto& child : children_) {
                 if (child) {
                     acc += child->computeAcceleration(position, theta, G, softening);
@@ -104,24 +100,23 @@ glm::vec3 OctreeNode::computeAcceleration(const glm::vec3& position, float theta
             }
             return acc;
         }
-        return glm::vec3(0.0f);
+        return glm::dvec3(0.0);
     }
     
     // Barnes-Hut criterion: s/d < theta
     // where s = side length of the node, d = distance to center of mass
-    double nodeSize = static_cast<double>(bounds_.halfSize) * 2.0;
+    double nodeSize = bounds_.halfSize * 2.0;
     
-    if (isLeaf() || (nodeSize / dist < static_cast<double>(theta))) {
+    if (isLeaf() || (nodeSize / dist < theta)) {
         // Treat this node as a single body with aggregate mass
-        // a = G * M / r^3 * delta (computed in double to avoid overflow)
+        // a = G * M / r^3 * delta
         double distCubed = distSq * dist;
-        double factor = static_cast<double>(G) * static_cast<double>(totalMass_) / distCubed;
-        glm::dvec3 accD = factor * delta;
-        return glm::vec3(accD);
+        double factor = G * totalMass_ / distCubed;
+        return factor * delta;
     }
     
     // Node is too close / too large: recurse into children
-    glm::vec3 acc(0.0f);
+    glm::dvec3 acc(0.0);
     for (const auto& child : children_) {
         if (child) {
             acc += child->computeAcceleration(position, theta, G, softening);
@@ -150,12 +145,12 @@ Octree::Octree(float theta) : theta_(theta) {}
 
 OctreeBounds Octree::computeBounds(const std::vector<OctreeBody>& bodies) const {
     if (bodies.empty()) {
-        return OctreeBounds(glm::vec3(0.0f), 1.0f);
+        return OctreeBounds(glm::dvec3(0.0), 1.0);
     }
     
     // Find the bounding box of all bodies
-    glm::vec3 minPos(std::numeric_limits<float>::max());
-    glm::vec3 maxPos(std::numeric_limits<float>::lowest());
+    glm::dvec3 minPos(std::numeric_limits<double>::max());
+    glm::dvec3 maxPos(std::numeric_limits<double>::lowest());
     
     for (const auto& body : bodies) {
         minPos = glm::min(minPos, body.position);
@@ -163,17 +158,17 @@ OctreeBounds Octree::computeBounds(const std::vector<OctreeBody>& bodies) const 
     }
     
     // Create a cube that contains all bodies
-    glm::vec3 center = (minPos + maxPos) * 0.5f;
-    glm::vec3 extent = maxPos - minPos;
+    glm::dvec3 center = (minPos + maxPos) * 0.5;
+    glm::dvec3 extent = maxPos - minPos;
     
     // Use the largest dimension as the cube side
-    float halfSize = std::max({extent.x, extent.y, extent.z}) * 0.5f;
+    double halfSize = std::max({extent.x, extent.y, extent.z}) * 0.5;
     
     // Add a small margin to prevent bodies from being exactly on the boundary
-    halfSize *= 1.01f;
+    halfSize *= 1.01;
     
     // Ensure minimum size to prevent degenerate trees
-    halfSize = std::max(halfSize, 1.0f);
+    halfSize = std::max(halfSize, 1.0);
     
     return OctreeBounds(center, halfSize);
 }
@@ -194,9 +189,9 @@ void Octree::build(const std::vector<OctreeBody>& bodies) {
     }
 }
 
-glm::vec3 Octree::computeAcceleration(const glm::vec3& position, float G) const {
+glm::dvec3 Octree::computeAcceleration(const glm::dvec3& position, double G) const {
     if (!root_) {
-        return glm::vec3(0.0f);
+        return glm::dvec3(0.0);
     }
     return root_->computeAcceleration(position, theta_, G);
 }

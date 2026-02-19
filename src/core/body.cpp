@@ -1,7 +1,7 @@
 #include "core/body.h"
 
 // Use as State
-Body::Body() : config_(Config()), name(""), mass(0.0f), position(0.0f), velocity(0.0f) {
+Body::Body() : config_(Config()), name(""), mass(0.0), position(0.0), velocity(0.0) {
 };
 
 Body::Body(const Config& config, std::shared_ptr<ILogger> logger)
@@ -11,7 +11,7 @@ Body::Body(const Config& config, std::shared_ptr<ILogger> logger)
     }
 };
 
-Body::Body(const Config& config, std::shared_ptr<ILogger> logger, const std::string& name, float mass, const glm::vec3& position, const glm::vec3& velocity)
+Body::Body(const Config& config, std::shared_ptr<ILogger> logger, const std::string& name, double mass, const glm::dvec3& position, const glm::dvec3& velocity)
     : config_(config), logger_(logger), name(name), mass(mass), position(position), velocity(velocity) {
     if (!logger_) {
         throw std::invalid_argument("Logger cannot be null");
@@ -24,8 +24,8 @@ Body::Body(const Body& other)
 
 void Body::update(float deltaTime) {
     if (trajectory_) {
-        // Scale position from meters to km for rendering
-        glm::vec3 scaledPos = position * config_.simulation_rendering_scale;
+        // Scale position from meters to km for rendering (convert dvec3 to vec3)
+        glm::vec3 scaledPos = glm::vec3(position * static_cast<double>(config_.simulation_rendering_scale));
         trajectory_->update(scaledPos, deltaTime);
     }
 }
