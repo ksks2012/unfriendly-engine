@@ -2,17 +2,17 @@
 #include "app/config.h"
 #include <fstream>
 
-void PrintTo(const glm::vec3& v, std::ostream* os) {
-    *os << "glm::vec3(" << v.x << ", " << v.y << ", " << v.z << ")";
+void PrintTo(const glm::dvec3& v, std::ostream* os) {
+    *os << "glm::dvec3(" << v.x << ", " << v.y << ", " << v.z << ")";
 }
 
 TEST(ConfigTest, DefaultValues) {
     Config config;
-    EXPECT_FLOAT_EQ(config.rocket_mass, 501000.0f);
-    EXPECT_FLOAT_EQ(config.rocket_thrust, 20000000.0f);
-    EXPECT_EQ(config.rocket_initial_position.x, 0.0f);
-    EXPECT_EQ(config.rocket_initial_position.y, 6371000.0f);
-    EXPECT_EQ(config.rocket_initial_position.z, 0.0f);
+    EXPECT_DOUBLE_EQ(config.rocket_mass, 501000.0);
+    EXPECT_DOUBLE_EQ(config.rocket_thrust, 20000000.0);
+    EXPECT_EQ(config.rocket_initial_position.x, 0.0);
+    EXPECT_EQ(config.rocket_initial_position.y, 6371000.0);
+    EXPECT_EQ(config.rocket_initial_position.z, 0.0);
 }
 
 TEST(ConfigTest, LoadFromFileValid) {
@@ -33,23 +33,23 @@ TEST(ConfigTest, LoadFromFileValid) {
 
     Config config;
     config.loadFromFile("./var/test_config.json");
-    EXPECT_FLOAT_EQ(config.rocket_mass, 2000.0f);
-    EXPECT_FLOAT_EQ(config.rocket_thrust, 30000000.0f);
+    EXPECT_DOUBLE_EQ(config.rocket_mass, 2000.0);
+    EXPECT_DOUBLE_EQ(config.rocket_thrust, 30000000.0);
 }
 
 TEST(ConfigTest, LoadFromFileInvalid) {
     Config config;
     // Nonexistent file
-    EXPECT_FLOAT_EQ(config.rocket_mass, 501000.0f);  // Should retain default value
+    EXPECT_DOUBLE_EQ(config.rocket_mass, 501000.0);  // Should retain default value
 }
 
 TEST(ConfigTest, MoonParameters) {
     Config config;
-    EXPECT_FLOAT_EQ(config.physics_moon_radius, 1737100.0f);
-    EXPECT_FLOAT_EQ(config.physics_moon_mass, 7.34767309e22f);
-    EXPECT_FLOAT_EQ(config.physics_moon_distance, 384400000.0f);
-    EXPECT_FLOAT_EQ(config.physics_moon_gravity_constant, 6.674e-11f);
-    EXPECT_FLOAT_EQ(config.physics_moon_gravity, 1.62f);
+    EXPECT_DOUBLE_EQ(config.physics_moon_radius, 1737100.0);
+    EXPECT_DOUBLE_EQ(config.physics_moon_mass, 7.34767309e22);
+    EXPECT_DOUBLE_EQ(config.physics_moon_distance, 384400000.0);
+    EXPECT_DOUBLE_EQ(config.physics_moon_gravity_constant, 6.674e-11);
+    EXPECT_DOUBLE_EQ(config.physics_moon_gravity, 1.62);
 
     std::ofstream file("./var/test_moon_config.json");
     file << R"({
@@ -62,11 +62,11 @@ TEST(ConfigTest, MoonParameters) {
     file.close();
 
     config.loadFromFile("./var/test_moon_config.json");
-    EXPECT_FLOAT_EQ(config.physics_moon_radius, 173710.0f);
-    EXPECT_FLOAT_EQ(config.physics_moon_mass, 7.34767309e21f);
-    EXPECT_FLOAT_EQ(config.physics_moon_distance, 38440000.0f);
-    EXPECT_FLOAT_EQ(config.physics_moon_gravity_constant, 6.674e-11f);
-    EXPECT_FLOAT_EQ(config.physics_moon_gravity, 1.62f);
+    EXPECT_DOUBLE_EQ(config.physics_moon_radius, 173710.0);
+    EXPECT_DOUBLE_EQ(config.physics_moon_mass, 7.34767309e21);
+    EXPECT_DOUBLE_EQ(config.physics_moon_distance, 38440000.0);
+    EXPECT_DOUBLE_EQ(config.physics_moon_gravity_constant, 6.674e-11);
+    EXPECT_DOUBLE_EQ(config.physics_moon_gravity, 1.62);
 }
 
 TEST(ConfigTest, CameraParameters) {
