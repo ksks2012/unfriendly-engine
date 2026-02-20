@@ -1,13 +1,13 @@
 #include "rendering/camera.h"
 
-Camera::Camera() : pitch(45.0f), yaw(45.0f), distance(500000.0f), mode(Mode::Free),
+Camera::Camera() : config_(nullptr), pitch(45.0f), yaw(45.0f), distance(500000.0f), mode(Mode::Free),
         smoothingFactor(0.1f), lockedOffset(0.5f, 0.7f, 0.3f), earthPosition(0.0f) {
     position = glm::vec3(0.0f, 0.0f, distance);
-    target = glm::vec3(0.0f, 6371000.0f, 0.0f); // Initially pointing to Earth's surface
+    target = glm::vec3(0.0f, 0.0f, 0.0f);
     fixedTarget = glm::vec3(0.0f, 0.0f, 0.0f);
 }
 
-Camera::Camera(Config& config) : pitch(config.camera_pitch), yaw(config.camera_yaw), distance(config.camera_distance),
+Camera::Camera(Config& config) : config_(&config), pitch(config.camera_pitch), yaw(config.camera_yaw), distance(config.camera_distance),
         mode(Mode::Free), smoothingFactor(0.1f), lockedOffset(0.5f, 0.7f, 0.3f), earthPosition(0.0f) {
     position = config.camera_position;
     target = config.camera_target;
@@ -42,7 +42,9 @@ void Camera::update(const glm::vec3& rocketPosition) {
             float distFromEarth = glm::length(relativeToEarth);
             
             // Earth radius in rendering units (km)
-            const float earthRadiusKm = 6371.0f;
+            const float earthRadiusKm = config_ 
+                ? static_cast<float>(config_->physics_earth_radius * config_->simulation_rendering_scale) 
+                : 6371.0f;
             // Safety margin outside Earth surface
             const float safetyMargin = earthRadiusKm * 0.1f; // 10% of Earth radius (~637 km)
             

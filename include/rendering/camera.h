@@ -32,7 +32,6 @@ public:
 public:
     Camera();
     Camera(Config& config);
-    // TODO: constuctor with config parameters
 
     void update(const glm::vec3& rocketPosition);
     glm::mat4 getViewMatrix() const;
@@ -45,6 +44,7 @@ public:
     const char* getModeName() const; // Get current mode name for display
 
 private:
+    Config* config_;            // Optional config reference for body parameters
     glm::vec3 smoothedPosition; // Smoothed camera position
     glm::vec3 smoothedTarget;   // Smoothed target position
     float smoothingFactor;      // Smoothing factor (0.0 to 1.0)

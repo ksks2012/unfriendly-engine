@@ -1,6 +1,7 @@
 #ifndef ORBITAL_INFO_H
 #define ORBITAL_INFO_H
 
+#include "app/config.h"
 #include "core/orbital_elements.h"
 #include "core/rocket.h"
 
@@ -19,7 +20,8 @@ using BODY_MAP = std::unordered_map<std::string, std::unique_ptr<Body>>;
  */
 class OrbitalInfo {
 public:
-    OrbitalInfo() = default;
+    OrbitalInfo() : config_(nullptr) {}
+    explicit OrbitalInfo(const Config& config) : config_(&config) {}
     
     /**
      * Render the orbital info panel
@@ -32,6 +34,10 @@ public:
                 float panelX, float panelY);
 
 private:
+    const Config* config_;  // Config reference for body parameters
+    
+    // Get body radius by name from config (meters)
+    double getBodyRadius(const std::string& name) const;
     // Find the most influential body (for determining SOI)
     std::string findDominantBody(const glm::dvec3& position, const BODY_MAP& bodies) const;
     

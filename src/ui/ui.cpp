@@ -5,7 +5,8 @@
 #include <map>
 
 UI::UI(GLFWwindow* win, Simulation& sim) 
-    : window_(win), map_(sim), simulation_(sim), fpsCounter_(FPSCounter()), lastTime_(0.0f), selectedBody_("rocket") {
+    : window_(win), map_(sim), simulation_(sim), fpsCounter_(FPSCounter()), lastTime_(0.0f),
+      selectedBody_("rocket"), orbitalInfo_(sim.getConfig()) {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGui_ImplGlfw_InitForOpenGL(window_, true);

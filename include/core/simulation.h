@@ -51,6 +51,7 @@ public:
     const BODY_MAP& getBodies() const;
     float getRenderScale() const;  // Get rendering scale factor
     const glm::dvec3& getRenderOrigin() const { return renderOrigin_; }
+    const Config& getConfig() const { return config; }
     
     // Get projection and view matrices for UI rendering
     void getRenderMatrices(int width, int height, glm::mat4& projection, glm::mat4& view) const;

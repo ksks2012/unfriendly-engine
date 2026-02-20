@@ -35,28 +35,13 @@ void OrbitalInfo::render(const Rocket& rocket, const BODY_MAP& bodies,
     glm::dvec3 relVel = rocketVel - centralBody->velocity;
     
     // Calculate orbital elements
+    double bodyRadius = getBodyRadius(dominantBodyName);
     OrbitalElements elements = OrbitalCalculator::calculate(
         relPos, relVel,
         centralBody->mass,
-        6371000.0,  // Default radius, will be updated per body
+        bodyRadius,
         dominantBodyName
     );
-    
-    // Update radius based on body
-    double bodyRadius = 6371000.0;  // Earth default
-    if (dominantBodyName == "earth") bodyRadius = 6371000.0;
-    else if (dominantBodyName == "moon") bodyRadius = 1737400.0;
-    else if (dominantBodyName == "sun") bodyRadius = 696340000.0;
-    else if (dominantBodyName == "mercury") bodyRadius = 2439700.0;
-    else if (dominantBodyName == "venus") bodyRadius = 6051800.0;
-    else if (dominantBodyName == "mars") bodyRadius = 3389500.0;
-    else if (dominantBodyName == "jupiter") bodyRadius = 69911000.0;
-    else if (dominantBodyName == "saturn") bodyRadius = 58232000.0;
-    else if (dominantBodyName == "uranus") bodyRadius = 25362000.0;
-    else if (dominantBodyName == "neptune") bodyRadius = 24622000.0;
-    
-    // Recalculate with correct radius
-    elements = OrbitalCalculator::calculate(relPos, relVel, centralBody->mass, bodyRadius, dominantBodyName);
     
     // Header: Reference body and orbit type
     ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "Orbiting: %s", 
@@ -238,4 +223,19 @@ void OrbitalInfo::renderProgressBar(const char* label, float value, float maxVal
     ImGui::PushStyleColor(ImGuiCol_PlotHistogram, color);
     ImGui::ProgressBar(std::min(value / maxValue, 1.0f), ImVec2(-1, 0), overlay);
     ImGui::PopStyleColor();
+}
+
+double OrbitalInfo::getBodyRadius(const std::string& name) const {
+    if (!config_) {
+        // Fallback: Earth radius if no config available
+        return 6371000.0;
+    }
+    
+    // Special cases: Sun and Moon have dedicated config fields
+    if (name == "sun") return config_->physics_sun_radius;
+    if (name == "moon") return config_->physics_moon_radius;
+    
+    // Look up planet from config data (covers earth + all planets)
+    double radius = config_->getPlanetRadius(name);
+    return (radius > 0.0) ? radius : config_->physics_earth_radius;
 }
