@@ -41,10 +41,10 @@ void UI::render(float timeScale, const Rocket& rocket, const Camera& camera, int
     ImGui::Text("Fuel Mass: %.1f kg", rocket.getFuelMass());
     ImGui::Text("Thrust: %.1f N", rocket.getThrust());
     ImGui::Text("Exhaust Velocity: %.1f m/s", rocket.getExhaustVelocity());
-    ImGui::Text("Position (Geocentric): %s", glm::to_string(rocket.getPosition()).c_str());
-    ImGui::Text("Velocity: %s", glm::to_string(rocket.getVelocity()).c_str());
-    ImGui::Text("Thrust Direction: %s", glm::to_string(rocket.getThrustDirection()).c_str());
-    ImGui::Text("Altitude: %.1f m", glm::length(rocket.getPosition()) - 6371000.0f);
+    ImGui::Text("Position (Geocentric): %s", glm::to_string(glm::vec3(rocket.getPosition())).c_str());
+    ImGui::Text("Velocity: %s", glm::to_string(glm::vec3(rocket.getVelocity())).c_str());
+    ImGui::Text("Thrust Direction: %s", glm::to_string(glm::vec3(rocket.getThrustDirection())).c_str());
+    ImGui::Text("Altitude: %.1f m", glm::length(rocket.getPosition()) - 6371000.0);
     ImGui::Text("Time: %.1f s", rocket.getTime());
     ImGui::Text("Launched: %s", rocket.isLaunched() ? "Yes" : "No");
     if (rocket.isCrashed()) {
@@ -66,11 +66,11 @@ void UI::render(float timeScale, const Rocket& rocket, const Camera& camera, int
         float navBallX = width - navBallSize - 80;
         float navBallY = sceneHeight - navBallSize - 160;
         
-        // Get Earth position for reference frame
+        // Get Earth position for reference frame (convert to vec3 for rendering)
         const auto& bodies = simulation_.getBodies();
         glm::vec3 earthPos(0.0f);
         if (bodies.find("earth") != bodies.end()) {
-            earthPos = bodies.at("earth")->position;
+            earthPos = glm::vec3(bodies.at("earth")->position);
         }
         
         navBall_.render(rocket, earthPos, navBallX, navBallY, navBallSize);
@@ -325,7 +325,7 @@ void UI::renderPlanetLabelsInternal(const Camera& camera, const glm::mat4& proje
         auto it = bodies.find(name);
         if (it == bodies.end()) continue;
         
-        glm::vec3 worldPos = it->second->position * scale;
+        glm::vec3 worldPos = glm::vec3((it->second->position - simulation_.getRenderOrigin()) * static_cast<double>(scale));
         glm::vec2 screenPos = worldToScreen(worldPos, projection, view, width, height);
         
         // Check if on screen

@@ -14,9 +14,9 @@ void OrbitalInfo::render(const Rocket& rocket, const BODY_MAP& bodies,
     
     ImGui::Begin("Orbital Info", nullptr, flags);
     
-    // Get rocket state
-    glm::dvec3 rocketPos = glm::dvec3(rocket.getPosition());
-    glm::dvec3 rocketVel = glm::dvec3(rocket.getVelocity());
+    // Get rocket state (already in double precision)
+    glm::dvec3 rocketPos = rocket.getPosition();
+    glm::dvec3 rocketVel = rocket.getVelocity();
     
     // Find the dominant body (the one we're orbiting)
     std::string dominantBodyName = findDominantBody(rocketPos, bodies);
@@ -28,11 +28,11 @@ void OrbitalInfo::render(const Rocket& rocket, const BODY_MAP& bodies,
     }
     
     const auto& centralBody = bodies.at(dominantBodyName);
-    glm::dvec3 centralPos = glm::dvec3(centralBody->position);
+    glm::dvec3 centralPos = centralBody->position;
     
     // Calculate position and velocity relative to central body
     glm::dvec3 relPos = rocketPos - centralPos;
-    glm::dvec3 relVel = rocketVel - glm::dvec3(centralBody->velocity);
+    glm::dvec3 relVel = rocketVel - centralBody->velocity;
     
     // Calculate orbital elements
     OrbitalElements elements = OrbitalCalculator::calculate(
@@ -178,8 +178,8 @@ std::string OrbitalInfo::findDominantBody(const glm::dvec3& position, const BODY
         const auto& moon = bodies.at("moon");
         const auto& earth = bodies.at("earth");
         
-        double moonDist = glm::length(position - glm::dvec3(moon->position));
-        double earthMoonDist = glm::length(glm::dvec3(moon->position) - glm::dvec3(earth->position));
+        double moonDist = glm::length(position - moon->position);
+        double earthMoonDist = glm::length(moon->position - earth->position);
         
         // Moon's SOI relative to Earth
         double moonSOI = earthMoonDist * std::pow(moon->mass / earth->mass, 0.4);
@@ -200,8 +200,8 @@ std::string OrbitalInfo::findDominantBody(const glm::dvec3& position, const BODY
             if (bodies.find(planetName) == bodies.end()) continue;
             
             const auto& planet = bodies.at(planetName);
-            double planetDist = glm::length(position - glm::dvec3(planet->position));
-            double sunPlanetDist = glm::length(glm::dvec3(planet->position) - glm::dvec3(sun->position));
+            double planetDist = glm::length(position - planet->position);
+            double sunPlanetDist = glm::length(planet->position - sun->position);
             
             // Planet's SOI relative to Sun
             double planetSOI = sunPlanetDist * std::pow(planet->mass / sun->mass, 0.4);

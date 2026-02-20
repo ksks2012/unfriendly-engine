@@ -54,24 +54,24 @@ void InputHandler::process(Simulation& sim) {
     
     if (isKeyPressedWithCooldown(GLFW_KEY_A, directionCooldown)) {
         Rocket& rocket = sim.getRocket();
-        glm::vec3 currentDir = rocket.getThrustDirection();
-        glm::mat4 rotation = glm::rotate(
-            glm::mat4(1.0f),
-            glm::radians(static_cast<float>(rotationSpeed * directionCooldown)),
-            glm::vec3(0.0f, 0.0f, 1.0f)
+        glm::dvec3 currentDir = rocket.getThrustDirection();
+        glm::dmat4 rotation = glm::rotate(
+            glm::dmat4(1.0),
+            glm::radians(rotationSpeed * directionCooldown),
+            glm::dvec3(0.0, 0.0, 1.0)
         );        
-        glm::vec3 newDir = glm::vec3(rotation * glm::vec4(currentDir, 0.0f));
+        glm::dvec3 newDir = glm::dvec3(rotation * glm::dvec4(currentDir, 0.0));
         rocket.setThrustDirection(newDir);
     }
     if (isKeyPressedWithCooldown(GLFW_KEY_D, directionCooldown)) {
         Rocket& rocket = sim.getRocket();
-        glm::vec3 currentDir = rocket.getThrustDirection();
-        glm::mat4 rotation = glm::rotate(
-            glm::mat4(1.0f),
-            glm::radians(static_cast<float>(-rotationSpeed * directionCooldown)),
-            glm::vec3(0.0f, 0.0f, 1.0f)
+        glm::dvec3 currentDir = rocket.getThrustDirection();
+        glm::dmat4 rotation = glm::rotate(
+            glm::dmat4(1.0),
+            glm::radians(-rotationSpeed * directionCooldown),
+            glm::dvec3(0.0, 0.0, 1.0)
         );
-        glm::vec3 newDir = glm::vec3(rotation * glm::vec4(currentDir, 0.0f));
+        glm::dvec3 newDir = glm::dvec3(rotation * glm::dvec4(currentDir, 0.0));
         rocket.setThrustDirection(newDir);
     }
 

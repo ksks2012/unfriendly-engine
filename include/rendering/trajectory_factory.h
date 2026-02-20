@@ -15,7 +15,7 @@ public:
             config.simulation_trajectory_sample_time,
             config.trajectory_rocket_color,
             config.simulation_rendering_scale,
-            config.physics_earth_radius,
+            static_cast<float>(config.physics_earth_radius),
             Trajectory::RenderMode::LineStrip  // Open path for rocket trail
         };
         return std::make_unique<Trajectory>(trajConfig, logger);
@@ -28,7 +28,7 @@ public:
             config.simulation_prediction_step,
             config.trajectory_prediction_color,
             config.simulation_rendering_scale,
-            config.physics_earth_radius,
+            static_cast<float>(config.physics_earth_radius),
             Trajectory::RenderMode::LineStrip  // Open path for prediction
         };
         return std::make_unique<Trajectory>(trajConfig, logger);
@@ -40,7 +40,7 @@ public:
             config.simulation_trajectory_sample_time,
             glm::vec4(0.0f, 0.0f, 1.0f, 1.0f), // blue (generic body)
             config.simulation_rendering_scale,
-            config.physics_earth_radius,
+            static_cast<float>(config.physics_earth_radius),
             Trajectory::RenderMode::LineStrip
         };
         return std::make_unique<Trajectory>(trajConfig, logger);
@@ -55,7 +55,7 @@ public:
             sampleInterval,
             color,
             config.simulation_rendering_scale,
-            config.physics_earth_radius,
+            static_cast<float>(config.physics_earth_radius),
             renderMode
         };
         return std::make_unique<Trajectory>(trajConfig, logger);
@@ -70,7 +70,7 @@ public:
             0.1f,
             config.trajectory_moon_color,
             config.simulation_rendering_scale,
-            config.physics_earth_radius,
+            static_cast<float>(config.physics_earth_radius),
             Trajectory::RenderMode::LineLoop,  // Closed loop for orbit
             true  // isStatic: pre-calculated orbit, don't update dynamically
         };
@@ -78,7 +78,7 @@ public:
         auto traj = std::make_unique<Trajectory>(trajConfig, logger);
         traj->init();
     
-        const float radius = config.physics_moon_distance * config.simulation_rendering_scale;
+        const float radius = static_cast<float>(config.physics_moon_distance) * config.simulation_rendering_scale;
         
         // Lunar orbital inclination relative to the ecliptic (Earth's orbital plane)
         // The Moon's orbit is inclined about 5.145° from the ecliptic
@@ -112,7 +112,7 @@ public:
             0.1f,
             config.trajectory_earth_color,
             config.simulation_rendering_scale,
-            config.physics_earth_radius,
+            static_cast<float>(config.physics_earth_radius),
             Trajectory::RenderMode::LineLoop,  // Closed loop for orbit
             true  // isStatic: pre-calculated orbit, don't update dynamically
         };
@@ -120,7 +120,7 @@ public:
         auto traj = std::make_unique<Trajectory>(trajConfig, logger);
         traj->init();
         
-        const float radius = config.physics_earth_orbit_radius * config.simulation_rendering_scale;
+        const float radius = static_cast<float>(config.physics_earth_orbit_radius) * config.simulation_rendering_scale;
         std::vector<glm::vec3> points(orbitPoints);
         for (size_t i = 0; i < orbitPoints; ++i) {
             float theta = 2.0f * glm::pi<float>() * static_cast<float>(i) / orbitPoints;
@@ -154,7 +154,7 @@ public:
             0.1f,
             color,
             config.simulation_rendering_scale,
-            config.physics_earth_radius,
+            static_cast<float>(config.physics_earth_radius),
             Trajectory::RenderMode::LineLoop,
             true  // isStatic
         };

@@ -316,10 +316,10 @@ void NavBall::render(const Rocket& rocket, const glm::vec3& earthPos,
     
     ImGui::Begin("NavBall", nullptr, flags);
     
-    // Get rocket data
-    glm::vec3 position = rocket.getPosition();
-    glm::vec3 velocity = rocket.getVelocity();
-    glm::vec3 thrustDir = rocket.getThrustDirection();
+    // Get rocket data (convert dvec3 to vec3 for rendering)
+    glm::vec3 position = glm::vec3(rocket.getPosition());
+    glm::vec3 velocity = glm::vec3(rocket.getVelocity());
+    glm::vec3 thrustDir = glm::vec3(rocket.getThrustDirection());
     
     // Calculate orbital reference frame
     OrbitalFrame frame = calculateOrbitalFrame(position, velocity, earthPos);
