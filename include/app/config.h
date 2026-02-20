@@ -7,8 +7,22 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <vector>
+#include <unordered_map>
 
 using json = nlohmann::json;
+
+// Configuration for a single planet (orbit, mass, radius, rendering)
+struct PlanetConfig {
+    std::string name;
+    double radius;              // meters
+    double mass;                // kg
+    double orbit_radius;        // meters (semi-major axis)
+    double orbital_velocity;    // m/s
+    float orbital_inclination;  // radians (relative to ecliptic)
+    glm::vec4 orbit_color;      // RGBA for orbit line rendering
+    float view_multiplier;      // Camera distance multiplier for focus mode
+};
 
 class Config {
 public:
@@ -33,50 +47,22 @@ public:
     // Sun parameters
     double physics_sun_radius = 696340000.0;           // 696,340 km
     double physics_sun_mass = 1.989e30;                // kg
-    double physics_earth_orbit_radius = 149597870700.0; // 1 AU in meters
-    double physics_earth_orbital_velocity = 29780.0;   // m/s
     
-    // Mercury parameters
-    double physics_mercury_radius = 2439700.0;         // 2,439.7 km
-    double physics_mercury_mass = 3.3011e23;           // kg
-    double physics_mercury_orbit_radius = 57909050000.0; // 0.387 AU in meters
-    double physics_mercury_orbital_velocity = 47362.0; // m/s
+    // Planet parameters (Mercury through Neptune)
+    // Indexed by name for lookup; order matches solar system distance from Sun
+    std::vector<PlanetConfig> planets;
     
-    // Venus parameters
-    double physics_venus_radius = 6051800.0;           // 6,051.8 km
-    double physics_venus_mass = 4.8675e24;             // kg
-    double physics_venus_orbit_radius = 108208000000.0; // 0.723 AU in meters
-    double physics_venus_orbital_velocity = 35020.0;   // m/s
+    // Lookup a planet by name (returns nullptr if not found)
+    const PlanetConfig* getPlanet(const std::string& name) const {
+        auto it = planetIndex_.find(name);
+        return (it != planetIndex_.end()) ? &planets[it->second] : nullptr;
+    }
     
-    // Mars parameters
-    double physics_mars_radius = 3389500.0;            // 3,389.5 km
-    double physics_mars_mass = 6.4171e23;              // kg
-    double physics_mars_orbit_radius = 227939200000.0; // 1.524 AU in meters
-    double physics_mars_orbital_velocity = 24077.0;    // m/s
-    
-    // Jupiter parameters
-    double physics_jupiter_radius = 69911000.0;        // 69,911 km
-    double physics_jupiter_mass = 1.8982e27;           // kg
-    double physics_jupiter_orbit_radius = 778.57e9;    // 5.204 AU in meters
-    double physics_jupiter_orbital_velocity = 13070.0; // m/s
-    
-    // Saturn parameters
-    double physics_saturn_radius = 58232000.0;         // 58,232 km
-    double physics_saturn_mass = 5.6834e26;            // kg
-    double physics_saturn_orbit_radius = 1433.53e9;    // 9.583 AU in meters
-    double physics_saturn_orbital_velocity = 9680.0;   // m/s
-    
-    // Uranus parameters
-    double physics_uranus_radius = 25362000.0;         // 25,362 km
-    double physics_uranus_mass = 8.6810e25;            // kg
-    double physics_uranus_orbit_radius = 2872.46e9;    // 19.19 AU in meters
-    double physics_uranus_orbital_velocity = 6800.0;   // m/s
-    
-    // Neptune parameters
-    double physics_neptune_radius = 24622000.0;        // 24,622 km
-    double physics_neptune_mass = 1.02413e26;          // kg
-    double physics_neptune_orbit_radius = 4495.06e9;   // 30.07 AU in meters
-    double physics_neptune_orbital_velocity = 5430.0;  // m/s
+    // Convenience: get planet radius by name (returns 0 if not found)
+    double getPlanetRadius(const std::string& name) const {
+        const auto* p = getPlanet(name);
+        return p ? p->radius : 0.0;
+    }
     
     // Earth parameters
     double physics_earth_radius = 6371000.0;
@@ -132,6 +118,10 @@ public:
 private:
     void setDefaults();
     void parseConfig(const json&);
+    
+    // Map planet name -> index in planets vector (rebuilt after loading)
+    std::unordered_map<std::string, size_t> planetIndex_;
+    void buildPlanetIndex();
 };
 
 #endif

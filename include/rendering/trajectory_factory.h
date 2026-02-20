@@ -120,7 +120,7 @@ public:
         auto traj = std::make_unique<Trajectory>(trajConfig, logger);
         traj->init();
         
-        const float radius = static_cast<float>(config.physics_earth_orbit_radius) * config.simulation_rendering_scale;
+        const float radius = static_cast<float>(config.getPlanet("earth")->orbit_radius) * config.simulation_rendering_scale;
         std::vector<glm::vec3> points(orbitPoints);
         for (size_t i = 0; i < orbitPoints; ++i) {
             float theta = 2.0f * glm::pi<float>() * static_cast<float>(i) / orbitPoints;

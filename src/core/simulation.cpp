@@ -29,124 +29,43 @@ void Simulation::init() {
     // Sun at origin (heliocentric coordinate system)
     bodies["sun"] = std::make_unique<Body>(config, logger_, "sun", config.physics_sun_mass, glm::dvec3(0.0), glm::dvec3(0.0));
     
-    // Mercury - innermost planet
-    // Orbital inclination: 7.005° to ecliptic
-    {
-        glm::dvec3 pos = glm::dvec3(config.physics_mercury_orbit_radius, 0.0, 0.0);
-        glm::dvec3 vel = glm::dvec3(0.0, 0.0, config.physics_mercury_orbital_velocity);
-        bodies["mercury"] = std::make_unique<Body>(config, logger_, "mercury", config.physics_mercury_mass, pos, vel);
-        bodies["mercury"]->setTrajectory(TrajectoryFactory::createPlanetOrbit(
-            config, logger_, config.physics_mercury_orbit_radius,
-            glm::vec4(0.7f, 0.7f, 0.7f, 0.8f),  // Gray
-            glm::radians(7.005f)
+    // Initialize all planets from config data
+    // Earth and Moon have special handling; other planets use the generic loop
+    const auto* earthCfg = config.getPlanet("earth");
+    glm::dvec3 earthPos = glm::dvec3(earthCfg->orbit_radius, 0.0, 0.0);
+    glm::dvec3 earthVel = glm::dvec3(0.0, 0.0, earthCfg->orbital_velocity);
+    
+    for (const auto& planet : config.planets) {
+        if (planet.name == "earth" || planet.name == "moon") continue;
+        
+        glm::dvec3 pos = glm::dvec3(planet.orbit_radius, 0.0, 0.0);
+        glm::dvec3 vel = glm::dvec3(0.0, 0.0, planet.orbital_velocity);
+        bodies[planet.name] = std::make_unique<Body>(config, logger_, planet.name, planet.mass, pos, vel);
+        bodies[planet.name]->setTrajectory(TrajectoryFactory::createPlanetOrbit(
+            config, logger_, planet.orbit_radius, planet.orbit_color, planet.orbital_inclination
         ));
     }
     
-    // Venus - second planet
-    // Orbital inclination: 3.395° to ecliptic
-    {
-        glm::dvec3 pos = glm::dvec3(config.physics_venus_orbit_radius, 0.0, 0.0);
-        glm::dvec3 vel = glm::dvec3(0.0, 0.0, config.physics_venus_orbital_velocity);
-        bodies["venus"] = std::make_unique<Body>(config, logger_, "venus", config.physics_venus_mass, pos, vel);
-        bodies["venus"]->setTrajectory(TrajectoryFactory::createPlanetOrbit(
-            config, logger_, config.physics_venus_orbit_radius,
-            glm::vec4(0.9f, 0.7f, 0.5f, 0.8f),  // Orange-ish
-            glm::radians(3.395f)
-        ));
-    }
-    
-    // Earth orbiting the Sun (1 AU distance, orbital velocity ~29.78 km/s)
-    glm::dvec3 earthPos = glm::dvec3(config.physics_earth_orbit_radius, 0.0, 0.0);
-    glm::dvec3 earthVel = glm::dvec3(0.0, 0.0, config.physics_earth_orbital_velocity); // Perpendicular to position
+    // Earth
     bodies["earth"] = std::make_unique<Body>(config, logger_, "earth", config.physics_earth_mass, earthPos, earthVel);
+    bodies["earth"]->setTrajectory(TrajectoryFactory::createEarthTrajectory(config, logger_));
     
     // Moon orbiting Earth with ~5.145° orbital inclination relative to the ecliptic
-    // The lunar orbital plane is tilted from the ecliptic plane
     const float lunarInclination = glm::radians(5.145f);
     
-    // Moon position: in the inclined orbital plane
-    // Start with position in the ecliptic (X-Z plane), then apply inclination
-    double moonDistLocal_z = config.physics_moon_distance; // Moon along +Z in local orbital plane
+    // Moon position in the inclined orbital plane
+    double moonDistLocal_z = config.physics_moon_distance;
     double moonPosY = moonDistLocal_z * std::sin(lunarInclination);
     double moonPosZ = moonDistLocal_z * std::cos(lunarInclination);
     glm::dvec3 moonPos = earthPos + glm::dvec3(0.0, moonPosY, moonPosZ);
     
     // Moon velocity: orbital velocity (~1022 m/s) perpendicular to position in the inclined plane
-    // In the inclined plane, velocity is along -X when position is along +Z
     const double moonOrbitalSpeed = 1022.0;
     glm::dvec3 moonVelRelative = glm::dvec3(-moonOrbitalSpeed, 0.0, 0.0);
     glm::dvec3 moonVel = earthVel + moonVelRelative;
     
     bodies["moon"] = std::make_unique<Body>(config, logger_, "moon", config.physics_moon_mass, moonPos, moonVel);
     bodies["moon"]->setTrajectory(TrajectoryFactory::createMoonTrajectory(config, logger_));
-    
-    // Set Earth's trajectory to show its orbit around the Sun
-    bodies["earth"]->setTrajectory(TrajectoryFactory::createEarthTrajectory(config, logger_));
-    
-    // Mars - fourth planet
-    // Orbital inclination: 1.850° to ecliptic
-    {
-        glm::dvec3 pos = glm::dvec3(config.physics_mars_orbit_radius, 0.0, 0.0);
-        glm::dvec3 vel = glm::dvec3(0.0, 0.0, config.physics_mars_orbital_velocity);
-        bodies["mars"] = std::make_unique<Body>(config, logger_, "mars", config.physics_mars_mass, pos, vel);
-        bodies["mars"]->setTrajectory(TrajectoryFactory::createPlanetOrbit(
-            config, logger_, config.physics_mars_orbit_radius,
-            glm::vec4(0.8f, 0.3f, 0.2f, 0.8f),  // Reddish
-            glm::radians(1.850f)
-        ));
-    }
-    
-    // Jupiter - fifth planet (gas giant)
-    // Orbital inclination: 1.303° to ecliptic
-    {
-        glm::dvec3 pos = glm::dvec3(config.physics_jupiter_orbit_radius, 0.0, 0.0);
-        glm::dvec3 vel = glm::dvec3(0.0, 0.0, config.physics_jupiter_orbital_velocity);
-        bodies["jupiter"] = std::make_unique<Body>(config, logger_, "jupiter", config.physics_jupiter_mass, pos, vel);
-        bodies["jupiter"]->setTrajectory(TrajectoryFactory::createPlanetOrbit(
-            config, logger_, config.physics_jupiter_orbit_radius,
-            glm::vec4(0.8f, 0.7f, 0.5f, 0.8f),  // Tan/beige
-            glm::radians(1.303f)
-        ));
-    }
-    
-    // Saturn - sixth planet (gas giant with rings)
-    // Orbital inclination: 2.485° to ecliptic
-    {
-        glm::dvec3 pos = glm::dvec3(config.physics_saturn_orbit_radius, 0.0, 0.0);
-        glm::dvec3 vel = glm::dvec3(0.0, 0.0, config.physics_saturn_orbital_velocity);
-        bodies["saturn"] = std::make_unique<Body>(config, logger_, "saturn", config.physics_saturn_mass, pos, vel);
-        bodies["saturn"]->setTrajectory(TrajectoryFactory::createPlanetOrbit(
-            config, logger_, config.physics_saturn_orbit_radius,
-            glm::vec4(0.9f, 0.8f, 0.5f, 0.8f),  // Pale yellow
-            glm::radians(2.485f)
-        ));
-    }
-    
-    // Uranus - seventh planet (ice giant)
-    // Orbital inclination: 0.773° to ecliptic
-    {
-        glm::dvec3 pos = glm::dvec3(config.physics_uranus_orbit_radius, 0.0, 0.0);
-        glm::dvec3 vel = glm::dvec3(0.0, 0.0, config.physics_uranus_orbital_velocity);
-        bodies["uranus"] = std::make_unique<Body>(config, logger_, "uranus", config.physics_uranus_mass, pos, vel);
-        bodies["uranus"]->setTrajectory(TrajectoryFactory::createPlanetOrbit(
-            config, logger_, config.physics_uranus_orbit_radius,
-            glm::vec4(0.6f, 0.8f, 0.9f, 0.8f),  // Cyan/light blue
-            glm::radians(0.773f)
-        ));
-    }
-    
-    // Neptune - eighth planet (ice giant)
-    // Orbital inclination: 1.770° to ecliptic
-    {
-        glm::dvec3 pos = glm::dvec3(config.physics_neptune_orbit_radius, 0.0, 0.0);
-        glm::dvec3 vel = glm::dvec3(0.0, 0.0, config.physics_neptune_orbital_velocity);
-        bodies["neptune"] = std::make_unique<Body>(config, logger_, "neptune", config.physics_neptune_mass, pos, vel);
-        bodies["neptune"]->setTrajectory(TrajectoryFactory::createPlanetOrbit(
-            config, logger_, config.physics_neptune_orbit_radius,
-            glm::vec4(0.2f, 0.3f, 0.8f, 0.8f),  // Deep blue
-            glm::radians(1.770f)
-        ));
-    }
 
     if (!bodies["sun"] || !bodies["earth"] || !bodies["moon"]) {
         LOG_ERROR(logger_, "Simulation", "Failed to initialize celestial bodies!");
@@ -261,13 +180,10 @@ void Simulation::init() {
     };
     
     // Create render objects for all planets
-    createPlanetRenderObject("mercury", config.physics_mercury_radius);
-    createPlanetRenderObject("venus", config.physics_venus_radius);
-    createPlanetRenderObject("mars", config.physics_mars_radius);
-    createPlanetRenderObject("jupiter", config.physics_jupiter_radius);
-    createPlanetRenderObject("saturn", config.physics_saturn_radius);
-    createPlanetRenderObject("uranus", config.physics_uranus_radius);
-    createPlanetRenderObject("neptune", config.physics_neptune_radius);
+    for (const auto& planet : config.planets) {
+        if (planet.name == "earth") continue;  // Earth already has its own render object
+        createPlanetRenderObject(planet.name, planet.radius);
+    }
     
     // Verify all bodies have render objects
     LOG_INFO(logger_, "Simulation", "=== Render Object Status ===");
@@ -282,7 +198,7 @@ void Simulation::init() {
     LOG_INFO(logger_, "Simulation", "============================");
     
     // Initialize Saturn's rings
-    saturnRings_ = std::make_unique<SaturnRings>(config.physics_saturn_radius);
+    saturnRings_ = std::make_unique<SaturnRings>(config.getPlanet("saturn")->radius);
     saturnRings_->init();
     LOG_INFO(logger_, "Simulation", "Saturn's rings initialized");
     
@@ -702,36 +618,19 @@ void Simulation::focusOnBody(const std::string& bodyName) {
     
     if (bodyName == "sun") {
         bodyRadiusKm = config.physics_sun_radius * scale;
-        viewMultiplier = 10.0f;  // Sun is huge, need more distance
-    } else if (bodyName == "mercury") {
-        bodyRadiusKm = config.physics_mercury_radius * scale;
-        viewMultiplier = 8.0f;  // Small planet
-    } else if (bodyName == "venus") {
-        bodyRadiusKm = config.physics_venus_radius * scale;
-        viewMultiplier = 6.0f;
-    } else if (bodyName == "earth") {
-        bodyRadiusKm = config.physics_earth_radius * scale;
-        viewMultiplier = 6.0f;
-    } else if (bodyName == "mars") {
-        bodyRadiusKm = config.physics_mars_radius * scale;
-        viewMultiplier = 8.0f;  // Small planet
-    } else if (bodyName == "jupiter") {
-        bodyRadiusKm = config.physics_jupiter_radius * scale;
-        viewMultiplier = 4.0f;  // Gas giant, already very large
-    } else if (bodyName == "saturn") {
-        bodyRadiusKm = config.physics_saturn_radius * scale;
-        viewMultiplier = 4.0f;  // Gas giant
-    } else if (bodyName == "uranus") {
-        bodyRadiusKm = config.physics_uranus_radius * scale;
-        viewMultiplier = 5.0f;  // Ice giant
-    } else if (bodyName == "neptune") {
-        bodyRadiusKm = config.physics_neptune_radius * scale;
-        viewMultiplier = 5.0f;  // Ice giant
+        viewMultiplier = 10.0f;
     } else if (bodyName == "moon") {
         bodyRadiusKm = config.physics_moon_radius * scale;
-        viewMultiplier = 10.0f;  // Moon is small
+        viewMultiplier = 10.0f;
     } else {
-        bodyRadiusKm = config.physics_earth_radius * scale;  // Default to Earth radius
+        // Look up planet from config data
+        const auto* planet = config.getPlanet(bodyName);
+        if (planet) {
+            bodyRadiusKm = planet->radius * scale;
+            viewMultiplier = planet->view_multiplier;
+        } else {
+            bodyRadiusKm = config.physics_earth_radius * scale;  // Default to Earth radius
+        }
     }
     
     // Calculate view distance based on body radius and multiplier

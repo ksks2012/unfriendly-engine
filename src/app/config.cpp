@@ -1,5 +1,7 @@
 #include "app/config.h"
 
+#include <cmath>
+
 Config::Config(){
     setDefaults();
 }
@@ -42,11 +44,33 @@ void Config::setDefaults() {
     physics_moon_radius = 1737100.0;
     physics_moon_mass = 7.34767309e22;
     physics_moon_distance = 384400000.0;
-    physics_moon_gravity_constant = 6.674e-11; // Same as universal gravitational constant
-    physics_moon_gravity = 1.62; // Surface gravity in m/s^2
-    physics_moon_angular_speed = 2.6617e-6; // radians per second (2π / 27.3 days)
-    physics_moon_rotation_speed = 2.6617e-6; // radians per second, tidally locked
-    physics_moon_rotation_period = 27.3 * 24.0 * 3600.0; // seconds (27.3 days)
+    physics_moon_gravity_constant = 6.674e-11;
+    physics_moon_gravity = 1.62;
+    physics_moon_angular_speed = 2.6617e-6;
+    physics_moon_rotation_speed = 2.6617e-6;
+    physics_moon_rotation_period = 27.3 * 24.0 * 3600.0;
+
+    // Planet parameters: {name, radius(m), mass(kg), orbit_radius(m), orbital_velocity(m/s),
+    //                      inclination(rad), orbit_color(RGBA), view_multiplier}
+    planets = {
+        {"mercury",  2439700.0,   3.3011e23,   57909050000.0,   47362.0,
+         glm::radians(7.005f),  {0.7f, 0.7f, 0.7f, 0.8f},  8.0f},
+        {"venus",    6051800.0,   4.8675e24,   108208000000.0,  35020.0,
+         glm::radians(3.395f),  {0.9f, 0.7f, 0.5f, 0.8f},  6.0f},
+        {"earth",    6371000.0,   5.972e24,    149597870700.0,  29780.0,
+         0.0f,                  {0.0f, 0.5f, 1.0f, 0.8f},   6.0f},
+        {"mars",     3389500.0,   6.4171e23,   227939200000.0,  24077.0,
+         glm::radians(1.850f),  {0.8f, 0.3f, 0.2f, 0.8f},  8.0f},
+        {"jupiter",  69911000.0,  1.8982e27,   778.57e9,        13070.0,
+         glm::radians(1.303f),  {0.8f, 0.7f, 0.5f, 0.8f},  4.0f},
+        {"saturn",   58232000.0,  5.6834e26,   1433.53e9,       9680.0,
+         glm::radians(2.485f),  {0.9f, 0.8f, 0.5f, 0.8f},  4.0f},
+        {"uranus",   25362000.0,  8.6810e25,   2872.46e9,       6800.0,
+         glm::radians(0.773f),  {0.6f, 0.8f, 0.9f, 0.8f},  5.0f},
+        {"neptune",  24622000.0,  1.02413e26,  4495.06e9,       5430.0,
+         glm::radians(1.770f),  {0.2f, 0.3f, 0.8f, 0.8f},  5.0f},
+    };
+    buildPlanetIndex();
 
     // Simulation parameters
     simulation_trajectory_sample_time = 0.5f;
@@ -128,6 +152,30 @@ void Config::parseConfig(const json& config) {
         physics_moon_gravity = physics.value("moon_gravity", physics_moon_gravity);
         physics_moon_rotation_speed = physics.value("moon_rotation_speed", physics_moon_rotation_speed);
         physics_moon_rotation_period = physics.value("moon_rotation_period", physics_moon_rotation_period);
+        
+        // Planet parameters: override from "planets" sub-object if present
+        // Format: { "planets": { "mercury": { "radius": ..., "mass": ..., ... }, ... } }
+        if (physics.contains("planets")) {
+            const auto& planetsJson = physics["planets"];
+            for (auto& planet : planets) {
+                if (planetsJson.contains(planet.name)) {
+                    const auto& p = planetsJson[planet.name];
+                    planet.radius           = p.value("radius",           planet.radius);
+                    planet.mass             = p.value("mass",             planet.mass);
+                    planet.orbit_radius     = p.value("orbit_radius",     planet.orbit_radius);
+                    planet.orbital_velocity = p.value("orbital_velocity", planet.orbital_velocity);
+                    if (p.contains("inclination_deg")) {
+                        planet.orbital_inclination = glm::radians(p["inclination_deg"].get<float>());
+                    }
+                }
+            }
+        }
+    }
+
+    // Also update the earth entry in planets vector if earth-specific physics changed
+    if (auto* earth = const_cast<PlanetConfig*>(getPlanet("earth"))) {
+        earth->radius = physics_earth_radius;
+        earth->mass = physics_earth_mass;
     }
 
     // Simulation parameters
@@ -199,5 +247,12 @@ void Config::parseConfig(const json& config) {
         camera_distance_solar_system = camera.value("distance_solar_system", camera_distance_solar_system);
         camera_distance_full_solar = camera.value("distance_full_solar", camera_distance_full_solar);
         camera_min_focus_distance = camera.value("min_focus_distance", camera_min_focus_distance);
+    }
+}
+
+void Config::buildPlanetIndex() {
+    planetIndex_.clear();
+    for (size_t i = 0; i < planets.size(); ++i) {
+        planetIndex_[planets[i].name] = i;
     }
 }
