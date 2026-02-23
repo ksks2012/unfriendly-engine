@@ -23,11 +23,7 @@ Body::Body(const Body& other)
 }
 
 void Body::update(float deltaTime) {
-    if (trajectory_) {
-        // Scale position from meters to km for rendering (convert dvec3 to vec3)
-        glm::vec3 scaledPos = glm::vec3(position * static_cast<double>(config_.simulation_rendering_scale));
-        trajectory_->update(scaledPos, deltaTime);
-    }
+    renderer.updateTrajectory(position, static_cast<double>(config_.simulation_rendering_scale), deltaTime);
 }
 
 void Body::render(const Shader& shader) const {
@@ -35,9 +31,7 @@ void Body::render(const Shader& shader) const {
 }
 
 void Body::render(const Shader& shader, const glm::vec3& orbitCenter) const {
-    if(trajectory_) {
-        trajectory_->render(shader, orbitCenter);
-    }
+    renderer.renderTrajectory(shader, orbitCenter);
 }
 
 Body& Body::operator=(const Body& other) {
@@ -47,8 +41,4 @@ Body& Body::operator=(const Body& other) {
         mass = other.mass;
     }
     return *this;
-}
-
-void Body::setTrajectory(std::unique_ptr<Trajectory> trajectory) {
-    trajectory_ = std::move(trajectory);
 }

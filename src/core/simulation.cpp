@@ -115,11 +115,11 @@ void Simulation::init() {
     }
     
     try {
-        bodies["earth"]->renderObject = std::make_unique<RenderObject>(earthVertices, earthIndices);
-        LOG_INFO(logger_, "Simulation", "Earth renderObject created: vertices=" + 
+        bodies["earth"]->renderer.setSphereRenderObject(std::make_unique<RenderObject>(earthVertices, earthIndices));
+        LOG_INFO(logger_, "Simulation", "Earth sphere created: vertices=" + 
                  std::to_string(earthVertices.size()) + ", indices=" + std::to_string(earthIndices.size()));
     } catch (const std::exception& e) {
-        LOG_ERROR(logger_, "Simulation", "Error creating earth renderObject: " + std::string(e.what()));
+        LOG_ERROR(logger_, "Simulation", "Error creating earth sphere: " + std::string(e.what()));
         return;
     }
 
@@ -136,11 +136,11 @@ void Simulation::init() {
     }
     
     try {
-        bodies["moon"]->renderObject = std::make_unique<RenderObject>(moonVertices, earthIndices);
-        LOG_INFO(logger_, "Simulation", "Moon renderObject created: vertices=" + 
+        bodies["moon"]->renderer.setSphereRenderObject(std::make_unique<RenderObject>(moonVertices, earthIndices));
+        LOG_INFO(logger_, "Simulation", "Moon sphere created: vertices=" + 
                  std::to_string(moonVertices.size()) + ", indices=" + std::to_string(earthIndices.size()));
     } catch (const std::exception& e) {
-        LOG_ERROR(logger_, "Simulation", "Error creating moon renderObject: " + std::string(e.what()));
+        LOG_ERROR(logger_, "Simulation", "Error creating moon sphere: " + std::string(e.what()));
         return;
     }
     
@@ -154,11 +154,11 @@ void Simulation::init() {
     }
     
     try {
-        bodies["sun"]->renderObject = std::make_unique<RenderObject>(sunVertices, earthIndices);
-        LOG_INFO(logger_, "Simulation", "Sun renderObject created: vertices=" + 
+        bodies["sun"]->renderer.setSphereRenderObject(std::make_unique<RenderObject>(sunVertices, earthIndices));
+        LOG_INFO(logger_, "Simulation", "Sun sphere created: vertices=" + 
                  std::to_string(sunVertices.size()) + ", indices=" + std::to_string(earthIndices.size()));
     } catch (const std::exception& e) {
-        LOG_ERROR(logger_, "Simulation", "Error creating sun renderObject: " + std::string(e.what()));
+        LOG_ERROR(logger_, "Simulation", "Error creating sun sphere: " + std::string(e.what()));
         return;
     }
     
@@ -172,10 +172,10 @@ void Simulation::init() {
             vertices.push_back(earthVertices[i + 2] * scale);
         }
         try {
-            bodies[name]->renderObject = std::make_unique<RenderObject>(vertices, earthIndices);
-            LOG_INFO(logger_, "Simulation", name + " renderObject created");
+            bodies[name]->renderer.setSphereRenderObject(std::make_unique<RenderObject>(vertices, earthIndices));
+            LOG_INFO(logger_, "Simulation", name + " sphere created");
         } catch (const std::exception& e) {
-            LOG_ERROR(logger_, "Simulation", "Error creating " + name + " renderObject: " + std::string(e.what()));
+            LOG_ERROR(logger_, "Simulation", "Error creating " + name + " sphere: " + std::string(e.what()));
         }
     };
     
@@ -188,11 +188,11 @@ void Simulation::init() {
     // Verify all bodies have render objects
     LOG_INFO(logger_, "Simulation", "=== Render Object Status ===");
     for (const auto& [name, body] : bodies) {
-        bool hasRender = body->renderObject != nullptr;
+        bool hasRender = body->renderer.hasSphere();
         if (hasRender) {
-            LOG_INFO(logger_, "Simulation", name + ": renderObject OK");
+            LOG_INFO(logger_, "Simulation", name + ": sphere OK");
         } else {
-            LOG_ERROR(logger_, "Simulation", name + ": renderObject MISSING!");
+            LOG_ERROR(logger_, "Simulation", name + ": sphere MISSING!");
         }
     }
     LOG_INFO(logger_, "Simulation", "============================");
@@ -375,12 +375,12 @@ void Simulation::render(const Shader& shader) const {
     shader.setMat4("projection", projection);
     
     // Render the Sun (orange)
-    if (bodies.find("sun") != bodies.end() && bodies.at("sun")->renderObject) {
+    if (bodies.find("sun") != bodies.end() && bodies.at("sun")->renderer.hasSphere()) {
         glm::mat4 sunModel = glm::translate(glm::mat4(1.0f), toRender(bodies.at("sun")->position));
         sunModel = glm::scale(sunModel, glm::vec3(scalef, scalef, scalef));
         shader.setMat4("model", sunModel);
         shader.setVec4("color", glm::vec4(1.0f, 0.5f, 0.0f, 1.0f)); // Orange
-        bodies.at("sun")->renderObject->render();
+        bodies.at("sun")->renderer.renderSphere();
     }
     
     // Render Earth's orbit (only visible in solar system view)
@@ -389,31 +389,31 @@ void Simulation::render(const Shader& shader) const {
     }
 
     // Render the Earth (blue)
-    if (bodies.find("earth") != bodies.end() && bodies.at("earth")->renderObject) {
+    if (bodies.find("earth") != bodies.end() && bodies.at("earth")->renderer.hasSphere()) {
         glm::mat4 earthModel = glm::translate(glm::mat4(1.0f), toRender(bodies.at("earth")->position));
         earthModel = glm::scale(earthModel, glm::vec3(scalef, scalef, scalef));
         shader.setMat4("model", earthModel);
         shader.setVec4("color", glm::vec4(0.0f, 0.0f, 1.0f, 1.0f)); // Blue
-        bodies.at("earth")->renderObject->render();
+        bodies.at("earth")->renderer.renderSphere();
     } else {
-        LOG_ERROR(logger_, "Simulation", "Earth is null or has no renderObject!");
+        LOG_ERROR(logger_, "Simulation", "Earth is null or has no sphere!");
     }
 
     rocket.render(shader, renderOrigin_);
 
     // Render the Moon (gray)
-    if (bodies.find("moon") != bodies.end() && bodies.at("moon")->renderObject) {
+    if (bodies.find("moon") != bodies.end() && bodies.at("moon")->renderer.hasSphere()) {
         glm::mat4 moonModel = glm::translate(glm::mat4(1.0f), toRender(bodies.at("moon")->position));
         moonModel = glm::scale(moonModel, glm::vec3(scalef, scalef, scalef));
         shader.setMat4("model", moonModel);
         shader.setVec4("color", glm::vec4(0.7f, 0.7f, 0.7f, 1.0f)); // Gray
-        bodies.at("moon")->renderObject->render();
+        bodies.at("moon")->renderer.renderSphere();
         
         // Render Moon's orbit centered on Earth's position (origin-relative)
         glm::vec3 earthCenter = toRender(bodies.at("earth")->position);
         bodies.at("moon")->render(shader, earthCenter);
     } else {
-        LOG_ERROR(logger_, "Simulation", "Moon is null or has no renderObject!");
+        LOG_ERROR(logger_, "Simulation", "Moon is null or has no sphere!");
     }
     
     // Helper lambda to render a planet with its orbit
@@ -423,12 +423,12 @@ void Simulation::render(const Shader& shader) const {
             // Render orbit
             body->render(shader);
             // Render planet sphere
-            if (body->renderObject) {
+            if (body->renderer.hasSphere()) {
                 glm::mat4 model = glm::translate(glm::mat4(1.0f), toRender(body->position));
                 model = glm::scale(model, glm::vec3(scalef, scalef, scalef));
                 shader.setMat4("model", model);
                 shader.setVec4("color", color);
-                body->renderObject->render();
+                body->renderer.renderSphere();
             }
         }
     };

@@ -23,6 +23,11 @@
 
 class Rocket : Body {
 private:
+    // Rocket's own rendering (separate from Body's BodyRenderer)
+    std::unique_ptr<IRenderObject> renderObject;     // Rocket mesh
+    std::unique_ptr<Trajectory> trajectory_;          // Rocket flight trajectory
+    std::unique_ptr<Trajectory> prediction_;          // Predicted trajectory
+
     float predictionDuration = 0.0f, predictionStep = 0.0f; // Prediction parameters
     float predictionTimer_ = 0.0f;            // Timer for prediction update frequency
     float predictionUpdateInterval_ = 2.0f;   // Update prediction every 2 seconds (reduced frequency)

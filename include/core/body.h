@@ -2,26 +2,22 @@
 #define BODY_H
 
 #include "app/config.h"
-#include "rendering/trajectory.h"
+#include "rendering/body_renderer.h"
 
 #include <glm/glm.hpp>
 #include <string>
 
 
 class Body {
-protected:
-    std::unique_ptr<Trajectory> trajectory_;
-    std::unique_ptr<Trajectory> prediction_;
-
-    const Config& config_;
-    std::shared_ptr<ILogger> logger_;
-
 public:
+    // Physics state (public for direct access in physics integrator)
     std::string name;
     double mass;
     glm::dvec3 position;
     glm::dvec3 velocity;
-    std::unique_ptr<IRenderObject> renderObject;
+
+    // Rendering component (owns sphere mesh + orbit trajectory)
+    BodyRenderer renderer;
 
 public:
     Body();
@@ -32,9 +28,12 @@ public:
 
     Body& operator=(const Body& other);
 
+    // Update trajectory with current position (delegates to renderer)
     virtual void update(float deltaTime);
+
+    // Render orbit trajectory (delegates to renderer)
     virtual void render(const Shader& shader) const;
-    virtual void render(const Shader& shader, const glm::vec3& orbitCenter) const;  // Render orbit with center offset
+    virtual void render(const Shader& shader, const glm::vec3& orbitCenter) const;
 
     // Getters
     std::string getName() const { return name; }
@@ -45,7 +44,13 @@ public:
     // Setters
     void setPosition(const glm::dvec3& position) { this->position = position; }
     void setVelocity(const glm::dvec3& velocity) { this->velocity = velocity; }
-    void setTrajectory(std::unique_ptr<Trajectory> trajectory);
+
+    // Convenience: delegate to renderer (backward compatibility)
+    void setTrajectory(std::unique_ptr<Trajectory> trajectory) { renderer.setTrajectory(std::move(trajectory)); }
+
+protected:
+    const Config& config_;
+    std::shared_ptr<ILogger> logger_;
 };
 
 typedef std::unordered_map<std::string, std::unique_ptr<Body>> BODY_MAP;
