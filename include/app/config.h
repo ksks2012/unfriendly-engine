@@ -6,11 +6,18 @@
 
 #include <iostream>
 #include <fstream>
+#include <stdexcept>
 #include <string>
 #include <vector>
 #include <unordered_map>
 
 using json = nlohmann::json;
+
+// Custom exception for configuration errors (file I/O, parsing, validation)
+class ConfigError : public std::runtime_error {
+public:
+    using std::runtime_error::runtime_error;
+};
 
 // Configuration for a single planet (orbit, mass, radius, rendering)
 struct PlanetConfig {

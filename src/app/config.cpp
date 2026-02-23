@@ -9,11 +9,14 @@ Config::Config(){
 void Config::loadFromFile(const std::string& filename) {
     std::ifstream file(filename);
     if (!file.is_open()) {
-        std::cerr << "Failed to open config file: " << filename << ". Using defaults." << std::endl;
-        return;
+        throw ConfigError("Failed to open config file: " + filename);
     }
     json config;
-    file >> config;
+    try {
+        config = json::parse(file);
+    } catch (const json::parse_error& e) {
+        throw ConfigError("Failed to parse config file: " + filename + " — " + e.what());
+    }
     parseConfig(config);
 }
 

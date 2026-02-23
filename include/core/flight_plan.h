@@ -3,12 +3,19 @@
 
 #include <iostream>
 #include <fstream>
+#include <stdexcept>
 #include <vector>
 #include <optional>
 #include <nlohmann/json.hpp>
 #include <glm/glm.hpp>
 
 using json = nlohmann::json;
+
+// Custom exception for flight plan errors (file I/O, parsing)
+class FlightPlanError : public std::runtime_error {
+public:
+    using std::runtime_error::runtime_error;
+};
 
 struct FlightCondition {
     double altitude_min;

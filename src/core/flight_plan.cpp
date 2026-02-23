@@ -3,11 +3,14 @@
 FlightPlan::FlightPlan(std::string filename) {
     std::ifstream file(filename);
     if (!file.is_open()) {
-        std::cerr << "Failed to open config file: " << filename << ". Using defaults." << std::endl;
-        return;
+        throw FlightPlanError("Failed to open flight plan file: " + filename);
     }
     json flightPlan;
-    file >> flightPlan;
+    try {
+        flightPlan = json::parse(file);
+    } catch (const json::parse_error& e) {
+        throw FlightPlanError("Failed to parse flight plan file: " + filename + " — " + e.what());
+    }
     parseFlightPlan(flightPlan);
 }
 
