@@ -39,8 +39,21 @@ TEST(ConfigTest, LoadFromFileValid) {
 
 TEST(ConfigTest, LoadFromFileInvalid) {
     Config config;
-    // Nonexistent file
-    EXPECT_DOUBLE_EQ(config.rocket_mass, 501000.0);  // Should retain default value
+    // Nonexistent file should throw ConfigError
+    EXPECT_THROW(config.loadFromFile("nonexistent_file.json"), ConfigError);
+    // Defaults should be retained after failed load
+    EXPECT_DOUBLE_EQ(config.rocket_mass, 501000.0);
+}
+
+TEST(ConfigTest, LoadFromFileMalformedJson) {
+    std::ofstream file("./var/test_malformed.json");
+    file << "{ this is not valid json !!!";
+    file.close();
+
+    Config config;
+    EXPECT_THROW(config.loadFromFile("./var/test_malformed.json"), ConfigError);
+    // Defaults should be retained after parse failure
+    EXPECT_DOUBLE_EQ(config.rocket_mass, 501000.0);
 }
 
 TEST(ConfigTest, MoonParameters) {
